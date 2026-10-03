@@ -1,0 +1,252 @@
+{
+  "review_type": "read-only static analysis; no application tests or service calls performed",
+  "closing_inventory_time": "2026-10-03T12:55:04.319771-07:00",
+  "scope_note": "Hashes record source files at closing inventory, not an atomic snapshot of the actively changing implementation. Inventory inclusion does not mean every line was analyzed. No source files are copied.",
+  "files": [
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/SHADOW_ARCHITECTURE.md",
+      "sha256": "c4fbb708833e97806d092c3d8f184d1d40ddc1e3ddd8066a8f0e531aa39af7e7",
+      "bytes": 36843
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/LOVABLE_PROMPT.md",
+      "sha256": "f6c072eee35521dc16245d02d506e51a8ee2cf4c50788741d6726e709d38b226",
+      "bytes": 7821
+    },
+    {
+      "path": "/Users/shubhamjoshi/Downloads/file.pdf",
+      "sha256": "57a5dd5f7c91f57204d0eb9850220692dd8018efa09bce82e0572dedd02168c8",
+      "bytes": 174120
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/__init__.py",
+      "sha256": "06d86c13d90b766ee49841875183ce5b2b9c8189a6b2c9d0f517c411e278b38d",
+      "bytes": 77
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/activity.py",
+      "sha256": "e9f723f9cadaff120f8a19c233daec419fa748f2a73ea8a6c908a30c895a2100",
+      "bytes": 2430
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/bayes.py",
+      "sha256": "a3b8e4b7eaf185c64a446e34b6c6acda7bb0978e80f937f119fd61717bb12c03",
+      "bytes": 5682
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/compiler.py",
+      "sha256": "c57686da667f5054ac801c075d5109636cd6e36b5489cdddb6a7582dee914d97",
+      "bytes": 4962
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/config.py",
+      "sha256": "0d7b98602d61a7c8d704c2845e9b2e269d697c6a702861da3d9918d7960b3985",
+      "bytes": 827
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/converse.py",
+      "sha256": "d93ddf682988fe9d6393980f12869d8042304b85582814c36ab495e36cd36cab",
+      "bytes": 6281
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/dsl.py",
+      "sha256": "1fa87c6a61793fcd8d6d5f7c911a5bb84eb7295d9344f02a8dd9ff73e01f0ce1",
+      "bytes": 6348
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/engine.py",
+      "sha256": "67ed65e39350723ed3242b3eea80ad4205b2b726d60e20c6c948c7da995e4884",
+      "bytes": 65352
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/exports.py",
+      "sha256": "802bb895d8a751616af8eae7cff4d71b1c79ff12a3e947d4dbfcfa6ee1633772",
+      "bytes": 3484
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/hypotheses.py",
+      "sha256": "3d4ed9604d159be386e1776c98b800992aa78027cbf92f69f79baf2395998d3f",
+      "bytes": 8384
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/llm.py",
+      "sha256": "ebbc2f42cf1259d3f14478136248c07589429c99eabcfca649be04de85666cf0",
+      "bytes": 3067
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/main.py",
+      "sha256": "f927cd4dd1e58b8186750769e66f49a49f0b451890c60dd154acf2a933e09f86",
+      "bytes": 14536
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/novice.py",
+      "sha256": "2af7301f9d2e6380aa75b265ca61866b8f760d0e0933358b5941575a18a159c5",
+      "bytes": 3290
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/perception.py",
+      "sha256": "ecb1398dcbad71e3a950866e052d642f7b99638e459999a085d6b5dddec6864f",
+      "bytes": 2366
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/planner.py",
+      "sha256": "4a35110fc83c06ea0d2988a8160c2cb3284a662555fee8278827133a690716a2",
+      "bytes": 7981
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/questions.py",
+      "sha256": "89df9a8368596e38f7d3654f66ddb178950ba923491b079c0efefb7f43902c67",
+      "bytes": 4154
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/sim.py",
+      "sha256": "11758477ae0cf16cd1e5fc2a26f88c2dc17d65920388cf9f83e12f6d288ee5c8",
+      "bytes": 6697
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/store.py",
+      "sha256": "3bdac03c7bb8d16a008522d906113b484967454e8a7d3a16772d0deb35126bf6",
+      "bytes": 3645
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/workmap.py",
+      "sha256": "5a6c4d63a82b64d3180709398b51f4b2bbd464f842b119638a8d86898da65a00",
+      "bytes": 10611
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/packs/__init__.py",
+      "sha256": "f6cbb9a50027a133512295713501b9465335387b4d03f4d27ad4fa2a1db1d8dd",
+      "bytes": 388
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/packs/ap_invoices/__init__.py",
+      "sha256": "3ef8bee58be20d22758154b36a52d1c71b250b71a53ee75a4d14153fdc451332",
+      "bytes": 22941
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/packs/ap_invoices/oracle.py",
+      "sha256": "f2c22e9e928006211a4a0a75f30d516728c5c71bb442f1254b439f69d4152eb0",
+      "bytes": 4882
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/packs/base.py",
+      "sha256": "98ba05759c2c7c3147305bbca6f080c518a21a1a0316bde89530d05ae51a792d",
+      "bytes": 1633
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/packs/ap_invoices/process_doc_2019.md",
+      "sha256": "3dba6a3b8bff3a49ef5daa6cceb8d93af1ec07f8dbd736597ee927a0e22c60fc",
+      "bytes": 1083
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/tests/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/tests/test_core.py",
+      "sha256": "1d688cde9796e355f8ff0f71c7b4747955d8f1895c5a899d14d8196b2cea4506",
+      "bytes": 6831
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/tests/test_engine.py",
+      "sha256": "0fd9d3d74c8b09e27438df3efacdc58bae292f1d12dc8eeddfaea0673e4bf945",
+      "bytes": 5015
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/backend/shadow/static/capture.js",
+      "sha256": "9aba228465e97dc9cd24c76a38051f5973e5011391eb5eeeb41038522806d639",
+      "bytes": 8127
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Checklist.tsx",
+      "sha256": "ebca20d8e7625345f6849bf613f25866716f90d27f08a15f73fd756287a89a5f",
+      "bytes": 1531
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Feed.tsx",
+      "sha256": "40dcf9501e5fba6beae8c360872b55c38c103ff16ba5d2d40f85aa4378f31ffe",
+      "bytes": 4309
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Hypotheses.tsx",
+      "sha256": "9a07e53b5cc66ddc89ad21bca7bd5598f21069961219b787063a7a8d318b8489",
+      "bytes": 2666
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Mastery.tsx",
+      "sha256": "e6c8cc865956a10c6141a167bcb28dfed5519268d4586e0e348be67b4fe4199f",
+      "bytes": 1060
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/MomentModal.tsx",
+      "sha256": "a47f1648fb4dcfecd72ab1595d8a2dbfafe8694c6fb3d250ddb79fb52129a571",
+      "bytes": 2091
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Prediction.tsx",
+      "sha256": "af4e1523008b119936cc407b9e754688ad3cf98442b2283871f0b4f399c07ae9",
+      "bytes": 3120
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Question.tsx",
+      "sha256": "d5d8c84166158e59e654b424929535cfee5a4d3f699a7d9f821ac91800c32dee",
+      "bytes": 1964
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/Threshold.tsx",
+      "sha256": "d485bfd931a3d54384e414d92b4533cfd46c28c314a7985d51c5872ff8aa8c0f",
+      "bytes": 2078
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/WorkMapView.tsx",
+      "sha256": "bf8c6a57c3b72ffabdab4cd1044750ec62b3ffe4bf3f0781fd61350966dd7790",
+      "bytes": 4812
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/components/ui.tsx",
+      "sha256": "7f76e15317da38e8d03d31adf51d5ed6bfc5194a1c75894acd362005c57f3ec3",
+      "bytes": 3907
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/lib/voice.tsx",
+      "sha256": "4e65f9d4c0c371fcc47993b9581bc103d207cd9728ed7647224f90e0d068c312",
+      "bytes": 3600
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/main.tsx",
+      "sha256": "2e36dccc1a0444db4290de2eb881eb4d4fd9289eee842ed9e2657bb61da3cd5f",
+      "bytes": 594
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/pages/Console.tsx",
+      "sha256": "592bd6ce925f9d85381bd9def860ae199565b7758d8136b00696227b7cb5aad9",
+      "bytes": 15446
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/pages/Home.tsx",
+      "sha256": "a8727b0ae00bbb6373737567034d440770a255ee323d31dc0f774e9149aa099c",
+      "bytes": 6114
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/pages/MapPage.tsx",
+      "sha256": "5a079a217e4851a40efb2df716230c671b95e6a8f64d05453d4a934c6437f0cf",
+      "bytes": 6572
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/lib/api.ts",
+      "sha256": "3537ce0f0357a9c5d630a423303dd922dab073a35c805c20b9139ffbe7e16673",
+      "bytes": 5027
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/lib/screen.ts",
+      "sha256": "081864c8ebfcb7eaf555a84ea05a1406d5e9ac3c8d5a26d17f1e11df04a72b91",
+      "bytes": 5227
+    },
+    {
+      "path": "/Users/shubhamjoshi/Hacknation 2/web/src/lib/types.ts",
+      "sha256": "511b6bf3f9fe77538befb065eb4afbadbe1726c7f7cd8d92a077b79e527171f9",
+      "bytes": 4762
+    }
+  ]
+}
