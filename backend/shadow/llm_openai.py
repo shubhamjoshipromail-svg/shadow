@@ -42,6 +42,11 @@ def _convert(content: str | list[dict[str, Any]]) -> str | list[dict[str, Any]]:
     return parts
 
 
+def _extra(model: str) -> dict[str, Any]:
+    reasoning = model.startswith(("gpt-5", "gpt-6", "o3", "o4"))
+    return {"reasoning_effort": config.OPENAI_REASONING_EFFORT} if reasoning else {}
+
+
 def _meter(model: str, usage: Any) -> None:
     if usage is None:
         return
@@ -52,7 +57,7 @@ def _meter(model: str, usage: Any) -> None:
 
 async def parse(schema: type[T], system: str, content: Any, model: str, max_tokens: int) -> T | None:
     resp = await client().chat.completions.parse(
-        model=model, max_completion_tokens=max_tokens, response_format=schema,
+        model=model, max_completion_tokens=max_tokens, response_format=schema, **_extra(model),
         messages=[{"role": "system", "content": system}, {"role": "user", "content": _convert(content)}],
     )
     _meter(model, resp.usage)
@@ -63,7 +68,7 @@ async def parse(schema: type[T], system: str, content: Any, model: str, max_toke
 async def stream_text(system: str, messages: list[dict[str, Any]], model: str, max_tokens: int) -> AsyncIterator[str]:
     msgs = [{"role": "system", "content": system}] + [{"role": m["role"], "content": _convert(m["content"])}
                                                        for m in messages]
-    stream = await client().chat.completions.create(model=model, max_completion_tokens=max_tokens, messages=msgs,
+    stream = await client().chat.completions.create(model=model, max_completion_tokens=max_tokens, messages=msgs, **_extra(model),
                                                     stream=True, stream_options={"include_usage": True})
     async for chunk in stream:
         if chunk.usage:

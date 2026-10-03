@@ -32,6 +32,8 @@ PRICES: dict[str, tuple[float, float]] = {
     "claude-opus-5-5": (4.0, 20.0),
     "gpt-4.1-mini": (0.4, 1.6),
     "gpt-4.1": (2.0, 8.0),
+    "gpt-6-luna": (0.10, 0.50),
+    "gpt-6-sol": (1.25, 10.0),
 }
 
 
@@ -70,10 +72,11 @@ class Meter:
 meter = Meter()
 
 
-def _providers() -> list[str]:
+def _providers(tier: Tier | None = None) -> list[str]:
     keys = {"anthropic": config.ANTHROPIC_API_KEY, "openai": config.OPENAI_API_KEY}
     now = time.time()
-    order = [p.strip() for p in config.LLM_PROVIDERS.split(",") if p.strip()]
+    spec = config.TIER_PROVIDERS.get(tier, config.LLM_PROVIDERS) if tier else config.LLM_PROVIDERS
+    order = [p.strip() for p in spec.split(",") if p.strip()]
     live = [p for p in order if keys.get(p) and meter.benched.get(p, 0) < now]
     # if everything is benched, try the benched ones anyway rather than fail outright
     return live or [p for p in order if keys.get(p)]
@@ -141,7 +144,7 @@ async def parse(schema: type[T], system: str, content: str | list[dict[str, Any]
                 max_tokens: int = 4000) -> T:
     """Structured output, routed across providers."""
     errors = []
-    for provider in _providers():
+    for provider in _providers(tier):
         model = _model(provider, tier)
         try:
             if provider == "anthropic":
@@ -174,7 +177,7 @@ async def text(system: str, content: str | list[dict[str, Any]], *, tier: Tier =
 
 async def stream_text(system: str, messages: list[dict[str, Any]], *, tier: Tier = "fast",
                       max_tokens: int = 400) -> AsyncIterator[str]:
-    for provider in _providers():
+    for provider in _providers(tier):
         model = _model(provider, tier)
         started = False
         try:

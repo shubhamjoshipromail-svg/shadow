@@ -81,12 +81,16 @@ async def compile_answer(pack: Pack, wm: WorkMap, inquiry: dict[str, Any], trans
                                                 for g in wm.guardrails])
     )
     out = await llm.parse(Compiled, SYSTEM, user, tier="reason", max_tokens=3000)
+    allowed = {f.name: set(f.options) for f in pack.decision_fields if f.options}
+    allowed["action"] = set(pack.actions) | {"block"}
     valid = []
     for r in out.rules:
         try:
             dsl.validate(r.when)
-            valid.append(r)
         except dsl.DSLError:
             continue
+        if r.field in allowed and str(r.value) not in allowed[r.field]:
+            continue  # e.g. "hold; do not book" is not an action the ERP has
+        valid.append(r)
     out.rules = valid
     return out
