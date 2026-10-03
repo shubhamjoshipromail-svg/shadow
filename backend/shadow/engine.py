@@ -668,7 +668,8 @@ class Session:
 
         new_nodes = []
         for cr in compiled.rules:
-            node = self._node_from_compiled(cr, quote, moment, q)
+            own = quote.model_copy(update={"text": cr.quote}) if cr.quote and cr.quote.strip() else quote
+            node = self._node_from_compiled(cr, own, moment, q)
             if node is None:
                 continue
             new_nodes.append(node)

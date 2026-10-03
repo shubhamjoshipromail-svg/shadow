@@ -25,6 +25,7 @@ class CompiledRule(BaseModel):
     parent_id: str | None = Field(None, description="For exceptions: the rule id it overrides")
     guardrail_type: Literal["hard_limit", "stop_and_ask", "hold", "second_approval"] | None = None
     ask: str | None = Field(None, description="Who to ask, for stop_and_ask guardrails")
+    quote: str | None = Field(None, description="The expert's sentence that states THIS rule, verbatim")
 
 
 class ThresholdStatement(BaseModel):

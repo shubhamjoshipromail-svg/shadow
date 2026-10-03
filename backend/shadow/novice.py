@@ -38,7 +38,7 @@ def _schema_for(pack: Pack) -> type[BaseModel]:
 def _rules_text(wm: WorkMap) -> str:
     lines = []
     for r in wm.rules:
-        if r.belief.status in ACTIVE:
+        if r.origin != "doc" and r.belief.status in ACTIVE:
             lines.append(f"- [{r.id}] {r.title}  (if {r.when} then {json.dumps(r.then)})")
     for g in wm.guardrails:
         if g.belief.status in ACTIVE:
