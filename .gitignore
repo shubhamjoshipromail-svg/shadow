@@ -39,3 +39,4 @@ __pycache__/
 .env
 *.db
 .claude/
+backend/.elevenlabs_agents.json

@@ -904,6 +904,7 @@ class Session:
         await self._add_unverified_confirms()
         self._add_conflict_probes()
         self._add_coverage_probes()
+        self._add_exploration_probes()
         self._build_exam()
         await self.emit("mode", {"mode": "debrief", "agenda": [q.to_json() for q in self.planner.debrief_agenda()],
                                  "understood": self.understood()})
@@ -999,6 +1000,75 @@ class Session:
             q.text = questions.template(self.pack, "counterfactual", case=base, field=f, expert_value=v,
                                         probe_delta=q.probe_delta)
             self.planner.enqueue(q)
+
+    def _add_exploration_probes(self, budget: int = 3) -> None:
+        """Unknown unknowns: facts on the case that no learned rule mentions yet.
+
+        Divergence-driven questions only cover what the expert happened to do. A hidden guardrail
+        (e.g. a new supplier whose bank details just changed) never shows up if no such case came by,
+        and guardrails are often conjunctions. So Shadow changes one or two unreferenced facts on a
+        case it saw and asks whether its decision would still hold. Pairs come first: a "no" there
+        still gets narrowed down by the follow-up question.
+        """
+        referenced: set[str] = set()
+        for n in [*self.wm.rules, *self.wm.guardrails]:
+            if n.origin != "doc":
+                try:
+                    referenced |= {r.split(".", 1)[1] for r in dsl.fields_referenced(n.when) if r.startswith("inv.")}
+                except dsl.DSLError:
+                    continue
+        noise = {"id", "supplier_id", "supplier_name", "day", "month", "dup_days", "days_to_skonto", "n_lines",
+                 "categories", "net", "gross", "net_eur", "gross_eur", "vat_rate", "supplier_country", "domestic"}
+
+        def novel_change(base: dict[str, Any], v: dict[str, Any]) -> tuple[set[str], set[str]]:
+            b, x = self.pack.derive(base)["inv"], self.pack.derive(v)["inv"]
+            changed = {k for k in x if x[k] != b.get(k)} - noise
+            return changed, changed - referenced
+
+        singles: list[tuple[dict[str, Any], dict[str, Any], set[str]]] = []
+        for v in self._probe_space():
+            base = self.cases.get(v["_probe"]["base"] or "")
+            if base is None:
+                continue
+            changed, novel = novel_change(base, v)
+            if novel and len(changed) <= 2:
+                singles.append((base, v, novel))
+        pairs, seen = [], set()
+        rng = random.Random(77)
+        for base, v1, n1 in singles:
+            for v2 in self.pack.perturb(v1, rng):
+                changed, novel = novel_change(base, v2)
+                key = ",".join(sorted(novel))
+                if len(novel) >= 2 and len(changed) <= 3 and key not in seen and not novel <= n1:
+                    seen.add(key)
+                    v2["_probe"] = {"base": base["id"], "delta": f"{v1['_probe']['delta']}, and {v2['_probe']['delta']}"}
+                    pairs.append((base, v2, novel))
+        priors = getattr(self.pack, "exploration_priors", [])
+
+        def prior_score(novel: set[str]) -> int:
+            # 2: covers a known guardrail family exactly; 1: touches one; 0: blind exploration
+            if any(p <= novel and novel <= p | {"eu_foreign", "intercompany"} for p in priors):
+                return 2
+            return 1 if any(p & novel for p in priors) else 0
+
+        candidates = sorted(pairs + singles, key=lambda t: -prior_score(t[2]))
+        picked, covered = 0, set()
+        for base, v, novel in candidates:
+            if picked >= budget:
+                break
+            if novel & covered:
+                continue  # spread probes across different facts so one rule can't mask the rest
+            covered |= novel
+            pred = run_map(self.wm, self.pack, v)
+            expected = pred.action.value if pred.action else None
+            q = Inquiry(id=self.planner.new_id(), type="counterfactual", case_id=base["id"], field="action",
+                        evoi=0.55, impact=0.6, guardrail_gap=0.5, phase="debrief", probe_case=v,
+                        probe_delta=self.pack.describe_delta(base, v), expert_value=expected, text="",
+                        reason=f"exploration: no rule mentions {', '.join(sorted(novel))} yet")
+            q.text = questions.template(self.pack, "counterfactual", case=base, field="action",
+                                        expert_value=expected, probe_delta=q.probe_delta)
+            self.planner.enqueue(q)
+            picked += 1
 
     def _build_exam(self, k: int = 5) -> None:
         """Unseen cases spanning the rule boundaries. Predictions are frozen now, before any answer."""

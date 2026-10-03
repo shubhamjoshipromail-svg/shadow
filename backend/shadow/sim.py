@@ -35,6 +35,15 @@ TRUTH: dict[str, dict[str, Any]] = {
                                        when="inv.category == 'it_hardware' and inv.net_eur > params.T_capex",
                                        field="cost_center", value="0410"),
                       threshold=ThresholdStatement(param="T_capex", value=5000, quantity="inv.net_eur")),
+    "variance": dict(rule=CompiledRule(title="More than 2% over the PO price: hold and ask purchasing",
+                                       when="inv.price_variance_pct > params.T_variance", field="action",
+                                       value="hold", kind="guardrail", guardrail_type="hold", ask="purchasing"),
+                     threshold=ThresholdStatement(param="T_variance", value=2, quantity="inv.price_variance_pct",
+                                                  kind="pct")),
+    "fraud": dict(rule=CompiledRule(title="New supplier with changed bank details: stop and ask the controller",
+                                    when="inv.supplier_status in ['new', 'unknown'] and inv.bank_changed",
+                                    field="action", value="escalate", kind="guardrail",
+                                    guardrail_type="stop_and_ask", ask="Controller T. Brandt")),
     "rc": dict(rule=CompiledRule(title="EU supplier outside Germany: reverse charge", when="inv.eu_foreign",
                                  field="tax_code", value="RC")),
     "asset": dict(rule=CompiledRule(title="No asset number, no capex booking",
@@ -49,7 +58,7 @@ FIELD_TRUTH = {
 
 
 async def fake_propose(pack, wm, case, field, expert_value, predicted_value, attention) -> list[ProposedRule]:
-    key = FIELD_TRUTH.get((field, expert_value))
+    key = truth_for(case, field, expert_value)
     out = []
     if key:
         r = TRUTH[key]["rule"]
@@ -84,12 +93,28 @@ class FakeCompiler:
             return Compiled(answers_question=True, key_quote=REASONS["asset"], rules=[t["rule"]], strength="never")
         if qtype == "confirm":
             return Compiled(answers_question=True, key_quote=transcript, confirms=True)
-        key = FIELD_TRUTH.get((field, inquiry.get("expert_value")))
+        key = truth_for(case, field, inquiry.get("expert_value"))
         if not key:
             return Compiled(answers_question=True, key_quote=transcript)
         t = TRUTH[key]
         return Compiled(answers_question=True, key_quote=REASONS.get(key.split("_")[0], transcript),
                         rules=[t["rule"]], threshold=t.get("threshold"), strength="always")
+
+
+REASON_TRUTH = {"capex": "capex", "capex_it": "capex_it", "dup": "dup", "fraud": "fraud", "variance": "variance",
+                "asset": "asset", "rc": "rc", "skonto": "skonto", "ic": "ic"}
+
+
+def truth_for(case: dict[str, Any] | None, field: str | None, value: Any) -> str | None:
+    """The hidden rule that actually explains `value` for `field` on this case."""
+    if case is not None:
+        for reason in decide(case).reasons:
+            key = REASON_TRUTH.get(reason)
+            if key == "ic" and field == "action":
+                key = "ic_action"
+            if key and TRUTH[key]["rule"].field == field and str(TRUTH[key]["rule"].value) == str(value):
+                return key
+    return FIELD_TRUTH.get((field, value))
 
 
 def sim_answer(session, q) -> str:
@@ -105,7 +130,8 @@ def sim_answer(session, q) -> str:
         oracle = OracleSabine()
         ans = oracle.answer_probe(q.probe_case, q.field or "action")
         return f"In that case I'd {questions.value_phrase(PACK, q.field or 'action', ans)}."
-    key = FIELD_TRUTH.get((q.field, q.expert_value))
+    case = q.probe_case if q.probe_case is not None else session.cases.get(q.case_id or "")
+    key = truth_for(case, q.field, q.expert_value)
     return REASONS.get(key.split("_")[0], "It's just how we do it.") if key else "It's just how we do it."
 
 

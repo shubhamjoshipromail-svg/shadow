@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="790" viewBox="0 0 1120 790">
+<rect width="1120" height="790" fill="#101924"/>
+<style>text{font-family:Arial,sans-serif;fill:#e4edf8}.muted{fill:#a4b2c6}.tick{font-size:13px}</style>
+<text x="40" y="44" font-size="26" class="">Learning simulated Sabine’s invoice decisions</text>
+<text x="40" y="72" font-size="15" class="muted">Synthetic, oracle-assisted stand-ins · 4 observed capture cases · 60 held-out cases (seed 999)</text>
+<text x="50" y="123" font-size="19" class="">Whole-decision agreement</text>
+<path d="M85,427.0h360" stroke="#2a394c"/>
+<text x="45" y="432.0" font-size="13" class="tick">0%</text>
+<path d="M85,375.0h360" stroke="#2a394c"/>
+<text x="45" y="380.0" font-size="13" class="tick">20%</text>
+<path d="M85,323.0h360" stroke="#2a394c"/>
+<text x="45" y="328.0" font-size="13" class="tick">40%</text>
+<path d="M85,271.0h360" stroke="#2a394c"/>
+<text x="45" y="276.0" font-size="13" class="tick">60%</text>
+<path d="M85,219.0h360" stroke="#2a394c"/>
+<text x="45" y="224.0" font-size="13" class="tick">80%</text>
+<path d="M85,167.0h360" stroke="#2a394c"/>
+<text x="45" y="172.0" font-size="13" class="tick">100%</text>
+<text x="75.0" y="454" font-size="13" class="tick">0</text>
+<text x="255.0" y="454" font-size="13" class="tick">0.2</text>
+<text x="435.0" y="454" font-size="13" class="tick">0.4</text>
+<text x="70" y="483" font-size="14" class="muted">Injected explanation corruption probability c</text>
+<polyline fill="none" stroke="#8290a5" stroke-width="3" points="85.00,327.33 265.00,327.33 445.00,327.33"/>
+<circle cx="85.00" cy="327.33" r="5" fill="#8290a5"/>
+<circle cx="265.00" cy="327.33" r="5" fill="#8290a5"/>
+<circle cx="445.00" cy="327.33" r="5" fill="#8290a5"/>
+<polyline fill="none" stroke="#49dfb4" stroke-width="3" points="85.00,171.33 265.00,171.33 445.00,245.00"/>
+<circle cx="85.00" cy="171.33" r="5" fill="#49dfb4"/>
+<circle cx="265.00" cy="171.33" r="5" fill="#49dfb4"/>
+<circle cx="445.00" cy="245.00" r="5" fill="#49dfb4"/>
+<polyline fill="none" stroke="#f6b65c" stroke-width="3" points="85.00,236.33 265.00,236.33 445.00,271.00"/>
+<circle cx="85.00" cy="236.33" r="5" fill="#f6b65c"/>
+<circle cx="265.00" cy="236.33" r="5" fill="#f6b65c"/>
+<circle cx="445.00" cy="271.00" r="5" fill="#f6b65c"/>
+<text x="610" y="123" font-size="19" class="">Expert questions asked</text>
+<path d="M645,427.0h360" stroke="#2a394c"/>
+<text x="605" y="432.0" font-size="13" class="tick">0</text>
+<path d="M645,375.0h360" stroke="#2a394c"/>
+<text x="605" y="380.0" font-size="13" class="tick">9</text>
+<path d="M645,323.0h360" stroke="#2a394c"/>
+<text x="605" y="328.0" font-size="13" class="tick">18</text>
+<path d="M645,271.0h360" stroke="#2a394c"/>
+<text x="605" y="276.0" font-size="13" class="tick">27</text>
+<path d="M645,219.0h360" stroke="#2a394c"/>
+<text x="605" y="224.0" font-size="13" class="tick">36</text>
+<path d="M645,167.0h360" stroke="#2a394c"/>
+<text x="605" y="172.0" font-size="13" class="tick">45</text>
+<text x="635.0" y="454" font-size="13" class="tick">0</text>
+<text x="815.0" y="454" font-size="13" class="tick">0.2</text>
+<text x="995.0" y="454" font-size="13" class="tick">0.4</text>
+<text x="630" y="483" font-size="14" class="muted">Injected explanation corruption probability c</text>
+<polyline fill="none" stroke="#8290a5" stroke-width="3" points="645.00,427.00 825.00,427.00 1005.00,427.00"/>
+<circle cx="645.00" cy="427.00" r="5" fill="#8290a5"/>
+<circle cx="825.00" cy="427.00" r="5" fill="#8290a5"/>
+<circle cx="1005.00" cy="427.00" r="5" fill="#8290a5"/>
+<polyline fill="none" stroke="#49dfb4" stroke-width="3" points="645.00,271.00 825.00,201.67 1005.00,184.33"/>
+<circle cx="645.00" cy="271.00" r="5" fill="#49dfb4"/>
+<circle cx="825.00" cy="201.67" r="5" fill="#49dfb4"/>
+<circle cx="1005.00" cy="184.33" r="5" fill="#49dfb4"/>
+<polyline fill="none" stroke="#f6b65c" stroke-width="3" points="645.00,392.33 825.00,392.33 1005.00,392.33"/>
+<circle cx="645.00" cy="392.33" r="5" fill="#f6b65c"/>
+<circle cx="825.00" cy="392.33" r="5" fill="#f6b65c"/>
+<circle cx="1005.00" cy="392.33" r="5" fill="#f6b65c"/>
+<path d="M75,530h26" stroke="#8290a5" stroke-width="4"/>
+<text x="111" y="535" font-size="15" class="">Doc only</text>
+<path d="M415,530h26" stroke="#49dfb4" stroke-width="4"/>
+<text x="451" y="535" font-size="15" class="">Shadow + debrief</text>
+<path d="M755,530h26" stroke="#f6b65c" stroke-width="4"/>
+<text x="791" y="535" font-size="15" class="">Always why (approx.)</text>
+<text x="40" y="573" font-size="14" class="muted">Computed results: exact cases / 60 · field agreement · questions · corrupted / eligible why answers</text>
+<text x="40" y="599" font-size="13" class="">Doc only                  c=0   23/60   fields 78.3%   Q=0   corrupt=0/0</text>
+<text x="40" y="619" font-size="13" class="">Shadow + debrief          c=0   59/60   fields 99.6%   Q=27   corrupt=0/9</text>
+<text x="40" y="639" font-size="13" class="">Always why (approx.)      c=0   44/60   fields 92.5%   Q=6   corrupt=0/6</text>
+<text x="40" y="659" font-size="13" class="">Shadow + debrief          c=0.2   59/60   fields 99.6%   Q=39   corrupt=1/11</text>
+<text x="40" y="679" font-size="13" class="">Always why (approx.)      c=0.2   44/60   fields 92.5%   Q=6   corrupt=0/6</text>
+<text x="40" y="699" font-size="13" class="">Shadow + debrief          c=0.4   42/60   fields 92.5%   Q=42   corrupt=4/14</text>
+<text x="40" y="719" font-size="13" class="">Always why (approx.)      c=0.4   36/60   fields 89.2%   Q=6   corrupt=2/6</text>
+<text x="40" y="750" font-size="13" class="muted">Unequal budgets: Shadow includes counterfactuals, self-exam and teach-back; Always why skips verification.</text>
+<text x="40" y="772" font-size="13" class="muted">Single noise seed, three rates: descriptive simulation, not an estimate of real-world accuracy or robustness.</text>
+</svg>

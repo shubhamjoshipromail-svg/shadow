@@ -75,6 +75,15 @@ class APInvoicesPack:
         FieldSpec("payment_timing", "Payment timing", ["skonto", "due"]),
     ]
     actions = ["post", "hold", "second_approval", "escalate", "reject"]
+    # Role-level priors (the cross-customer predicate library): fact combinations that AP experts
+    # commonly guard on. Shadow explores these first when no learned rule mentions them yet.
+    exploration_priors = [
+        {"supplier_status", "bank_changed"},  # supplier verification / payment fraud
+        {"price_variance_pct"},               # PO price tolerance
+        {"qty_ratio"},                        # goods-receipt quantity tolerance
+        {"dup_amount_recent"},                # duplicate billing
+        {"asset_number_available"},           # capitalisation prerequisites
+    ]
     action_precedence = ["escalate", "reject", "hold", "second_approval", "post"]
 
     # ------------------------------------------------------------------ cases
