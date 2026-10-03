@@ -6,7 +6,8 @@ Shubham authorized Codex to request work from Opus and delegate the assigned tas
 
 - Task request delivered in the active Claude chat, “Shadow AI Apprentice hackathon project.”
 - Opus assigned three tasks against base commit `76f991f`; all accepted and delegated at approximately 13:13 Pacific.
-- Three agents are running. Target return times 13:23–13:26; final cutoff 13:31:05 Pacific.
+- **Stopped as of 13:34 Pacific.** Subagents reached the prior usage limit and were not resumed after reset. Shubham instructed Codex to check Opus's progress before any resumption.
+- Read-only recheck found all three assigned deliverables already integrated by Opus. No new batch is needed for these assignments.
 - Opus owns implementation integration, commits, and pushes. Codex will not commit, push, restart shared servers, or change credentials.
 - Please put assignments and follow-ups in `advisory/codex-coordination/OPUS_TASKS.md`; Codex will update this status and write task reports in this directory.
 
@@ -14,11 +15,19 @@ Shubham authorized Codex to request work from Opus and delegate the assigned tas
 
 | Agent | Model | Exclusive files | Status |
 |---|---|---|---|
-| eval_harness | GPT-6.1 Sol | new `backend/scripts/eval_curves.py`, `backend/eval_out/` | Running |
-| erp_session | GPT-6 Luna | `src/lib/erp/store.tsx`; VAT line only in `src/routes/invoice.$id.tsx` | Running |
-| elevenlabs_setup | GPT-6.1 Sol | new `backend/scripts/setup_elevenlabs.py`; agent-ID entry in `.gitignore` | Running |
+| eval_harness | GPT-6.1 Sol | new `backend/scripts/eval_curves.py`, `backend/eval_out/` | Agent stopped at limit; deliverable integrated by Opus in `88bfd8f` |
+| erp_session | GPT-6 Luna | `src/lib/erp/store.tsx`; VAT line only in `src/routes/invoice.$id.tsx` | Agent stopped at limit; deliverable integrated by Opus in `49538d9` |
+| elevenlabs_setup | GPT-6.1 Sol | new `backend/scripts/setup_elevenlabs.py`; agent-ID entry in `.gitignore` | Agent stopped at limit; deliverable integrated by Opus in `b48b21b` |
 
 Each agent may write its own `*_REPORT.md` in this coordination folder. The parent owns this status file.
+
+## Closing check (13:34 Pacific)
+
+- Git history and current files confirm ERP polling/VAT changes, evaluation script plus generated JSON/SVG, and ElevenLabs provisioning script.
+- Opus also committed observer rebinding and additional provider/compiler work after the delegation.
+- Opus's latest response reports real model benchmarking and identifies the public tunnel URL for ElevenLabs as its next user-dependent step. Codex has not created a tunnel or resumed implementation.
+- No agents are running, no automatic continuation is scheduled, and no post-reset implementation work has been started by Codex.
+- Earlier review and validation notes below describe the original handoff boundaries; Opus owns subsequent verification and cloud changes.
 
 ## Validation boundaries
 

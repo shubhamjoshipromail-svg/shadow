@@ -356,8 +356,12 @@
           '<div class="row"><span>Rules learned</span><b id="m-rl">\u2014</b></div>' +
           '<div class="row"><span>Rules confirmed</span><b id="m-rc">\u2014</b></div>' +
           '<div class="row"><span>Questions asked</span><b id="m-q">\u2014</b></div>' +
-          '<div class="acts"><button class="btn amber" id="b-ask" hidden>Ask me now</button>' +
+          '<div class="acts"><button class="btn amber" id="b-voice">Start Shadow</button>' +
+          '<button class="btn amber" id="b-ask" hidden>Ask me now</button>' +
+          '<button class="btn" id="b-debrief" hidden>Debrief me</button>' +
+          '<button class="btn" id="b-teach" hidden>Teach Lena</button>' +
           '<button class="btn" id="b-off"></button></div>' +
+          '<div class="st" id="v-st" hidden><span id="v-t"></span></div>' +
           '<a class="nb" id="nb" target="_blank" rel="noopener">Open Shadow\u2019s notebook \u2197</a>' +
         '</div>' +
         '<div class="bubble pop" id="cap"><span id="cap-t"></span></div>' +
@@ -384,6 +388,12 @@
     return F.busy ? "Watching quietly (you\u2019re busy)" : "Watching quietly";
   }
 
+  function renderVoice() {
+    var bv = $("b-voice"); if (!bv) return;
+    bv.textContent = V.conv ? "Stop voice" : (MODE === "tutor" ? "Start tutor" : "Start Shadow");
+    $("b-debrief").hidden = !(V.conv && MODE === "capture");
+    $("b-teach").hidden = !(SID && MODE !== "tutor");
+  }
   function render() {
     var cls = [];
     ["off", "hand", "asking", "thinking", "learned", "busy", "offline", "guess", "open"].forEach(function (k) { if (F[k]) cls.push(k); });
@@ -399,6 +409,7 @@
     $("b-off").textContent = F.off ? "Back on the record" : "Off the record";
     $("b-off").title = "Alt+Shift+S";
     var nb = $("nb");
+    renderVoice();
     if (SID) { nb.href = CONSOLE.replace(/\/$/, "") + "/s/" + SID; nb.style.display = ""; } else nb.style.display = "none";
     $("hc").classList.toggle("show", F.open);
     $("cap-t").textContent = F.askText;
@@ -440,11 +451,100 @@
     }).catch(function () { F.off = !off; F.offline = true; render(); });
   }
 
+  // ------------------------------------------------------------- voice (ElevenLabs, inside the observed app)
+  // Shadow decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
+  // triggers turns at the moments Shadow picks, and reports who is speaking for pause detection.
+  var V = { conv: null, role: null, status: "off", speaking: false, userTalking: false, quiet: 0 };
+  var EL_CDN = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm";
+
+  function voiceStatus(t) { V.status = t; var el = $("v-st"); if (el) { el.hidden = !t || t === "off"; $("v-t").textContent = t; } render(); }
+
+  function api(path, body) {
+    return fetch(API + path, body === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+
+  function ensureSession() {
+    if (SID) return Promise.resolve(SID);
+    return api("/api/sessions", { mode: "capture" }).then(function (snap) {
+      SID = snap.id; MODE = snap.mode; send({ type: "hello" }); return SID;
+    });
+  }
+
+  function startVoice() {
+    if (V.conv) return Promise.resolve();
+    voiceStatus("connecting…");
+    var role = MODE === "tutor" ? "tutor" : "interviewer";
+    return Promise.all([ensureSession(), api("/api/config"), import(EL_CDN)]).then(function (r) {
+      var agentId = (r[1].agents || {})[role];
+      if (!agentId) throw new Error("no " + role + " agent — run scripts/setup_elevenlabs.py");
+      return r[2].Conversation.startSession({
+        agentId: agentId,
+        connectionType: "websocket",
+        dynamicVariables: { shadow_session: SID, shadow_mode: MODE || "capture" },
+        customLlmExtraBody: { shadow_session: SID },
+        onConnect: function () { voiceStatus(role === "tutor" ? "tutor listening" : "listening"); },
+        onDisconnect: function () { V.conv = null; voiceStatus("off"); },
+        onError: function (msg) { voiceStatus("voice error: " + msg); },
+        onModeChange: function (m) {
+          V.speaking = m.mode === "speaking";
+          send({ type: "speech", who: "agent", speaking: V.speaking });
+          voiceStatus(V.speaking ? "speaking" : (role === "tutor" ? "tutor listening" : "listening"));
+        },
+        onVadScore: function (v) {
+          var now = Date.now();
+          if (v.vadScore > 0.6 && !V.userTalking) { V.userTalking = true; send({ type: "speech", who: "user", speaking: true }); }
+          if (v.vadScore < 0.3) {
+            if (!V.quiet) V.quiet = now;
+            if (V.userTalking && now - V.quiet > 600) { V.userTalking = false; send({ type: "speech", who: "user", speaking: false }); }
+          } else { V.quiet = 0; }
+        }
+      });
+    }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) { V.conv = null; voiceStatus("couldn’t start: " + e.message); });
+  }
+
+  function stopVoice() { var c = V.conv; V.conv = null; if (c) c.endSession(); voiceStatus("off"); }
+  function say(tag) { if (V.conv) V.conv.sendUserMessage(tag); }
+
+  function startDebrief() {
+    if (!SID) return;
+    api("/api/sessions/" + SID + "/debrief", {}).then(function () { MODE = "debrief"; say("[[shadow:debrief]]"); render(); });
+  }
+
+  function teachLena() {
+    var from = SID;
+    stopVoice();
+    api("/api/sessions", { mode: "tutor", trainee: NOVICE, from_session: from }).then(function (snap) {
+      SID = snap.id; MODE = "tutor"; send({ type: "hello" }); render();
+      setTimeout(function () { location.href = "/"; }, 300);  // reload so the inbox shows the new hire's cases
+    });
+  }
+  if (sessionStorage.getItem("shadow.voice") === "on") setTimeout(function () { if (SID) startVoice(); }, 1500);
+
+  var _onServer = onServer;
+  onServer = function (m) {
+    _onServer(m);
+    if (m.type === "ask" && MODE !== "tutor") say("[[shadow:ask " + m.inquiry.id + "]]");
+    if (m.type === "intervene" && m.intervention && m.intervention.id) say("[[shadow:intervene " + m.intervention.id + "]]");
+    if (m.type === "session" || m.type === "mode") {
+      var want = MODE === "tutor" ? "tutor" : "interviewer";
+      if (V.conv && V.role !== want) { stopVoice(); startVoice(); }
+    }
+  };
+
   $("kid").addEventListener("click", function () {
     if (F.hand) { askNow(); return; }
     clearTimeout(T.open); F.open = !F.open; render();
   });
   $("later").addEventListener("click", function (e) { e.stopPropagation(); askLater(); });
+  $("b-voice").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (V.conv) { sessionStorage.removeItem("shadow.voice"); stopVoice(); }
+    else { sessionStorage.setItem("shadow.voice", "on"); startVoice(); }
+  });
+  $("b-debrief").addEventListener("click", function (e) { e.stopPropagation(); startDebrief(); });
+  $("b-teach").addEventListener("click", function (e) { e.stopPropagation(); teachLena(); });
   $("b-ask").addEventListener("click", askNow);
   $("b-off").addEventListener("click", toggleRecord);
   $("kid").addEventListener("mouseenter", function () {
