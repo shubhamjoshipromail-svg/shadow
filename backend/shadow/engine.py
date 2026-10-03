@@ -21,7 +21,8 @@ from typing import Any, Awaitable, Callable
 import numpy as np
 
 from shadow import compiler as compiler_mod
-from shadow import dsl, hypotheses, llm, novice, questions
+from shadow import dsl, hypotheses, llm, novice, questions, receipts
+from shadow import proof as proof_mod
 from shadow.activity import ActivityTracker
 from shadow.bayes import ThresholdPosterior, bald_discrete, entropy, posterior_update
 from shadow.packs.base import Pack
@@ -66,6 +67,7 @@ class DecisionPoint:
     field_moments: dict[str, dict[str, Any]] = field(default_factory=dict)
     task: asyncio.Task | None = None
     committed_at: float | None = None
+    map_version: int | None = None  # the map the committed prediction came from
 
 
 class Session:
@@ -119,6 +121,11 @@ class Session:
         self.mastery: dict[str, dict[str, Any]] = {}
         self.pending_interventions: dict[str, dict[str, Any]] = {}
         self.rng = random.Random(5)
+        self.simulated = False  # oracle-driven proposer/compiler (Rehearsal); set by the API
+        self.map_source: dict[str, Any] = {"kind": "seed" if wm is None else "given", "version": self.wm.version}
+        self.receipts: list[dict[str, Any]] = []
+        self.proofs: dict[str, dict[str, Any]] = {}
+        self.proof_round = 0
         for node in [*self.wm.rules, *self.wm.guardrails]:
             if node.origin != "doc":
                 node.refresh_belief()
@@ -170,8 +177,17 @@ class Session:
             "posteriors": {k: p.summary() for k, p in self.posteriors.items()},
             "silence_log": self.silence_log[-50:], "off_record": self.off_record,
             "understood": self.understood(), "mastery": self.mastery, "metrics": self.metrics(),
-            "activity": self.activity.state(), "simulated": getattr(self, "simulated", False),
+            "activity": self.activity.state(), "simulated": self.simulated, "map_source": self.map_source,
+            "receipts": [{**r, "summary": receipts.summarize(r)} for r in self.receipts],
+            "proofs": {k: proof_mod.view(p) for k, p in self.proofs.items()},
+            "pending": self.pending(),
         }
+
+    def pending(self) -> dict[str, Any]:
+        """Work in flight, so nobody mistakes 'still compiling' for 'learned nothing'."""
+        return {"awaiting": self.awaiting.id if self.awaiting else None,
+                "compiling": bool(self.last_learn and not self.last_learn.done()),
+                "background_tasks": len(self.tasks)}
 
     def metrics(self) -> dict[str, Any]:
         real = [e for e in self.episodes if not e.synthetic]
@@ -268,12 +284,31 @@ class Session:
         pred = await novice.predict(self.wm, self.pack, self.cases[dp.case_id], use_llm=self.use_llm)
         dp.prediction = pred
         dp.committed_at = self.now()
+        dp.map_version = self.wm.version
         await self.emit("prediction", {"case_id": dp.case_id, "prediction": pred.model_dump(),
                                        "committed_at": dp.committed_at, "map_version": self.wm.version,
                                        "case": self.pack.describe(self.cases[dp.case_id])})
 
     # ------------------------------------------------------------ compare + learn
+    def add_frozen_case(self, case: dict[str, Any], pred: MapPrediction) -> None:
+        """A test case whose prediction is committed now, before anyone has seen it."""
+        self.cases[case["id"]] = case
+        if case["id"] not in self.case_order:
+            self.case_order.append(case["id"])
+        self.dps[case["id"]] = DecisionPoint(case_id=case["id"], opened_at=self.now(), prediction=pred,
+                                             committed_at=self.now(), map_version=self.wm.version)
+
     async def on_decision(self, case_id: str, booking: dict[str, Any], action: str) -> None:
+        case = self.cases[case_id]
+        await self.on_judgment(case_id, {**self.pack.normalize(case, booking), "action": action}, via="erp")
+
+    async def on_label(self, case_id: str, fields: dict[str, Any]) -> None:
+        """A judgment given directly (e.g. an evaluator labelling a sealed test case): a partial decision."""
+        if case_id not in self.cases:
+            raise KeyError(case_id)
+        await self.on_judgment(case_id, dict(fields), via="label")
+
+    async def on_judgment(self, case_id: str, expert: dict[str, Any], via: str = "erp") -> None:
         case = self.cases[case_id]
         dp = self.dps.get(case_id)
         # only predictions committed before the decision arrived count as prospective
@@ -283,7 +318,6 @@ class Session:
             dp = self.dps[case_id]
         elif dp.prediction is None and dp.task is not None:
             await dp.task
-        expert = {**self.pack.normalize(case, booking), "action": action}
         pred = dp.prediction
         predicted = {k: fp.value for k, fp in pred.fields.items()}
         predicted["action"] = pred.action.value if pred.action else None
@@ -291,8 +325,15 @@ class Session:
                      predicted=predicted, scored=scored)
         self.episodes.append(ep)
         self.activity.boundary()
+        proof = proof_mod.record_label(self, case_id, expert, via)
+        if proof:
+            await self.emit("proof", {"proof": proof_mod.view(proof)})
+        if scored:
+            await self._independent_checks(ep, case, dp)
+        before, bases_before = self.wm.model_copy(deep=True), dict(self.param_quantity)
         self._record_evidence(ep, case)
         self._observe_thresholds(case, expert, weight=1.0)
+        await self._behavior_receipt(ep, case, before, bases_before)
         for f, val in expert.items():
             if val is None:
                 continue
@@ -305,7 +346,9 @@ class Session:
                 continue
             gap = await self._classify_gap(ep, case, f, val, predicted.get(f))
             ep.gaps.append(gap)
-        await self.emit("episode", {"episode": ep.to_json(), "metrics": self.metrics()})
+        extra = {"posteriors": {k: p.summary() for k, p in self.posteriors.items()},
+                 "map": self.wm.model_dump()} if self.posteriors else {}
+        await self.emit("episode", {"episode": ep.to_json(), "metrics": self.metrics(), **extra})
         for gap in ep.gaps:
             if gap["type"] == "structural":
                 self._quick_question(case, gap)  # ask now; don't wait for the LLM's explanations
@@ -313,6 +356,81 @@ class Session:
         self._maybe_guardrail_question(case, ep)
         if self.store:
             self.store.save_map(self.expert, self.pack.id, self.id, self.wm.version, self.wm.model_dump())
+
+    # ------------------------------------------------------------ receipts
+    def _provenance(self) -> dict[str, Any]:
+        live_compiler = self.compiler is compiler_mod.compile_answer
+        return {"mode": "rehearsal" if self.simulated else "live",
+                "compiler": (llm.last_model or "llm") if live_compiler else getattr(
+                    self.compiler, "provenance", "simulated (oracle)"),
+                "map_source": dict(self.map_source)}
+
+    async def _publish_receipt(self, receipt: dict[str, Any], update: bool = False) -> None:
+        if not update:
+            self.receipts.append(receipt)
+        await self.emit("receipt", {"receipt": {**receipt, "summary": receipts.summarize(receipt)}, "update": update})
+
+    def _new_receipt(self, trigger: str, **kw: Any) -> dict[str, Any]:
+        return {"id": f"rc{len(self.receipts) + 1}", "trigger": trigger, "t": self.now(), "session": self.id,
+                "provenance": self._provenance(), "status": "learned", "independent": [], **kw}
+
+    async def _independent_checks(self, ep: Episode, case: dict[str, Any], dp: DecisionPoint) -> None:
+        """A decision on a case nobody taught about, predicted with the new knowledge already in the map."""
+        if dp.prediction is None or dp.map_version is None:
+            return
+        ctx = {**self.pack.derive(case), "params": self.wm.params, "booking": ep.expert}
+        for rc in self.receipts:
+            after_v = (rc.get("diff") or {}).get("version", {}).get("after")
+            if rc["status"] != "learned" or after_v is None or dp.map_version < after_v:
+                continue
+            if case["id"] in (rc.get("case_id"), rc.get("probe_case_id")):
+                continue  # the case it was taught on can't test it
+            touched = False
+            for node in receipts.nodes_under_test(rc, self.wm):
+                f = receipts.target_field(node)
+                if ep.expert.get(f) is None or not receipts.relevant(node, dp.prediction, ctx):
+                    continue
+                if any(c["episode"] == ep.id and c["field"] == f for c in rc["independent"]):
+                    continue
+                predicted, source = receipts.field_value(dp.prediction, f)
+                rc["independent"].append({"episode": ep.id, "case_id": case["id"], "field": f, "node": node.id,
+                                          "predicted": predicted, "decided_by": source, "expert": ep.expert[f],
+                                          "agrees": predicted == ep.expert[f], "map_version": dp.map_version,
+                                          "proof": case.get("_proof"), "t": self.now()})
+                touched = True
+            if touched:
+                await self._publish_receipt(rc, update=True)
+
+    async def _behavior_receipt(self, ep: Episode, case: dict[str, Any], before: WorkMap,
+                                bases_before: dict[str, str]) -> None:
+        """A decision that moved a learned threshold: behavior correcting words, with its own receipt."""
+        moved = []
+        for p, old in before.params.items():
+            new, q_old, q_new = self.wm.params.get(p), bases_before.get(p), self.param_quantity.get(p)
+            if new is None:
+                continue
+            if q_old != q_new or abs(new - old) >= max(0.02 * abs(old), 1e-6):
+                moved.append(p)
+        rules = [r for r in self.wm.rules if any(f"params.{p}" in r.when for p in moved) and r.origin != "doc"]
+        fields = {receipts.target_field(r) for r in rules}
+        changed = [f for f in fields if ep.expert.get(f) is not None and ep.predicted.get(f) != ep.expert.get(f)]
+        if not changed and not any(bases_before.get(p) != self.param_quantity.get(p) for p in moved):
+            return  # only a counterexample (or a basis flip) earns a receipt; agreeing cases just firm it up
+        self.wm.version += 1
+        f = changed[0] if changed else next(iter(fields), None)
+        if f is None:
+            return
+        rc = self._new_receipt(
+            "decision", case_id=case["id"], field=f, inquiry_id=None,
+            question=None, teaching={"behavior": f"{self.expert} chose {f} = {ep.expert.get(f)!r}",
+                                     "case": self.pack.describe(case)},
+            expert_value=ep.expert.get(f),
+            before=receipts.predict_field(before, self.pack, case, f),
+            after=receipts.predict_field(self.wm, self.pack, case, f),
+            diff=receipts.diff_maps(before, self.wm, bases_before, dict(self.param_quantity)))
+        rc["before"]["committed"] = ep.predicted.get(f)
+        rc["provenance"]["compiler"] = "none: learned from the decision itself"
+        await self._publish_receipt(rc)
 
     def _record_evidence(self, ep: Episode, case: dict[str, Any]) -> None:
         self._judge(case, ep.expert, ep.id, "live")
@@ -361,9 +479,11 @@ class Session:
 
     # ------------------------------------------------------------ thresholds
     def _restore_params(self) -> None:
+        known = {q for spec in self.pack.threshold_params().values() for q in spec["bases"].values()}
         for name, value in self.wm.params.items():
-            quantity = next((q for r in self.wm.rules for q in dsl.fields_referenced(r.when)
-                             if f"params.{name}" in r.when and q.startswith("inv.")), None)
+            # the quantity the parameter is compared against (a set of referenced names has no useful order)
+            quantity = next((q for r in self.wm.rules if f"params.{name}" in r.when
+                             for q in sorted(dsl.fields_referenced(r.when)) if q in known), None)
             if quantity:
                 self._ensure_posterior(name, value, quantity)
 
@@ -655,11 +775,24 @@ class Session:
             case_for_compile = case
         hs = self.hsets.get(q.gap_id or "")
         h_before = hs.entropy() if hs else None
+        before, bases_before = self.wm.model_copy(deep=True), dict(self.param_quantity)
+        f = q.field
+        rc = self._new_receipt(
+            "answer", inquiry_id=q.id, case_id=q.case_id,
+            probe_case_id=q.probe_case["id"] if q.probe_case is not None else None, field=f,
+            question={"type": q.type, "text": q.text, "probe_delta": q.probe_delta},
+            teaching={"transcript": transcript}, expert_value=q.expert_value,
+            before={**(receipts.predict_field(before, self.pack, case_for_compile, f) or {}),
+                    "committed": q.predicted_value},
+            evaluation=q.type == "exam")
         try:
             compiled = await self.compiler(self.pack, self.wm, q.to_json(), transcript, case_for_compile)
-        except Exception:  # noqa: BLE001
+            rc["provenance"] = self._provenance()  # the model that actually compiled this answer
+        except Exception as e:  # noqa: BLE001
             log.exception("compile failed")
-            await self.emit("compile_failed", {"inquiry_id": q.id})
+            await self.emit("compile_failed", {"inquiry_id": q.id, "error": str(e)[:300]})
+            rc.update(status="compile_failed", error=str(e)[:300])
+            await self._publish_receipt(rc)
             return
         if compiled.off_the_record:
             self.off_record = True
@@ -676,6 +809,8 @@ class Session:
                 q.phase = "debrief" if self.mode == "debrief" else q.phase
                 self.planner.queue.insert(0, q)
             await self.emit("inquiry", {"inquiry": q.to_json(), "note": "not answered yet — kept open"})
+            rc.update(status="kept_open", error="the compiler judged this did not answer the question")
+            await self._publish_receipt(rc)
             return
         quote = Quote(text=compiled.key_quote, speaker=self.expert, ts=self.now(), lang=self.lang,
                       translation=compiled.translation_en, inquiry_id=q.id)
@@ -730,6 +865,16 @@ class Session:
         for p in list(self.posteriors):
             self._replay_posterior(p)
         self.wm.version += 1
+        rc["teaching"].update(quote=quote.text, translation=quote.translation, strength=compiled.strength,
+                              threshold=compiled.threshold.model_dump() if compiled.threshold else None)
+        rc["after"] = receipts.predict_field(self.wm, self.pack, case_for_compile, f)
+        rc["diff"] = receipts.diff_maps(before, self.wm, bases_before, dict(self.param_quantity))
+        rc["retro"] = retro
+        if rc["after"] is not None and q.expert_value is not None:
+            rc["after"]["explains_expert"] = rc["after"]["value"] == q.expert_value
+        if receipts.is_empty(rc["diff"]):
+            rc["status"] = "no_change"
+        await self._publish_receipt(rc)
         info_gain = (h_before - hs.entropy()) if (hs and h_before is not None) else (0.8 if new_nodes else 0.1)
         if hasattr(q, "bandit_ctx") and q.type in self.planner.bandit.arms:
             secs = max(3.0, len(transcript.split()) / 2.5)
@@ -738,7 +883,7 @@ class Session:
             "inquiry_id": q.id, "quote": quote.model_dump(), "changes": changes, "retro": retro,
             "info_gain_bits": round(float(info_gain), 3), "map": self.wm.model_dump(),
             "posteriors": {k: p.summary() for k, p in self.posteriors.items()}, "metrics": self.metrics(),
-            "understood": self.understood(),
+            "understood": self.understood(), "receipt": {k: rc.get(k) for k in ("id", "before", "after", "status")},
         })
         if self.store:
             self.store.save_map(self.expert, self.pack.id, self.id, self.wm.version, self.wm.model_dump())
@@ -1312,6 +1457,7 @@ class Session:
     async def tutor_open(self, case_id: str) -> None:
         pred = run_map(self.wm, self.pack, self.cases[case_id], TRUSTED)
         self.dps[case_id].prediction = pred
+        self.dps[case_id].map_version = self.wm.version
         await self.emit("tutor_case", {"case_id": case_id, "expected": pred.model_dump(),
                                        "prompt": "What do you think happens to this one?"})
 

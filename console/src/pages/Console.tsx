@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConversationProvider } from '@elevenlabs/react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Download, EyeOff, GraduationCap, Map as MapIcon, Mic, MicOff, MonitorUp, PauseCircle, Send, Sparkles } from 'lucide-react'
+import { Download, EyeOff, GraduationCap, Lock, Map as MapIcon, Mic, MicOff, MonitorUp, PauseCircle, Send, Sparkles } from 'lucide-react'
 import { API, api, mmss, useShadow } from '../lib/api'
 import { useScreen } from '../lib/screen'
 import { useVoiceBridge } from '../lib/voice'
@@ -16,6 +16,7 @@ import Threshold from '../components/Threshold'
 import Checklist from '../components/Checklist'
 import Mastery from '../components/Mastery'
 import MomentModal from '../components/MomentModal'
+import Receipts from '../components/Receipts'
 import { Btn, Dot, Section } from '../components/ui'
 
 export default function Console() {
@@ -130,6 +131,8 @@ function ConsoleInner({ sid }: { sid: string }) {
           {mode === 'capture' ? 'Capturing' : mode === 'debrief' ? 'Debrief' : 'Tutoring'} · {mode === 'tutor' ? `${snap.trainee} learning from ${snap.expert}` : snap.expert}
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-muted"><Dot on={connected} /> {connected ? 'live' : 'reconnecting'}</span>
+        {snap.map_source.kind === 'saved' && <span className="num rounded-full bg-panel-2 px-2.5 py-0.5 text-[11px] text-muted">continued from saved map v{snap.map_source.version}</span>}
+        {snap.pending.compiling && <span className="rounded-full bg-ask/10 px-2.5 py-0.5 text-[11px] text-ask">compiling answer…</span>}
         {snap.off_record && <span className="flex items-center gap-1 rounded-full bg-panel-2 px-2.5 py-0.5 text-[11px] text-muted"><EyeOff size={12} /> off the record</span>}
         <div className="ml-auto flex items-center gap-2">
           {snap.simulated && (
@@ -142,6 +145,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           <Btn tone="ghost" onClick={toggleRecord}><EyeOff size={14} />{snap.off_record ? 'Back on record' : 'Off the record'}</Btn>
           {mode === 'capture' && <Btn tone="ask" onClick={startDebrief}><Sparkles size={14} />Start debrief</Btn>}
           {mode !== 'tutor' && <Btn onClick={startTutor}><GraduationCap size={14} />Teach a new hire</Btn>}
+          {mode !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases"><Lock size={14} />Test it</Btn></Link>}
           <Link to={`/s/${sid}/map`}><Btn><MapIcon size={14} />Work Map</Btn></Link>
           <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn tone="ghost" title="Agent-ready guardrails"><Download size={14} />Agent skill</Btn></a>
         </div>
@@ -218,6 +222,11 @@ function ConsoleInner({ sid }: { sid: string }) {
             {question && <Question key={question.id} q={question} live={!!asked && asked.id === question.id} />}
           </AnimatePresence>
           {mode !== 'tutor' && <Hypotheses snap={snap} set={latestHyp} />}
+          {mode !== 'tutor' && (
+            <Section title="Learning receipts" right={<Link to={`/s/${sid}/proof`} className="text-[11px] text-predict hover:underline">sealed test →</Link>}>
+              <Receipts snap={snap} limit={4} />
+            </Section>
+          )}
           <Section title="Learning log" right={<span className="num text-[10.5px] text-faint">{m.silent_decisions} silent · {m.gaps} gaps</span>}>
             <Feed snap={snap} feed={live.feed} />
           </Section>

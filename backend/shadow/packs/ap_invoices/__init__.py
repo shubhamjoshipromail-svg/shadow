@@ -374,6 +374,31 @@ class APInvoicesPack:
         rng.shuffle(variants)
         return variants
 
+    def threshold_variant(self, case: dict[str, Any], kind: str, basis: str, value: float, *,
+                          vat_rate: float | None = None) -> dict[str, Any] | None:
+        """A copy of `case` whose threshold quantity (`basis` of `kind`) equals `value`; None if unsupported."""
+        v = copy.deepcopy(case)
+        fx = {"EUR": 1.0, "CZK": CZK_PER_EUR, "USD": USD_PER_EUR}.get(v["currency"], 1.0)
+        if kind == "amount":
+            rate = v["vat_rate"] if vat_rate is None else vat_rate
+            net_eur = value if basis == "net" else value / (1 + rate)
+            net = round(net_eur * fx, 2)
+            ratio = net / max(v["net"], 0.01)
+            v.update(vat_rate=rate, net=net, vat=round(net * rate, 2))
+            v["gross"] = round(v["net"] + v["vat"], 2)
+            for ln in v["lines"]:
+                ln["unit_price"] = round(ln["unit_price"] * ratio, 2)
+            v["history"] = [h for h in v.get("history", []) if abs(h["amount"] - v["gross"]) > 0.005 * v["gross"]]
+            if self.derive(case)["inv"]["dup_amount_recent"]:
+                self._toggle_dup(v)  # keep the base case's duplicate signal, if it had one
+            return v
+        if kind == "pct":
+            po = v.setdefault("po", {"po_no": "PO-26-9997", "ordered_total": v["net"], "received_qty_ratio": 1.0})
+            po["price_variance_pct"] = round(value, 2)
+            po["ordered_total"] = round(v["net"] / (1 + value / 100), 2)
+            return v
+        return None
+
     def _toggle_dup(self, v: dict[str, Any]) -> None:
         if self.derive(v)["inv"]["dup_amount_recent"]:
             v["history"] = [h for h in v["history"] if abs(h["amount"] - v["gross"]) > 0.005 * v["gross"]]

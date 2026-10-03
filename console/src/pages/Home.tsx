@@ -21,6 +21,7 @@ export default function Home() {
   const [tutor, setTutor] = useState(AGENTS.tutor())
   const [lang, setLang] = useState('en')
   const [busy, setBusy] = useState(false)
+  const [continueSaved, setContinueSaved] = useState(false)
 
   useEffect(() => {
     api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => {
@@ -48,7 +49,7 @@ export default function Home() {
         method: 'POST',
         body: JSON.stringify(mode === 'tutor'
           ? { mode, trainee: 'Lena', from_session: capture?.id ?? null, simulate: rehearsal }
-          : { mode, lang, simulate: rehearsal }),
+          : { mode, lang, simulate: rehearsal, fresh: !continueSaved }),
       })
       nav(`/s/${snap.id}`)
     } catch (e) {
@@ -113,6 +114,10 @@ export default function Home() {
             <button onClick={() => setRehearsal(false)} className={`rounded-md px-3 py-1 ${!rehearsal ? 'bg-learn text-ink' : 'text-muted'}`}>Live</button>
             <button onClick={() => setRehearsal(true)} className={`rounded-md px-3 py-1 ${rehearsal ? 'bg-hyp text-ink' : 'text-muted'}`}>Rehearsal · simulated expert</button>
           </div>
+          <label className="flex items-center gap-1.5 text-[12px] text-muted" title="Capture continues from the last saved Work Map instead of the written process only">
+            <input type="checkbox" checked={continueSaved} onChange={(e) => setContinueSaved(e.target.checked)} className="accent-learn" />
+            continue from saved map
+          </label>
           <button onClick={runCheck} className="text-[12px] text-predict hover:underline">Check LLM providers</button>
           {check && Object.entries(check).map(([p, s]) => (
             <span key={p} className={`text-[11.5px] ${s.ok ? 'text-learn' : 'text-gap'}`} title={s.why}>{p}: {s.ok ? `ok (${s.model})` : s.why}</span>

@@ -40,6 +40,8 @@ function reduce(state: Live, e: ShadowEvent): Live {
     case 'episode':
       next.episodes = [...s.episodes, e.episode]
       next.metrics = e.metrics
+      if (e.posteriors) next.posteriors = e.posteriors
+      if (e.map) next.map = e.map
       break
     case 'silence':
       next.silence_log = [...s.silence_log, { case_id: e.case_id, field: e.field, value: e.value, why_silent: e.why_silent }]
@@ -63,6 +65,14 @@ function reduce(state: Live, e: ShadowEvent): Live {
       break
     case 'record':
       next.off_record = e.off_record
+      break
+    case 'receipt': {
+      const r = e.receipt
+      next.receipts = e.update ? s.receipts.map((x) => (x.id === r.id ? r : x)) : [...s.receipts.filter((x) => x.id !== r.id), r]
+      break
+    }
+    case 'proof':
+      next.proofs = { ...s.proofs, [e.proof.id]: e.proof }
       break
     case 'activity':
       return { ...state, activity: e.activity }

@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from pydantic import BaseModel
 
 from shadow import config, converse, exports, llm, perception, sim
+from shadow import proof as proof_mod
 from shadow.engine import Session
 from shadow.packs import get_pack
 from shadow.store import Store
@@ -84,11 +85,18 @@ async def create_session(body: NewSession) -> dict[str, Any]:
     pack = get_pack(body.pack)
     expert = body.expert or pack.expert_name
     wm = None
+    source: dict[str, Any] = {"kind": "seed"}
     if body.from_session and body.from_session in sessions:
         wm = sessions[body.from_session].wm.model_copy(deep=True)
+        source = {"kind": "session", "session": body.from_session, "version": wm.version}
     elif body.mode != "capture" or not body.fresh:
-        saved = store.latest_map(expert, pack.id)
-        wm = WorkMap(**saved) if saved else None
+        saved = store.latest_map_row(expert, pack.id)
+        if saved:
+            wm = WorkMap(**saved["map"])
+            source = {"kind": "saved", "session": saved["session_id"], "version": saved["version"],
+                      "saved_at": saved["created"]}
+        elif not body.fresh:
+            raise HTTPException(404, f"No saved Work Map for {expert} yet. Start a fresh capture first.")
     sid = uuid.uuid4().hex[:10]
     sim_kwargs = {}
     if body.simulate:
@@ -98,10 +106,12 @@ async def create_session(body: NewSession) -> dict[str, Any]:
                                  "or start a Rehearsal session (simulated expert).")
     s = Session(sid, pack, mode=body.mode, expert=expert, wm=wm, store=store, lang=body.lang, trainee=body.trainee,
                 use_llm=not body.simulate, **sim_kwargs)
-    s.simulated = bool(sim_kwargs)  # type: ignore[attr-defined]
+    s.simulated = bool(sim_kwargs)
+    s.map_source = source
     sessions[sid] = s
     latest.append(sid)
-    store.create_session(sid, body.mode, pack.id, expert, {"lang": body.lang, "trainee": body.trainee})
+    store.create_session(sid, body.mode, pack.id, expert, {"lang": body.lang, "trainee": body.trainee,
+                                                            "simulated": s.simulated, "map_source": source})
     if body.mode == "debrief":
         await s.start_debrief()
     return s.snapshot()
@@ -179,6 +189,9 @@ async def post_frame(sid: str, frame: Frame) -> dict[str, Any]:
 async def sim_step(sid: str) -> dict[str, Any]:
     """Advance a session by one move of simulated Sabine (or the trainee). For rehearsal and offline demos."""
     s = _session(sid)
+    if not s.simulated:
+        raise HTTPException(409, "This is a live session: it only learns from the real expert. "
+                                 "Start a Rehearsal session to use the simulated expert.")
     if s.awaiting is not None:
         answer = sim.sim_answer(s, s.awaiting)
         chunks = [c async for c in converse.reply(s, [{"role": "user", "content": answer}])]
@@ -216,6 +229,80 @@ async def sim_step(sid: str) -> dict[str, Any]:
         await s.on_event({"type": "decision", "case_id": cid, "booking": booking, "action": action})
         return {"did": "decided", "case": cid, "action": action}
     return {"did": "nothing"}
+
+
+# ---------------------------------------------------------------- receipts + sealed boundary tests
+@app.get("/api/sessions/{sid}/receipts")
+async def session_receipts(sid: str) -> list[dict[str, Any]]:
+    return _session(sid).snapshot()["receipts"]
+
+
+class ProofRequest(BaseModel):
+    param: str | None = None
+    seed: int | None = None
+
+
+@app.post("/api/sessions/{sid}/proofs")
+async def freeze_proof(sid: str, body: ProofRequest) -> dict[str, Any]:
+    """Freeze Shadow's predictions on fresh boundary cases and publish a hash commitment to them."""
+    s = _session(sid)
+    if s.simulated:
+        raise HTTPException(409, "Boundary tests prove live learning, so they don't run on a Rehearsal "
+                                 "(simulated expert) session.")
+    try:
+        p = proof_mod.build(s, body.param, body.seed)
+    except proof_mod.ProofError as e:
+        raise HTTPException(400, str(e)) from e
+    view = proof_mod.view(p)
+    await s.emit("proof", {"proof": view, "frozen": True})
+    if s.store:  # the full frozen record, so the commitment can be audited later even after a restart
+        s.store.append(s.id, "proof_frozen", {"proof": p})
+    return view
+
+
+@app.get("/api/sessions/{sid}/proofs/{pid}")
+async def get_proof(sid: str, pid: str) -> dict[str, Any]:
+    s = _session(sid)
+    if pid not in s.proofs:
+        raise HTTPException(404, "no such test")
+    return proof_mod.view(s.proofs[pid])
+
+
+class ProofLabel(BaseModel):
+    case_id: str
+    value: str
+
+
+@app.post("/api/sessions/{sid}/proofs/{pid}/label")
+async def label_proof(sid: str, pid: str, body: ProofLabel) -> dict[str, Any]:
+    """A human's answer for one sealed case. It is scored against the frozen prediction, then learned from."""
+    s = _session(sid)
+    p = s.proofs.get(pid)
+    if p is None or body.case_id not in {i["case_id"] for i in p["items"]}:
+        raise HTTPException(404, "no such test case")
+    await s.on_label(body.case_id, {p["field"]: body.value})
+    return proof_mod.view(p)
+
+
+@app.get("/api/history")
+async def history(expert: str | None = None, pack: str = config.DEFAULT_PACK) -> dict[str, Any]:
+    """Receipts and sealed tests across sessions (including ones from before a restart)."""
+    expert = expert or get_pack(pack).expert_name
+    rows = [r for r in store.list_sessions() if r["expert"] == expert and r["pack_id"] == pack]
+    ids = [r["id"] for r in rows]
+    evs = store.events_for(ids, ["receipt", "proof", "proof_frozen"]) if ids else []
+    receipts: dict[str, dict[str, Any]] = {}
+    proofs: dict[str, dict[str, Any]] = {}
+    for e in evs:
+        p = e["payload"]
+        if e["type"] == "receipt":
+            receipts[f"{e['session_id']}:{p['receipt']['id']}"] = p["receipt"]
+        elif e["type"] == "proof":
+            proofs[f"{e['session_id']}:{p['proof']['id']}"] = {**p["proof"], "session": e["session_id"]}
+    return {"expert": expert, "pack": pack,
+            "sessions": [{"id": r["id"], "mode": r["mode"], "created": r["created"], "meta": r["meta"],
+                          "live": r["id"] in sessions} for r in rows],
+            "receipts": list(receipts.values()), "proofs": list(proofs.values())}
 
 
 @app.get("/api/sessions/{sid}/export/{fmt}")
@@ -309,6 +396,7 @@ def _companion_view(m: dict[str, Any]) -> dict[str, Any]:
     if t == "learned":
         added = [c for c in m.get("changes", []) if c.get("kind") == "node_added"]
         return {"type": t, "t": m["t"], "added": added, "quote": m.get("quote"), "metrics": m.get("metrics"),
+                "receipt": m.get("receipt"),
                 "retro": [r for r in m.get("retro", []) if r.get("now_explains")]}
     if t == "hypotheses":
         s = m["set"]

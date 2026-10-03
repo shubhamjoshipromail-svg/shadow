@@ -185,6 +185,8 @@
         var lines = [];
         if (added.length && added[0].title) lines.push("Noted: " + added[0].title);
         if (retro.length) lines.push("also explains " + retro.length + " earlier case" + (retro.length === 1 ? "" : "s"));
+        var rc = m.receipt || {}, b = rc.before || {}, a = rc.after || {};
+        if (b.value != null && a.value != null && b.value !== a.value) lines.push("I'd have said " + b.value + ", now " + a.value);
         if (lines.length) toast(lines, "green");
         F.learned = true; flash("spark", 1400);
         later("learned", 3500, function () { F.learned = false; render(); });

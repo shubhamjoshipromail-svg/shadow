@@ -76,6 +76,41 @@ export interface Snapshot {
   silence_log: { case_id: string; field: string; value: string; why_silent: string }[]
   off_record: boolean; understood: Understood; mastery: Record<string, { p: number; status: string; title: string; opportunities: number }>
   metrics: Metrics; activity: { paused: boolean; blocking: string[] }; simulated: boolean
+  map_source: MapSource; receipts: Receipt[]; proofs: Record<string, Proof>
+  pending: { awaiting: string | null; compiling: boolean; background_tasks: number }
+}
+
+export interface MapSource { kind: 'seed' | 'given' | 'session' | 'saved'; session?: string; version?: number; saved_at?: number }
+
+export interface FieldGuess { value: string | null; source: string | null; source_title: string | null; map_version: number; committed?: string | null; explains_expert?: boolean }
+export interface DiffNode { id: string; title: string; when: string; status: Status; kind: string; then: Record<string, string>; params?: Record<string, number> }
+export interface ReceiptCheck { episode: string; case_id: string; field: string; node: string; predicted: string | null; decided_by: string | null; expert: string; agrees: boolean; map_version: number; proof: string | null; t: number }
+export interface Receipt {
+  id: string; trigger: 'answer' | 'decision'; t: number; session: string
+  status: 'learned' | 'no_change' | 'compile_failed' | 'kept_open'; error?: string
+  provenance: { mode: 'live' | 'rehearsal'; compiler: string; map_source: MapSource }
+  inquiry_id: string | null; case_id: string | null; probe_case_id?: string | null; field: string | null
+  question: { type: string; text: string; probe_delta: string | null } | null
+  teaching: { transcript?: string; quote?: string; translation?: string | null; behavior?: string; case?: string; threshold?: { param: string; value: number; quantity: string } | null }
+  expert_value: string | null; before: FieldGuess | null; after?: FieldGuess | null; evaluation?: boolean
+  diff?: { added: DiffNode[]; removed: { id: string; title: string }[]; changed: { id: string; title: string; changes: Record<string, { before: any; after: any }> }[]
+    params: { param: string; before: number | null; after: number | null; quantity_before: string | null; quantity_after: string | null }[]; version: { before: number; after: number } }
+  retro?: { node: string; case_id: string; agrees: boolean; now_explains: boolean }[]
+  independent: ReceiptCheck[]
+  summary: { tests: number; agree: number; verdict: 'held' | 'contradicted' | 'untested' | 'compile_failed' | 'kept_open' | 'no_change' }
+}
+
+export interface ProofItem {
+  case_id: string; describe: string; quantities: Record<string, number>; sealed: boolean; label: string | null
+  bucket?: string; predicted?: string | null; source?: string | null; agrees?: boolean | null; labeled_via?: string | null
+}
+export interface Proof {
+  id: string; round: number; mode: 'threshold' | 'discovery'; param: string | null; field: string; positive: string | null
+  rule: string | null; rule_title: string | null; learned: { value: number | null; quantity: string }
+  map_version: number; map_fp: string; map_source: MapSource; frozen_at: number; seed: number; provenance: string
+  commitment: string; sealed_body?: string; items: ProofItem[]
+  summary: { n: number; labeled: number; agree: number; accuracy: number | null; complete: boolean
+    by_bucket: Record<string, { n: number; agree: number }>; failures: { case_id: string; bucket: string; predicted: string; label: string }[] }
 }
 
 export interface Intervention {

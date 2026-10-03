@@ -70,6 +70,7 @@ class Meter:
 
 
 meter = Meter()
+last_model: str | None = None  # model behind the most recent structured call (provenance for receipts)
 
 
 def _providers(tier: Tier | None = None) -> list[str]:
@@ -155,6 +156,8 @@ async def parse(schema: type[T], system: str, content: str | list[dict[str, Any]
                 from shadow import llm_openai
                 out = await llm_openai.parse(schema, system, content, model, max_tokens)
             if out is not None:
+                global last_model
+                last_model = model
                 return out
             errors.append(f"{provider}: empty")
         except Exception as e:  # noqa: BLE001 - route around a failing provider

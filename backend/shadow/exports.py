@@ -22,6 +22,26 @@ def _mmss(t: float | None) -> str:
     return f"{int(t // 60):02d}:{int(t % 60):02d}"
 
 
+def evidence_label(n) -> str:
+    """Calibrated wording: what kind of evidence stands behind a node, never just a score."""
+    def count(kind: str) -> tuple[int, int]:
+        ev = [e for e in n.evidence if e.kind == kind]
+        return len(ev), sum(1 for e in ev if e.agrees)
+    live, live_ok = count("live")
+    retro, retro_ok = count("retro")
+    cf, cf_ok = count("counterfactual")
+    parts = []
+    if live:
+        parts.append(f"tested on {live} later decision{'s' if live != 1 else ''} ({live_ok} agree)")
+    if retro:
+        parts.append(f"fits {retro_ok}/{retro} earlier cases")
+    if cf:
+        parts.append(f"{cf_ok}/{cf} hypothetical answers agree")
+    if not parts:
+        return "stated by the expert, not yet tested" if n.quote else "inferred from behavior, not yet tested"
+    return ("stated; " if n.quote else "observed; ") + ", ".join(parts)
+
+
 def _params(text: str, wm: WorkMap) -> str:
     for p, v in wm.params.items():
         text = text.replace(f"params.{p}", f"{v:,.0f}")
@@ -44,7 +64,7 @@ def to_markdown(wm: WorkMap) -> str:
             for n in learned:
                 kind = "Guardrail" if isinstance(n, Guardrail) else "Judgment"
                 lines.append(f"- **{kind}:** {_params(n.title, wm)}{_quote(n)}  "
-                             f"`[{n.belief.status}, p={n.belief.p:.2f}]`")
+                             f"`[{n.belief.status}: {evidence_label(n)}]`")
         elif doc:
             lines.append(f"\n- As documented: {doc[0].title.replace('Doc: ', '')}")
         lines.append("")
@@ -69,10 +89,12 @@ def to_agent_skill(wm: WorkMap) -> str:
     ]
     for g in guards:
         who = f" Ask: {g.ask}." if g.ask else ""
-        out.append(f"- IF `{_params(g.when, wm)}` THEN **{g.action.upper()}**.{who} Reason{_quote(g)}")
+        out.append(f"- IF `{_params(g.when, wm)}` THEN **{g.action.upper()}**.{who} Reason{_quote(g)} "
+                   f"(evidence: {evidence_label(g)})")
     out += ["", "## Judgment rules (apply in this order of precedence)"]
     for r in sorted(rules, key=lambda r: -r.priority):
-        out.append(f"- IF `{_params(r.when, wm)}` THEN set {json.dumps(r.then)}. Reason{_quote(r)}")
+        out.append(f"- IF `{_params(r.when, wm)}` THEN set {json.dumps(r.then)}. Reason{_quote(r)} "
+                   f"(evidence: {evidence_label(r)})")
     out += ["", "## Steps"]
     for s in sorted(wm.steps, key=lambda s: s.order):
         out.append(f"{s.order}. {s.name}")
@@ -82,4 +104,8 @@ def to_agent_skill(wm: WorkMap) -> str:
 
 
 def to_json(wm: WorkMap) -> dict[str, Any]:
-    return wm.model_dump()
+    out = wm.model_dump()
+    for kind in ("rules", "guardrails"):
+        for node, n in zip(out[kind], getattr(wm, kind)):
+            node["evidence_label"] = evidence_label(n) if n.origin != "doc" else "written process"
+    return out

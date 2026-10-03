@@ -8,6 +8,7 @@ Read first: `SHADOW_ARCHITECTURE.md` (design + reasoning), `SABINE_ROLE_CARD.md`
 - `/` (root) — **Nordwerk ERP**, the observed sandbox app. Lovable project (TanStack Start), synced to GitHub `shubhamjoshipromail-svg/shadow` (private). **Keep it at the root. Never force-push or rewrite pushed history on `main`** (Lovable mirrors it). Observer contract: `src/lib/erp/shadow.ts`.
 - `backend/` — **Shadow Core** (FastAPI + numpy). The engine is plain Python; LLMs only translate.
   - `shadow/engine.py` the loop: predict → gap (parametric vs structural) → hypotheses → EVOI vs interruption cost → ask at pause → compile answer → retro-replay → debrief (coverage / conflict / exploration probes, frozen self-exam, teach-back) → tutor (save intercept, BKT mastery)
+  - `receipts.py` learning receipts (before/after prediction, quote, rule + param diff, provenance, later independent checks); `proof.py` sealed boundary tests (fresh cases around a learned threshold, predictions frozen + SHA-256 committed before labels, labels from humans only, each label also teaches)
   - `workmap.py` executable Work Map + belief ("words propose, behavior disposes"); `bayes.py` threshold posteriors + BALD; `planner.py` EVOI, pause gate, LinTS question-type bandit; `hypotheses.py`; `compiler.py`; `novice.py`; `perception.py` (vision)
   - `llm.py` / `llm_openai.py` provider routing per tier: vision → gpt-6-luna, fast/spoken → claude-haiku-4-5, reason/compile → claude-sonnet-5-5; failover + spend meter (`/health`)
   - `converse.py` ElevenLabs **Custom LLM** brain (`/v1/chat/completions`): control tags `[[shadow:ask|debrief|intervene|say …]]`; filler/idle turns → `skip_turn` tool call (an empty reply makes ElevenLabs retry and stall)
@@ -15,7 +16,7 @@ Read first: `SHADOW_ARCHITECTURE.md` (design + reasoning), `SABINE_ROLE_CARD.md`
   - `sim.py` simulated expert (Rehearsal mode, tests, eval) — never a live-learning claim
   - `static/capture.js` observer + **Shadow student companion** + in-page ElevenLabs voice (served at `/capture.js`)
   - `scripts/`: `set_keys.py` (hidden key entry → `backend/.env`), `setup_elevenlabs.py` (create/update the two agents), `eval_curves.py` (held-out comparison → `eval_out/`)
-- `console/` — Shadow console / "notebook" (React + Vite + ElevenLabs React SDK). Optional for experts; judges' view of predictions, hypotheses, Work Map.
+- `console/` — Shadow console / "notebook" (React + Vite + ElevenLabs React SDK). Optional for experts; judges' view of predictions, hypotheses, Work Map, learning receipts; `/s/:sid/proof` is the evaluator's sealed-test page.
 
 ## Run
 ```bash
@@ -43,8 +44,10 @@ Keys live in `backend/.env` (gitignored): ANTHROPIC_API_KEY, OPENAI_API_KEY, ELE
 ## Status (checkpoint tag `v0.1-checkpoint`)
 Working end to end in the ERP: live predictions → gap → question in ~0.2s at a pause → real Claude compile of spoken/typed answers (rules + net/gross threshold + guardrails) → debrief → tutor blocks a wrong save with the expert's words. Voice via ElevenLabs agents (Custom LLM → Shadow) with proper silence. Eval (simulated, oracle-assisted, held out): exact agreement doc-only 38% / always-ask-why 73% / Shadow 98% at 0% confabulation; 70% at 40% confabulation.
 
+Live learning proof (done): every answer, and every counterexample that moves a threshold, gets a receipt; independent checks only count predictions committed after the receipt on other cases. Evaluator flow: teach any threshold live → "Test it" → freeze sealed test → label (console or ERP) → misses correct the map → next round on fresh cases → "Restart from saved map" proves persistence. Proofs refuse Rehearsal sessions; `/sim/step` refuses live sessions. Verified live 2026-10-03 (real compile of a typed answer, taught 3,600, evaluator labelled at 4,000: round 1 9/11 with both misses in the 3,600–4,000 band, T moved to 4,069, after restart 11/11). `/api/history` lists receipts + proofs across sessions.
+
 Known gaps / next (see `advisory/product-engine-investigation-2026-10-03/OPUS_HANDOFF.md`):
-1. **Live learning receipt** — before/after prediction, the teaching quote, rule diff, independent test result; evaluator-chosen threshold proof with no simulator.
+1. Receipt panel is per session; a restarted session shows earlier receipts only via `/api/history` (proof page lists earlier proofs).
 2. Rules referencing facts not on screen compile but never fire → should trigger "I can't see X — where do you look it up?"
 3. Explicit session/workflow identity (today: unpinned observers follow the latest session), persistent session recovery.
 4. **Task-agnostic learning** (cold start: goal + demonstrations → runtime TaskDefinition/FeatureSchema; vision readings → decision points; generalize `inv.`-specific paths). Packs become optional adapters/priors.

@@ -83,6 +83,19 @@ class Store:
             row = c.execute(q).first()
         return row[0] if row else None
 
+    def latest_map_row(self, expert: str, pack_id: str) -> dict[str, Any] | None:
+        q = (select(maps.c.map, maps.c.version, maps.c.session_id, maps.c.created)
+             .where(maps.c.expert == expert, maps.c.pack_id == pack_id).order_by(maps.c.id.desc()).limit(1))
+        with self.engine.connect() as c:
+            row = c.execute(q).first()
+        return dict(row._mapping) if row else None
+
+    def events_for(self, session_ids: list[str], types: list[str]) -> list[dict[str, Any]]:
+        q = (select(events).where(events.c.session_id.in_(session_ids), events.c.type.in_(types))
+             .order_by(events.c.id))
+        with self.engine.connect() as c:
+            return [dict(r._mapping) for r in c.execute(q)]
+
     def map_versions(self, expert: str, pack_id: str) -> list[dict[str, Any]]:
         q = (select(maps.c.version, maps.c.session_id, maps.c.created, maps.c.map)
              .where(maps.c.expert == expert, maps.c.pack_id == pack_id).order_by(maps.c.id))
