@@ -508,7 +508,15 @@
           } else { V.quiet = 0; }
         }
       });
-    }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) { V.conv = null; voiceStatus("couldn’t start: " + e.message); });
+    }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) {
+      V.conv = null;
+      var msg = /permission|notallowed|denied/i.test(String(e && (e.name + " " + e.message)))
+        ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then click Start Shadow again."
+        : "Voice couldn\u2019t start: " + e.message;
+      voiceStatus(msg);
+      toast([msg], "amber");
+      F.open = true; render();
+    });
   }
 
   function stopVoice() { var c = V.conv; V.conv = null; if (c) c.endSession(); voiceStatus("off"); }
