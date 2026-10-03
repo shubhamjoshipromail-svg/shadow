@@ -384,7 +384,7 @@ function InvoiceDocument({ c }: { c: Case }) {
       <table className="ml-auto mt-4 font-sans text-[12px]">
         <tbody>
           <tr><td className="pr-6">Net</td><td className="text-right amount">{money(c.net, c.currency)}</td></tr>
-          <tr><td className="pr-6">VAT {c.vat_rate}%</td><td className="text-right amount">{money(c.vat, c.currency)}</td></tr>
+          <tr><td className="pr-6">VAT {c.vat_rate > 0 && c.vat_rate < 1 ? Math.round(c.vat_rate * 100) : c.vat_rate}%</td><td className="text-right amount">{money(c.vat, c.currency)}</td></tr>
           <tr className="border-t border-foreground font-semibold"><td className="pr-6 pt-1">Gross</td><td className="pt-1 text-right amount">{money(c.gross, c.currency)}</td></tr>
         </tbody>
       </table>

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import seed from "@/data/seed.json";
 import type { ActionKind, ApprovalEvent, Booking, Case } from "./types";
 import { date } from "./format";
@@ -36,12 +36,23 @@ function initialApprovals(c: Case): ApprovalEvent[] {
   return ev;
 }
 
+function sameCaseIds(current: Case[], incoming: Case[]): boolean {
+  if (current.length !== incoming.length) return false;
+  const ids = new Set(current.map((c) => c.id));
+  return incoming.every((c) => ids.has(c.id));
+}
+
 export function ErpProvider({ children }: { children: ReactNode }) {
   const [cases, setCases] = useState<Case[]>(seed as Case[]);
   const [source, setSource] = useState<"api" | "local">("local");
   const [approvals, setApprovals] = useState<Record<string, ApprovalEvent[]>>(() =>
     Object.fromEntries((seed as Case[]).map((c) => [c.id, initialApprovals(c)])),
   );
+  const casesRef = useRef(cases);
+
+  useEffect(() => {
+    casesRef.current = cases;
+  }, [cases]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -60,11 +71,59 @@ export function ErpProvider({ children }: { children: ReactNode }) {
     return () => ctrl.abort();
   }, []);
 
+  useEffect(() => {
+    if (source !== "api") return;
+
+    let active = true;
+    let inFlight = false;
+    const refresh = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 3000);
+      try {
+        const response = await fetch(`${SHADOW_API}/api/erp/cases`, { signal: ctrl.signal });
+        if (!response.ok) return;
+        const data: unknown = await response.json();
+        if (!active || !Array.isArray(data)) return;
+        const incoming = data as Case[];
+        if (!sameCaseIds(casesRef.current, incoming)) {
+          casesRef.current = incoming;
+          setCases(incoming);
+          setApprovals(Object.fromEntries(incoming.map((c) => [c.id, initialApprovals(c)])));
+          return;
+        }
+        const statusById = new Map(incoming.map((c) => [c.id, c.status]));
+        setCases((current) => {
+          const updated = current.map((c) => {
+            const status = statusById.get(c.id);
+            return status === undefined || status === c.status ? c : { ...c, status };
+          });
+          casesRef.current = updated;
+          return updated;
+        });
+      } catch {
+        // Keep the latest local state and retry on the next poll.
+      } finally {
+        clearTimeout(timeout);
+        inFlight = false;
+      }
+    };
+
+    const interval = setInterval(() => void refresh(), 4000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [source]);
+
   const updateBooking = useCallback((id: string, b: Booking) => {
     setCases((cs) => cs.map((c) => (c.id === id ? { ...c, booking: b } : c)));
   }, []);
 
   const applyAction = useCallback(
+    // callers gate on beforeSave first (see invoice.$id.tsx run()); calling it here too would
+    // report every decision to Shadow twice
     (id: string, action: ActionKind, b: Booking, reason?: string, approver?: string) => {
       setCases((cs) => cs.map((c) => (c.id === id ? { ...c, booking: b, status: STATUS_FOR[action] } : c)));
       const now = new Date();

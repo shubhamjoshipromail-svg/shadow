@@ -324,15 +324,22 @@ def _companion_view(m: dict[str, Any]) -> dict[str, Any]:
 async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
     await ws.accept()
     s: Session | None = None
+    push = None
     try:
         while True:
             msg = json.loads(await ws.receive_text())
             sid = msg.pop("session", None) or session
+            # unpinned observers follow the latest session (e.g. capture -> tutor)
+            if not sid and latest and (s is None or s.id != latest[-1]):
+                sid = latest[-1]
             if s is None or (sid and s.id != sid):
                 try:
-                    s = _session(sid)
+                    nxt = _session(sid)
                 except HTTPException:
                     continue
+                if s is not None and push is not None:
+                    s.listeners.discard(push)  # stop hearing the previous session
+                s = nxt
                 await ws.send_text(json.dumps({"type": "session", "session": s.id, "mode": s.mode}))
 
                 async def push(m: dict[str, Any], _ws=ws) -> None:
@@ -342,7 +349,8 @@ async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
                 s.listeners.add(push)
             await s.on_event(msg)
     except WebSocketDisconnect:
-        pass
+        if s is not None and push is not None:
+            s.listeners.discard(push)
 
 
 @app.websocket("/ws/panel/{sid}")

@@ -21,7 +21,8 @@
   var EXPERT = window.SHADOW_EXPERT || "Sabine";
   var NOVICE = window.SHADOW_NOVICE || "Lena";
   var qs = new URLSearchParams(location.search);
-  var SID = qs.get("shadow") || null;
+  var PINNED = qs.get("shadow") || null;  // ?shadow=<id> pins a session; otherwise follow the latest
+  var SID = PINNED;
   var MODE = null;
   var ws = null, outbox = [], lastCase = null;
 
@@ -33,7 +34,7 @@
   function later(name, ms, fn) { clearTimeout(T[name]); T[name] = setTimeout(fn, ms); }
 
   function connect() {
-    try { ws = new WebSocket(API.replace(/^http/, "ws") + "/ws/capture" + (SID ? "?session=" + SID : "")); }
+    try { ws = new WebSocket(API.replace(/^http/, "ws") + "/ws/capture" + (PINNED ? "?session=" + PINNED : "")); }
     catch (e) { F.offline = true; render(); setTimeout(connect, 3000); return; }
     ws.onopen = function () {
       F.offline = false; render();
@@ -50,7 +51,7 @@
 
   function send(evt) {
     evt.client_ts = Date.now() / 1000;
-    if (SID) evt.session = SID;
+    if (PINNED) evt.session = PINNED;
     var s = JSON.stringify(evt);
     if (ws && ws.readyState === 1) ws.send(s);
     else { outbox.push(s); if (outbox.length > 300) outbox.shift(); }
@@ -123,7 +124,7 @@
     beforeSave: function (req) {
       return fetch(API + "/api/capture/before_save", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session: SID, action: req.action, case_id: req.caseId || lastCase,
+        body: JSON.stringify({ session: PINNED, action: req.action, case_id: req.caseId || lastCase,
                                booking: req.booking || {}, reason: req.reason, approver: req.approver })
       }).then(function (r) { return r.json(); }).then(function (v) {
         if (!v.allow && v.intervention) {
