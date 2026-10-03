@@ -1,0 +1,1398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Shadow v3 · A — INSTRUMENT · mockup</title>
+<style>
+/* ============================================================================
+   SHADOW v3 — DIRECTION A "INSTRUMENT"  ·  single-file mockup
+   Audit workpaper with a row-locked diff gutter. Spec: design/shadow-v3/DIRECTIONS.md §3
+   ---------------------------------------------------------------------------
+   CSS sections
+     01  tokens
+     02  reset / base
+     03  page + in-page header + switcher
+     04  mock frame + session bar + status strip + capture hairline
+     05  stage (the ERP exhibit — Nordwerk's own 4px radii live here only)
+     06  gutter: leader lines, row registration, note blocks
+     07  provenance blocks (the five states) + claim / measure primitives
+     08  M1 FieldDiff, M2 margin note + evidence strip
+     09  guardrail band + held control  (M3)
+     10  work map ledger table + replay pane
+     11  debrief: agenda / probe sheet / posterior strip / teach-back
+     12  tutor: right rail, mastery 3-segment meters
+     13  legend + footer
+     14  motion (the only loop in the file is the capture hairline)
+   ==========================================================================*/
+
+/* --- 01 tokens ---------------------------------------------------------- */
+:root{
+  --paper:#F7F5F1;
+  --ink:#17181A;
+  --ink-62:#6E6F72;          /* 62% ink, resolved against paper */
+  --ink-55:#83817E;
+  --ink-40:#A9A6A0;
+  --rule:#D8D3CB;            /* hairline */
+  --rule-strong:#B9B3A9;     /* hairline strong / leader */
+  --panel:#FFFFFF;
+  --wash:rgba(23,24,26,.04); /* the single 4% ink wash, "current row" only */
+  --binding:#A8483A;         /* the ONE prohibition hue, ~52% sat, Binding only */
+  --confirmed:#2F6B4F;       /* one restrained validation green, Confirmed only */
+  --sans:Inter,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --t:140ms;                 /* standard transition */
+  --ease:cubic-bezier(.2,0,0,1);
+}
+
+/* --- 02 reset / base ---------------------------------------------------- */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);
+  font:400 13px/19px var(--sans);
+  -webkit-font-smoothing:antialiased;
+  padding:20px 0 40px;
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;
+     font-size:12px;line-height:16px;letter-spacing:-.01em}
+/* Label voice: uppercase Inter, 10/14, +0.08em, 600 (§3.5) */
+.label{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.dim{color:var(--ink-62)}
+.dim2{color:var(--ink-40)}
+hr.hr{border:0;border-top:1px solid var(--rule);margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0}
+
+/* --- 03 page + in-page header + switcher -------------------------------- */
+.page{max-width:1440px;min-width:1440px;margin:0 auto;padding:0 24px}
+.doc-head{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px solid var(--rule-strong);padding:0 0 8px;margin-bottom:12px}
+.doc-head .title{font:600 15px/20px var(--sans);letter-spacing:.01em}
+.doc-head .sub{font:400 12px/16px var(--sans);color:var(--ink-62)}
+.switchbar{display:flex;align-items:center;gap:16px;margin:0 0 12px}
+.switchbar .note{font:400 12px/16px var(--sans);color:var(--ink-62)}
+/* switcher: a ruled tab strip, not a segmented pill */
+.switch{display:flex;border:1px solid var(--rule-strong);background:var(--panel)}
+.switch button{padding:7px 18px;font:600 10px/14px var(--sans);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-62);cursor:pointer;position:relative;
+  border-right:1px solid var(--rule);transition:color var(--t) var(--ease)}
+.switch button:last-child{border-right:0}
+.switch button:hover{color:var(--ink)}
+/* selected tab = a 2px ink rule under the label (no shadow, no fill, no pill) */
+.switch button[aria-selected="true"]{color:var(--ink)}
+.switch button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;
+  bottom:-1px;height:2px;background:var(--ink)}
+.switch button:focus-visible{outline:1px solid var(--ink);outline-offset:-2px}
+
+/* --- 04 mock frame · session bar · status strip ------------------------- */
+.mock{background:var(--panel);border:1px solid var(--rule-strong);overflow:hidden}
+/* mode switching: exactly one composition is in flow */
+.mode{display:none}
+body[data-mode="capture"] .mode[data-mode="capture"],
+body[data-mode="map"]     .mode[data-mode="map"],
+body[data-mode="debrief"] .mode[data-mode="debrief"],
+body[data-mode="tutor"]   .mode[data-mode="tutor"]{display:block}
+
+.sessionbar{display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;
+  border-bottom:1px solid var(--rule);background:var(--panel)}
+.sessionbar .id{font:600 12.5px/18px var(--mono)}
+.sessionbar .sep{color:var(--ink-40)}
+.sessionbar .meta{font:400 12px/16px var(--sans);color:var(--ink-62)}
+.sessionbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.rec{display:flex;align-items:center;gap:6px;font:400 12px/16px var(--sans);color:var(--ink-62)}
+.rec .dot{width:6px;height:6px;background:var(--ink);display:block}
+.ghostbtn{border:1px solid var(--rule);padding:3px 9px;font:600 10px/14px var(--sans);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62);cursor:pointer}
+.ghostbtn:hover{color:var(--ink);border-color:var(--rule-strong)}
+
+/* the instrument body for every mode */
+.instr{display:flex;align-items:stretch;min-height:460px}
+.instr > .stage{flex:1 1 auto;border-right:1px solid var(--rule)}
+
+.statusbar{display:flex;align-items:center;gap:0;height:28px;padding:0 12px;
+  border-top:1px solid var(--rule);background:var(--panel);overflow:hidden}
+.statusbar .m{font:12px/16px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.statusbar .dotsep{color:var(--ink-40);padding:0 10px}
+.statusbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+/* the ONE looping element in this document: a 1px capture hairline, deliberately ignorable */
+.capturehair{position:relative;width:180px;height:2px;background:var(--rule);overflow:hidden}
+.capturehair::after{content:"";position:absolute;left:0;top:0;height:1px;width:100%;
+  background:var(--ink-40);transform-origin:left center;animation:sweep 4s linear infinite}
+@keyframes sweep{from{transform:scaleX(.22)}to{transform:scaleX(1)}}
+
+/* --- 05 stage (the ERP exhibit) ---------------------------------------- */
+/* Shadow never styles the work: 4px radii exist ONLY here, and are the ERP's own. */
+.sheet{padding:12px 14px}
+.sheet-head{display:flex;align-items:baseline;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.sheet-head .invno{font:12.5px/18px var(--mono);font-weight:600}
+.sheet-head .who{font:13px/19px var(--sans)}
+.sheet-head .right{margin-left:auto;font:12px/16px var(--mono);color:var(--ink-62)}
+.docmeta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 18px;
+  padding:10px 0 12px;border-bottom:1px solid var(--rule)}
+.docmeta div{display:flex;flex-direction:column;gap:2px}
+.docmeta .v{font:12.5px/17px var(--mono);font-variant-numeric:tabular-nums}
+.docmeta .v.hi{font-weight:600}
+.exhibit{margin:12px 0 0;border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.exhibit .eh{background:#FBFAF7;padding:6px 10px;border-bottom:1px solid var(--rule);
+  font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62);
+  display:flex;justify-content:space-between}
+.exhibit table{width:100%;border-collapse:collapse;font-size:12.5px}
+.exhibit th{text-align:left;font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-62);padding:6px 10px;border-bottom:1px solid var(--rule)}
+.exhibit td{padding:6px 10px;border-top:1px solid var(--rule);vertical-align:top}
+.exhibit td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.hist{display:flex;flex-direction:column}
+.hist .row{display:grid;grid-template-columns:1fr 86px 1fr 62px;gap:10px;padding:5px 0;
+  border-top:1px solid var(--rule);font-size:12px}
+.hist .row:first-child{border-top:0}
+.hist .row .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+/* booking field grid — grouped, ruled, 28px rhythm */
+.fields{padding:4px 0 0}
+.frow{display:grid;grid-template-columns:180px 1fr;align-items:center;
+  min-height:28px;border-top:1px solid var(--rule);padding:3px 16px 3px 0;position:relative}
+.frow:first-child{border-top:0}
+.frow.current{background:var(--wash)}          /* the only translucency in the file: 4% */
+.frow .fl{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.fctl{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.select{display:flex;align-items:center;gap:8px;min-width:260px;justify-content:space-between;
+  border:1px solid var(--rule-strong);border-radius:4px;background:#FCFBF8;padding:4px 8px}
+.select b{font:12.5px/17px var(--mono);font-weight:600}
+.select span{font:12px/16px var(--sans);color:var(--ink-62)}
+.select .caret{color:var(--ink-62);font-size:10px}
+.blank{min-width:260px;border:1px solid var(--rule);border-radius:4px;background:#FCFBF8;
+  padding:4px 8px;font:12.5px/17px var(--mono);color:var(--ink-40);text-align:left}
+.goval{font:12px/16px var(--mono);color:var(--ink-62);white-space:nowrap}
+.mv{display:inline-flex;align-items:center;gap:6px;font:12px/16px var(--mono);color:var(--ink);
+  border:1px dashed var(--rule-strong);padding:3px 8px}
+/* note on the field under question, plus a Post row and a save row */
+.fieldnote{grid-column:2/3;font:400 12px/17px var(--sans);color:var(--ink-62);padding:1px 16px 4px 0}
+.actions{padding:14px 0 2px;border-top:1px solid var(--rule);margin-top:12px}
+.postrow{display:flex;align-items:stretch;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--ink);
+  padding:9px 16px;font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink);cursor:pointer;transition:color var(--t) var(--ease)}
+.btn:hover{background:var(--wash)}
+.btnhint{font:12px/16px var(--mono);color:var(--ink-62);align-self:center}
+.field{flex:1 1 auto;border:1px solid var(--rule-strong);background:#FCFBF8;border-radius:4px;
+  padding:6px 10px;font:13px/18px var(--sans);color:var(--ink)}
+.field:disabled{color:var(--ink-62);background:#FAF8F4}
+
+/* --- 06 gutter ---------------------------------------------------------- */
+.gutter{flex:0 0 176px;width:176px;background:var(--panel)}
+/* In Work Map the gutter's job is taken by the LedgerTable's own provenance columns,
+   which is why that mode is 4–6× wider; Debrief likewise widens into a two-region sheet. */
+.gut-h{height:28px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 10px;border-bottom:1px solid var(--rule)}
+.gut-h .g{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.gutbody{padding:0 0 12px}
+/* row registration: each gutter item is 28px tall, so it lands on a stage field row */
+.gitem{display:grid;grid-template-columns:16px 1fr;gap:6px;min-height:28px;
+  padding:4px 10px 4px 0;position:relative}
+.gitem.tall{min-height:64px}
+.glead{align-self:start;width:15px;height:1px;background:var(--rule-strong);margin-top:9px;
+  position:relative;left:-0px}
+.gitem.off .glead{background:repeating-linear-gradient(90deg,var(--rule-strong) 0 2px,transparent 2px 4px)}
+.gtext{min-width:0}
+.gsub{margin-top:2px}
+/* offscreen index tick, at the gutter's outer edge */
+.offidx{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;}
+.offidx i{display:block;width:2px;height:12px;background:var(--rule-strong)}
+.offidx i.solid{height:16px;background:var(--ink)}
+.offidx i.hatch{width:4px;height:14px;background:var(--binding);opacity:.6}
+
+/* --- 07 provenance blocks + claim/measure primitives -------------------- */
+/* ProvBlock: fixed 3-cell unit — glyph · text · label slot. Neutral by default;
+   hue appears ONLY on Confirmed (green) and Binding (red-ochre). */
+.pb{display:grid;grid-template-columns:14px minmax(0,1fr);gap:6px;
+  border-left:1px solid transparent;padding-left:6px;transition:opacity var(--t) var(--ease)}
+.pb .glyph{font:12px/16px var(--mono);text-align:center}
+.pb .body{min-width:0}
+.pb .lab{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.pb .claim{font:12.5px/17px var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+  display:block;overflow-wrap:anywhere}
+.pb .q{font:400 12.5px/18px var(--sans);color:var(--ink-62);margin-top:3px}
+/* Observed: ▮ 2px solid rule, 100% ink */
+.pb.observed{border-left:2px solid var(--ink)}
+.pb.observed .glyph{color:var(--ink)}
+/* Inferred: ◌ 1px dashed rule, 62% ink */
+.pb.inferred{border-left:1px dashed var(--rule-strong);opacity:.62}
+.pb.inferred .glyph{color:var(--ink)}
+/* Confirmed: ✓ 1px solid rule + full-width 1px underline under the claim */
+.pb.confirmed{border-left:1px solid var(--ink)}
+.pb.confirmed .glyph{color:var(--confirmed)}
+.pb.confirmed .claim{color:var(--confirmed)}
+.pb.confirmed .body{border-bottom:1px solid var(--confirmed);padding-bottom:2px}
+/* Binding: ■ 4px solid rule + 1px hairlines above and below (a band) */
+.pb.binding{border-left:4px solid var(--binding);border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);padding-top:4px;padding-bottom:4px}
+.pb.binding .glyph{color:var(--binding)}
+.pb.binding .claim{color:var(--binding)}
+.pb.binding .lab{color:var(--binding)}
+/* Contested: ✗ 1px dashed + strike through the claim, 55% ink */
+.pb.contested{border-left:1px dashed var(--rule-strong);opacity:.55}
+.pb.contested .glyph{color:var(--ink)}
+.pb.contested .claim{text-decoration:line-through;text-decoration-thickness:1px}
+/* syntax weight for executable predicates */
+.k{color:var(--ink-62)}      /* keywords / operators */
+.n{color:var(--ink);font-weight:600}  /* literals */
+
+/* --- 08 M1 FieldDiff · M2 margin note + evidence strip ------------------- */
+.fd{margin:0 0 2px}
+.fd .track{display:grid;grid-template-columns:14px minmax(0,1fr);gap:6px;padding:2px 0 2px 6px}
+.fd .track.pred{border-left:1px dashed var(--rule-strong);opacity:.62}
+.fd .track.act{border-left:2px solid var(--ink);margin-top:2px}
+.fd .g{font:12px/16px var(--mono);text-align:center}
+.fd .tr{min-width:0}
+.fd .k1{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.fd .v{font:12.5px/17px var(--mono);font-variant-numeric:tabular-nums;display:block;overflow-wrap:anywhere}
+.fd .ts{color:var(--ink-62)}
+.fd .p{margin-top:3px}
+/* the bracket: 1px vertical span + a labelled word */
+.bracket{display:grid;grid-template-columns:14px 1fr;gap:6px;padding-left:6px;margin-top:1px}
+.bracket .ln{border-left:1px solid var(--rule-strong);border-top:1px solid var(--rule-strong);
+  border-bottom:1px solid var(--rule-strong);height:13px;margin-left:6px;position:relative}
+/* left-hand tick so the bracket reads as a span between the two tracks, not a list bullet */
+.bracket .ln::before{content:"";position:absolute;left:0;top:50%;width:5px;height:1px;
+  background:var(--rule-strong)}
+.bracket .cap{font:12px/16px var(--mono);color:var(--ink-62);white-space:nowrap}
+.freeze{margin-top:4px}
+/* marginal note (M2): ? opening, leader line, closing attribution */
+.mnote{margin-top:8px;border-left:1px solid var(--rule-strong);padding-left:6px}
+.mnote .q{font:400 12.5px/18px var(--sans);margin:2px 0 0}
+.mnote .q::before{content:"? ";font-family:var(--mono);color:var(--ink-62)}
+.mnote .meta{font:12px/16px var(--mono);color:var(--ink-62);margin-top:3px}
+.mnote .qref{font:12px/16px var(--mono);color:var(--ink-62);display:inline-flex;gap:6px}
+/* evidence strip — one mark per piece, accumulating in place */
+.ev{margin-top:8px;display:flex;flex-wrap:wrap;gap:3px 6px;align-items:baseline}
+.ev .lab{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-62);flex:1 1 100%}
+.em{display:inline-flex;align-items:center;gap:4px;font:12px/16px var(--mono);color:var(--ink-62);
+  border:1px solid var(--rule);padding:1px 5px;background:var(--panel)}
+.em.obs{border-color:var(--rule-strong);color:var(--ink);border-left:2px solid var(--ink)}
+.em.inf{border-style:dashed;color:var(--ink-62)}
+.em.cf{border-color:var(--confirmed);color:var(--confirmed)}
+.em.probe{border-style:dashed;border-color:var(--rule-strong)}
+
+/* --- 09 guardrail band + held control ----------------------------------- */
+.band{margin:8px 0 0;border:1px solid var(--rule);border-left:4px solid var(--binding);
+  border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule-strong);padding:7px 10px}
+.band .rule{font:12.5px/18px var(--mono);color:var(--binding);overflow-wrap:anywhere;display:block}
+.band .quote{font:400 12.5px/18px var(--sans);color:var(--ink);margin-top:5px}
+.band .quote::before{content:"\201C";}
+.band .quote::after{content:"\201D";}
+.band .src{font:400 12px/16px var(--sans);color:var(--ink-62);margin-top:4px;display:flex;gap:8px;align-items:center}
+.band .src .who::before{content:"— "}
+.play{font:12px/16px var(--mono);border:1px solid var(--rule-strong);padding:0 5px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px;transition:color var(--t) var(--ease)}
+.play:hover{color:var(--ink);border-color:var(--ink)}
+/* HeldControl: replaces a primary action; hatched 1px left edge; required reason */
+.held{border:1px solid var(--rule-strong);border-left:1px solid var(--binding);position:relative;padding:10px 12px}
+.held::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:repeating-linear-gradient(135deg,var(--binding) 0 1px,transparent 1px 4px);opacity:.75}
+.held .hrow{display:flex;align-items:center;gap:12px;padding-left:8px}
+.held .hbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ink-40);
+  padding:9px 16px;font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-62);cursor:not-allowed;background:var(--paper)}
+.held .hint{font:12px/16px var(--mono);color:var(--ink-62)}
+.held .why{padding:8px 0 0 8px}
+.held .whyf{margin-top:4px;display:flex;gap:10px;align-items:center}
+.held .whyf .field{max-width:360px}
+.held .req{font:12px/16px var(--mono);color:var(--binding)}
+
+/* --- 10 work map ledger + replay --------------------------------------- */
+.mapwrap{display:flex;align-items:stretch}
+.replay{flex:0 0 300px;width:300px;border-right:1px solid var(--rule);padding:12px}
+.frame{border:1px solid var(--rule);border-radius:4px;overflow:hidden;background:#FCFBF8}
+.frame .fh{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;
+  border-bottom:1px solid var(--rule);font:600 10px/14px var(--sans);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-62)}
+.frame .fb{padding:9px;font:12px/17px var(--mono)}
+.frame .fb .line{display:flex;justify-content:space-between;gap:8px;padding:3px 0;
+  border-top:1px solid var(--rule)}
+.frame .fb .line:first-child{border-top:0}
+.frame .fb .line em{font-style:normal;color:var(--ink-62);font-family:var(--sans);font-size:12px}
+.lockrow{display:grid;grid-template-columns:14px 1fr;gap:6px;padding:4px 0 0 3px}
+.ledger{flex:1 1 auto;min-width:0}
+table.led{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+table.led th{text-align:left;font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-62);padding:8px 10px;border-bottom:1px solid var(--rule-strong);background:var(--panel)}
+table.led td{padding:7px 10px;border-top:1px solid var(--rule);vertical-align:top}
+table.led tr.grp td{vertical-align:middle}
+table.led col.c1{width:34px}
+table.led col.c2{width:20%}
+table.led col.c3{width:15%}
+table.led col.c4{width:27%}
+table.led col.c5{width:10%}
+table.led col.c6{width:11%}
+table.led col.c7{width:9%}
+table.led .idx{font-family:var(--mono);color:var(--ink-62)}
+table.led .step{font:600 14px/20px var(--sans)}   /* the only non-mono prose in Shadow's layer */
+table.led .doc{font:12.5px/18px var(--mono);color:var(--ink-62)}
+table.led .doc s{text-decoration-thickness:1px;text-decoration-color:var(--ink-62)}
+table.led .doc .to{color:var(--ink);font-weight:600}
+table.led .rulecode{font:12.5px/18px var(--mono);overflow-wrap:anywhere}
+table.led .evcell{display:flex;flex-wrap:wrap;gap:4px}
+table.led tr.bindrow{background:var(--wash)}
+table.led tr.bindrow td{border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule-strong)}
+table.led tr.gaprow{border-top:0}
+table.led tr.gaprow td{padding:0 10px 8px 44px;border-top:0}
+.gband{border:1px solid var(--rule);border-left:4px solid var(--binding);padding:7px 10px}
+.gband .rule{font:12.5px/18px var(--mono);color:var(--binding);display:block}
+.gband .quote{font:400 12.5px/18px var(--sans);margin-top:4px}
+.gband .quote::before{content:"\201C";}
+.gband .quote::after{content:"\201D";}
+.gband .meta{font:12px/16px var(--mono);color:var(--ink-62);margin-top:3px;display:flex;gap:10px;align-items:center}
+.cleg{display:flex;gap:14px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--rule)}
+.cleg span{font:400 12px/16px var(--sans);color:var(--ink-62);display:inline-flex;gap:5px;align-items:center}
+.cleg .g{font-family:var(--mono);color:var(--ink)}
+
+/* --- 11 debrief --------------------------------------------------------- */
+.debwrap{display:flex;align-items:stretch}
+.agenda{flex:0 0 380px;width:380px;border-right:1px solid var(--rule);padding:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;
+  border-bottom:1px solid var(--rule-strong);padding-bottom:5px;margin-bottom:8px}
+.sec-h .t{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.sec-h .n{font:12px/16px var(--mono);color:var(--ink-62)}
+.qrow{display:grid;grid-template-columns:auto 34px 1fr;gap:9px;padding:9px 0;border-top:1px solid var(--rule)}
+.qrow:first-of-type{border-top:0}
+.qrow .qn{font:12.5px/18px var(--mono);color:var(--ink-62);padding-top:1px}
+.qrow .evoi{font:12.5px/18px var(--mono);font-weight:600;text-align:right}
+.qrow .kind{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62)}
+.qrow .qt{font:400 13px/19px var(--sans);margin-top:1px}
+.qrow .qm{font:12px/16px var(--mono);color:var(--ink-62);margin-top:3px}
+.qrow.defer .evoi{color:var(--ink-62)}
+.qrow.defer{background:var(--wash)}
+/* ask-budget readout, mono, ruled off from the last agenda row */
+.budget{display:flex;align-items:center;border-top:1px solid var(--rule-strong);
+  margin-top:12px;padding-top:7px}
+.budget .m{font-size:12px;line-height:16px;color:var(--ink)}
+.rightcol{flex:1 1 auto;min-width:0;padding:12px}
+.probes table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+.probes col.pc1{width:44%}
+.probes col.pc2{width:26%}
+.probes col.pc3{width:22%}
+.probes col.pc4{width:8%}
+.probes th{text-align:left;font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-62);padding:6px 8px;border-bottom:1px solid var(--rule)}
+.probes td{padding:8px;border-top:1px solid var(--rule);vertical-align:top}
+.probes .case{font:400 13px/19px var(--sans)}
+.probes .px{font:12.5px/18px var(--mono);font-variant-numeric:tabular-nums}
+.probes .agree{font:12.5px/18px var(--mono);text-align:center}
+.probes .agree.ok{color:var(--confirmed)}
+.probes .agree.no{color:var(--binding)}
+.probes .sub{font:400 12px/16px var(--sans);color:var(--ink-62);margin-top:2px}
+/* posterior strip: inline SVG density + interval bracket + mono axis */
+.post{margin-top:14px;border:1px solid var(--rule);padding:10px}
+.post .top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.post .meas{font:12.5px/18px var(--mono);font-weight:600}
+.post svg{display:block;width:100%;height:76px}
+.post .axis{position:relative;height:18px;margin-top:2px;font:12px/16px var(--mono);color:var(--ink-62)}
+.post .axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.post .basis{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap}
+.post .basis .b{display:flex;gap:6px;align-items:center;font:12px/16px var(--mono)}
+.post .basis .sw{width:14px;height:8px;border:1px solid var(--ink-62)}
+.post .basis .sw.dash{border-style:dashed}
+/* teach-back read-back */
+.teach{margin-top:14px;border-top:1px solid var(--rule-strong)}
+.teach .row{display:grid;grid-template-columns:34px 1fr 190px;gap:10px;padding:8px 0;
+  border-top:1px solid var(--rule);align-items:center}
+.teach .row:first-of-type{border-top:0}
+.teach .cl{font:12.5px/18px var(--mono);overflow-wrap:anywhere}
+.teach .n{font:12.5px/18px var(--mono);color:var(--ink-62)}
+.teach .ctl{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.ctlbtn{border:1px solid var(--rule-strong);padding:3px 10px;font:600 10px/14px var(--sans);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-62);cursor:pointer;
+  transition:color var(--t) var(--ease)}
+.ctlbtn:hover{color:var(--ink);border-color:var(--ink)}
+.ctlbtn.ok{color:var(--confirmed);border-color:var(--confirmed)}
+.ctlbtn.no{color:var(--binding);border-color:var(--binding)}
+
+/* --- 12 tutor right rail / mastery -------------------------------------- */
+.tutor .stage{flex:1 1 auto}
+.rail{flex:0 0 320px;width:320px;border-left:1px solid var(--rule);padding:12px}
+.rail .blk{border-top:1px solid var(--rule);padding:10px 0}
+.rail .blk:first-child{border-top:0;padding-top:0}
+.mrow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:baseline;padding:7px 0;
+  border-top:1px solid var(--rule)}
+.mrow:first-of-type{border-top:0}
+.mrow .id{font:12.5px/18px var(--mono);color:var(--ink-62)}
+.mrow .name{font:400 13px/19px var(--sans)}
+/* 3-segment interval meter — three discrete cells, never a fill bar */
+.meter{display:flex;gap:2px;margin-top:5px}
+.meter i{display:block;width:14px;height:8px;border:1px solid var(--rule-strong);background:var(--panel)}
+.meter i.on{background:var(--ink);border-color:var(--ink)}
+.meter i.mid{background:repeating-linear-gradient(135deg,var(--ink) 0 1px,transparent 1px 3px);
+  border-color:var(--ink)}
+.delta{font:12.5px/18px var(--mono);white-space:nowrap}
+.delta b{font-weight:600}
+.arm{font:12px/16px var(--mono);color:var(--ink-62);margin-top:2px}
+
+/* --- 13 legend + footer ------------------------------------------------- */
+.legend{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule-strong);
+  border-top:0;background:var(--panel)}
+.legend .cell{flex:1 1 20%;min-width:250px;padding:10px 12px;border-right:1px solid var(--rule)}
+.legend .cell:last-child{border-right:0}
+.legend .h{display:flex;align-items:center;gap:7px}
+.legend .g{font:13px/16px var(--mono)}
+.legend .s{font:600 10px/14px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.legend .d{font:400 12px/17px var(--sans);color:var(--ink-62);margin-top:5px}
+.legend .spec{margin-top:6px;display:flex;flex-direction:column;gap:3px;font:12px/16px var(--mono);color:var(--ink-62)}
+.legend .rule-sample{display:inline-block;width:12px;height:10px;margin-right:6px;vertical-align:-1px}
+.rs-obs{border-left:2px solid var(--ink);background:none}
+.rs-inf{border-left:1px dashed var(--rule-strong)}
+.rs-cf{border-left:1px solid var(--confirmed)}
+.rs-bind{border-left:4px solid var(--binding);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.rs-con{border-left:1px dashed var(--rule-strong);opacity:.55}
+.footnote{margin-top:10px;font:400 12px/17px var(--sans);color:var(--ink-62);
+  display:flex;gap:18px;flex-wrap:wrap}
+
+/* --- 14 motion ---------------------------------------------------------- */
+/* Only three motions: ink-in, state swap, number tick. Durations 120/140/180/200.
+   No scale above 1.02, no bounce, no reflow of existing rows, no second loop. */
+@keyframes inkin{from{opacity:0}to{opacity:1}}
+@keyframes wipe{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes banddraw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes swapdip{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+.ink{animation:inkin var(--t) var(--ease) both}
+.wipe{transform-origin:left center;animation:wipe 180ms var(--ease) both}
+.bandin{transform-origin:top center;animation:banddraw 120ms var(--ease) both}
+.swap{animation:swapdip 140ms var(--ease) 1}
+.pb.confirmed .body{position:relative}
+.pb.confirmed .body::after{content:"";position:absolute;left:0;right:0;bottom:1px;height:1px;
+  background:var(--confirmed);transform-origin:left center;animation:wipe 180ms var(--ease) both}
+@media (prefers-reduced-motion:reduce){
+  .ink,.wipe,.bandin,.swap,.pb.confirmed .body::after{animation:none}
+  .capturehair::after{animation:none;transform:none}
+}
+</style>
+</head>
+<body data-mode="capture">
+
+<div class="page">
+
+  <!-- ===== in-page header (outside the mock): names the direction ===== -->
+  <div class="doc-head">
+    <div>
+      <span class="title">A — INSTRUMENT</span>
+      <span class="sub">&nbsp;· audit workpaper with a row-locked diff gutter · Shadow v3 · design/shadow-v3/DIRECTIONS.md §3</span>
+    </div>
+    <div class="sub mono">1440 × reference &nbsp;·&nbsp; paper #F7F5F1 &nbsp;·&nbsp; no radius in Shadow's layer</div>
+  </div>
+
+  <!-- ===== switcher: four modes ===== -->
+  <div class="switchbar">
+    <div class="switch" role="tablist" aria-label="Shadow mode">
+      <button role="tab" data-set="capture" aria-selected="true">Capture</button>
+      <button role="tab" data-set="map" aria-selected="false">Work Map</button>
+      <button role="tab" data-set="debrief" aria-selected="false">Debrief</button>
+      <button role="tab" data-set="tutor" aria-selected="false">Tutor</button>
+    </div>
+    <span class="note">One composition per mode. Nothing floats; every annotation is registered to a stage row by a 1px leader line.</span>
+  </div>
+
+  <div class="mock">
+
+  <!-- =====================================================================
+       MODE 1 — CAPTURE
+       ===================================================================== -->
+  <section class="mode" data-mode="capture">
+
+    <!-- session bar 36px: folio meta -->
+    <div class="sessionbar">
+      <span class="id">Nordwerk</span><span class="sep">·</span>
+      <span class="meta">Capture</span><span class="sep">·</span>
+      <span class="meta">Sabine Albrecht, AP</span><span class="sep">·</span>
+      <span class="meta">18 Sep 2026</span><span class="sep">·</span>
+      <span class="id" style="font-weight:400">03:12:09 elapsed</span>
+      <span class="right">
+        <span class="rec"><i class="dot"></i>recording</span>
+        <button class="ghostbtn" type="button">off the record</button>
+      </span>
+    </div>
+
+    <div class="instr">
+      <!-- ---------- STAGE: the live ERP ---------- -->
+      <div class="stage">
+        <div class="sheet">
+
+          <div class="sheet-head">
+            <span class="invno">HM-2026-0412</span>
+            <span class="who">Hessler Maschinentechnik GmbH</span>
+            <span class="right">AP Inbox / open</span>
+          </div>
+
+          <div class="docmeta">
+            <div><span class="label">Invoice date</span><span class="v">18 Sep 2026</span></div>
+            <div><span class="label">Due date</span><span class="v">18 Oct 2026</span></div>
+            <div><span class="label">Net</span><span class="v hi">€6,400.00</span></div>
+            <div><span class="label">Gross 19% VAT</span><span class="v hi">€7,616.00</span></div>
+            <div><span class="label">PO no.</span><span class="v">4500018231</span></div>
+            <div><span class="label">Ordered total</span><span class="v">€6,400.00</span></div>
+            <div><span class="label">Price variance</span><span class="v">0.00%</span></div>
+            <div><span class="label">VAT ID</span><span class="v">DE 284 551 903</span></div>
+          </div>
+
+          <div class="exhibit">
+            <div class="eh"><span>Invoice lines</span><span>category · qty · unit</span></div>
+            <table>
+              <thead>
+                <tr><th>Description</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit</th><th>Category</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Säulenbohrmaschine SB 32 inkl. Kühlmitteleinrichtung</td>
+                  <td class="n">1</td><td class="n">5,980.00</td><td class="dim">equipment</td>
+                </tr>
+                <tr>
+                  <td>Lieferung und Aufstellung</td>
+                  <td class="n">1</td><td class="n">420.00</td><td class="dim">freight</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- booking field grid — every row is a 28px registration unit -->
+          <div class="fields" style="margin-top:12px">
+            <div class="frow">
+              <span class="fl">cost_center</span>
+              <div class="fctl">
+                <span class="goval">◌ expected 0400</span>
+                <span class="select"><b>0400</b><span>capex – machinery &amp; equipment</span><span class="caret">▼</span></span>
+              </div>
+            </div>
+
+            <div class="frow">
+              <span class="fl">gl_account</span>
+              <div class="fctl"><span class="select"><b>0440</b><span>machinery</span><span class="caret">▼</span></span></div>
+            </div>
+
+            <div class="frow current" id="row-asset">
+              <span class="fl">asset_number</span>
+              <div class="fctl">
+                <span class="goval">■ required</span>
+                <span class="blank">— not in PO 4500018231 —</span>
+              </div>
+            </div>
+
+            <div class="frow">
+              <span class="fl">tax_code</span>
+              <div class="fctl"><span class="select"><b>V19</b><span>19% domestic</span><span class="caret">▼</span></span></div>
+            </div>
+
+            <div class="frow">
+              <span class="fl">payment_date</span>
+              <div class="fctl">
+                <span class="goval">2% Skonto · 14 d</span>
+                <span class="select"><b>28 Sep 2026</b><span>inside 14 days</span><span class="caret">▼</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <div class="postrow">
+              <button class="btn" type="button">Post booking</button>
+              <span class="btnhint">guardrail G2 not satisfied · hold</span>
+            </div>
+            <div style="margin-top:10px">
+              <input class="field" value="" placeholder="note (optional)" disabled>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ---------- GUTTER 176px: row-registered calibration ---------- -->
+      <aside class="gutter">
+        <div class="gut-h"><span class="g">Gutter</span><span class="label">176 px</span></div>
+        <div class="gutbody">
+
+          <!-- rows 1–2: cost_center — M1 two-track FieldDiff -->
+          <div class="gitem tall">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="fd">
+                <div class="track pred">
+                  <span class="g">◌</span>
+                  <div class="tr">
+                    <span class="k1">predicted</span>
+                    <span class="v">4711 · opex-maint</span>
+                    <span class="v ts">03:11:47 &nbsp;p .41</span>
+                  </div>
+                </div>
+                <div class="track act">
+                  <span class="g">▮</span>
+                  <div class="tr">
+                    <span class="k1">actual</span>
+                    <span class="v">0400 · capex-machinery</span>
+                    <span class="v ts">03:12:09</span>
+                  </div>
+                </div>
+                <div class="bracket">
+                  <span class="ln"></span>
+                  <span class="cap">unexplained</span>
+                </div>
+                <div class="freeze">
+                  <span class="pb inferred" style="border-left-style:solid;border-left-width:1px">
+                    <span class="glyph">◌</span>
+                    <span class="body"><span class="lab">pre-commit 03:11:47 · frozen</span></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- same row: M2 marginal question anchored to that row -->
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="mnote">
+                <span class="qref">? q_17 ▸</span>
+                <p class="q">"You moved 4471 to capex. What made you do that?"</p>
+                <div class="meta">— asked at pause 03:12, e .73</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- evidence strip accumulating under the claim -->
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="ev">
+                <span class="lab">evidence</span>
+                <span class="em obs">▮ 03:12</span>
+                <span class="em inf">◌ cf-04</span>
+                <span class="em inf">◌ cf-05</span>
+                <span class="em probe">◌ cf-06</span>
+                <span class="em cf">✓ 3 probes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- rows 3–5: quiet rows, one short claim each -->
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="pb inferred">
+                <span class="glyph">◌</span>
+                <span class="body">
+                  <span class="lab">inferred · p .88</span>
+                  <span class="claim">gl_account <span class="k">→</span> <span class="n">0440</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="band">
+                <span class="rule">cost_center <span class="k">=</span> <span class="n">'0400'</span> <span class="k">and not</span> invoice.asset_number <span class="k">→</span> <span class="n">block</span></span>
+                <p class="quote">No asset number, no capex booking.</p>
+                <div class="src"><span class="mono label" style="color:var(--binding)">■ G2</span><span class="who">Sabine, 03:12</span><button class="play" type="button">▶ 03:12</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="pb observed">
+                <span class="glyph">▮</span>
+                <span class="body">
+                  <span class="lab">observed · 03:13:04</span>
+                  <span class="claim">tax_code <span class="k">=</span> <span class="n">V19</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+    </div>
+
+    <!-- status strip 28px: mono measures only -->
+    <div class="statusbar">
+      <span class="m">pause 0.91</span><span class="dotsep">·</span>
+      <span class="m">asked 2/5</span><span class="dotsep">·</span>
+      <span class="m">silent 3</span><span class="dotsep">·</span>
+      <span class="m">confirmed 2/6</span>
+      <span class="right">
+        <span class="label">capture</span>
+        <span class="capturehair" aria-hidden="true"></span>
+        <span class="m">q_14 02:41</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       MODE 2 — WORK MAP
+       ===================================================================== -->
+  <section class="mode" data-mode="map">
+
+    <div class="sessionbar">
+      <span class="id">Nordwerk</span><span class="sep">·</span>
+      <span class="meta">Work Map</span><span class="sep">·</span>
+      <span class="meta">AP invoice booking v1</span><span class="sep">·</span>
+      <span class="meta">draft 4 · 7 steps · 2 guardrails</span>
+      <span class="right">
+        <span class="rec"><i class="dot"></i>capture off</span>
+        <button class="ghostbtn" type="button">export for agents</button>
+      </span>
+    </div>
+
+    <div class="instr">
+      <div class="mapwrap" style="width:100%">
+
+        <!-- replay pane: the screen moment -->
+        <div class="replay">
+          <div class="sec-h"><span class="t">Replay · screen moment</span><span class="n mono">03:12</span></div>
+          <div class="frame">
+            <div class="fh"><span>HM-2026-0412 · cost_center</span><span>⊕ locked</span></div>
+            <div class="fb">
+              <div class="line"><em>predicted</em><span>◌ 4711</span></div>
+              <div class="line"><em>expert</em><span>▮ 0400</span></div>
+              <div class="line"><em>at</em><span>03:12:09</span></div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <div class="pb observed">
+              <span class="glyph">▮</span>
+              <span class="body">
+                <span class="lab">observed · quote</span>
+                <span class="q">"Equipment over five thousand net is always capex."</span>
+                <div class="src" style="margin-top:4px;display:flex;gap:8px;align-items:center">
+                  <span class="mono label">— Sabine, 03:12</span>
+                  <button class="play" type="button">▶</button>
+                </div>
+              </span>
+            </div>
+          </div>
+          <div class="lockrow" style="margin-top:10px">
+            <span class="g mono" style="font-size:12px">◌</span>
+            <span class="mono" style="font-size:12px;color:var(--ink-62)">cf-04 · counterfactual held open</span>
+          </div>
+          <div class="lockrow">
+            <span class="g mono" style="font-size:12px">■</span>
+            <span class="mono" style="font-size:12px;color:var(--binding)">G2 fires only in Tutor</span>
+          </div>
+        </div>
+
+        <!-- LedgerTable -->
+        <div class="ledger">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;
+                      padding:9px 10px 5px">
+            <span class="sec-h" style="border:0;margin:0;padding:0"><span class="t">Ledger · executable Work Map</span></span>
+            <span class="n mono" style="font-size:12px;color:var(--ink-62)">belief: words propose, behaviour disposes</span>
+          </div>
+          <table class="led">
+            <colgroup>
+              <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>#</th><th>step</th><th>2019 doc</th><th>learned rule</th>
+                <th>guardrail</th><th>evidence</th><th>state</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="grp">
+                <td class="idx">1</td>
+                <td class="step">Open invoice</td>
+                <td class="doc">—</td>
+                <td class="rulecode dim">—</td>
+                <td class="doc">—</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:04</span></div></td>
+                <td><span class="pb observed" style="padding-left:4px"><span class="glyph">▮</span><span class="body"><span class="lab">obs</span></span></span></td>
+              </tr>
+
+              <tr class="grp">
+                <td class="idx">2</td>
+                <td class="step">Match PO</td>
+                <td class="doc">✓ price, qty</td>
+                <td class="rulecode dim">—</td>
+                <td class="doc">—</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:06</span><span class="em cf">✓ PO 4500018231</span></div></td>
+                <td><span class="pb observed" style="padding-left:4px"><span class="glyph">▮</span><span class="body"><span class="lab">obs</span></span></span></td>
+              </tr>
+
+              <tr class="grp bindrow">
+                <td class="idx">3</td>
+                <td class="step">Check supplier status</td>
+                <td class="doc">—</td>
+                <td class="rulecode dim">—</td>
+                <td class="mono" style="color:var(--binding);font-size:12.5px">■ G3</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:07</span></div></td>
+                <td><span class="pb binding" style="padding-left:4px"><span class="glyph">■</span><span class="body"><span class="lab">bind</span></span></span></td>
+              </tr>
+
+              <tr class="grp">
+                <td class="idx">4</td>
+                <td class="step">Code to cost center</td>
+                <td class="doc"><s>4711 opex</s> <span class="to">→ 0400</span></td>
+                <td class="rulecode"><span class="k">net</span> <span class="k">&gt;</span> <span class="n">5000</span> <span class="k">∧</span> cat <span class="k">=</span> <span class="n">equipment</span> <span class="k">→</span> <span class="n">0400</span></td>
+                <td class="mono" style="color:var(--binding);font-size:12.5px">■ G2</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:12</span><span class="em cf">✓ 3 probes</span></div></td>
+                <td><span class="pb confirmed" style="padding-left:4px"><span class="glyph">✓</span><span class="body"><span class="lab">conf</span></span></span></td>
+              </tr>
+
+              <tr class="gaprow">
+                <td></td>
+                <td colspan="6">
+                  <div class="gband bandin">
+                    <span class="rule">cost_center <span class="k">=</span> <span class="n">'0400'</span> <span class="k">and not</span> invoice.asset_number <span class="k">→</span> <span class="n">block</span></span>
+                    <p class="quote">No asset number, no capex booking.</p>
+                    <div class="meta"><span style="color:var(--binding)">■ G2 · block</span><span>— Sabine, 03:12</span><button class="play" type="button">▶ 03:12</button></div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="grp">
+                <td class="idx">5</td>
+                <td class="step">Check asset number</td>
+                <td class="doc"><s>not required</s></td>
+                <td class="rulecode"><span class="k">not</span> asset_number <span class="k">→</span> <span class="n">hold</span></td>
+                <td class="mono" style="color:var(--binding);font-size:12.5px">■ G2</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:12</span><span class="em probe">◌ cf-04</span></div></td>
+                <td><span class="pb confirmed" style="padding-left:4px"><span class="glyph">✓</span><span class="body"><span class="lab">conf</span></span></span></td>
+              </tr>
+
+              <tr class="grp">
+                <td class="idx">6</td>
+                <td class="step">Check payment terms / Skonto</td>
+                <td class="doc">2% within 10 days</td>
+                <td class="rulecode">skonto <span class="k">=</span> <span class="n">2%</span> <span class="k">→</span> pay <span class="k">≤</span> <span class="n">10d</span></td>
+                <td class="doc">—</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:14</span><span class="em inf">◌ cf-07</span></div></td>
+                <td><span class="pb inferred" style="padding-left:4px"><span class="glyph">◌</span><span class="body"><span class="lab">inf .71</span></span></span></td>
+              </tr>
+
+              <tr class="grp">
+                <td class="idx">7</td>
+                <td class="step">Post</td>
+                <td class="doc">tax V19, post</td>
+                <td class="rulecode dim">—</td>
+                <td class="mono" style="color:var(--binding);font-size:12.5px">■ G2 · block</td>
+                <td><div class="evcell"><span class="em obs">▮ 03:15</span></div></td>
+                <td><span class="pb inferred" style="padding-left:4px"><span class="glyph">◌</span><span class="body"><span class="lab">inf .34</span></span></span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="cleg">
+            <span><i class="g">▮</i> observed · 2px solid</span>
+            <span><i class="g">◌</i> inferred · 1px dashed</span>
+            <span><i class="g">✓</i> confirmed · 1px solid + underline</span>
+            <span><i class="g">■</i> binding · 4px band</span>
+            <span><i class="g">✗</i> contested · dashed + strike</span>
+            <span class="mono" style="color:var(--ink-62)">struck 2019 text = the expert diverged here</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span class="m">steps 7/7</span><span class="dotsep">·</span>
+      <span class="m">rules 5</span><span class="dotsep">·</span>
+      <span class="m">guardrails 2</span><span class="dotsep">·</span>
+      <span class="m">confirmed 2/6</span><span class="dotsep">·</span>
+      <span class="m">doc conflict 1 · row 4</span>
+      <span class="right"><span class="label">capture</span><span class="capturehair" aria-hidden="true"></span></span>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       MODE 3 — DEBRIEF
+       ===================================================================== -->
+  <section class="mode" data-mode="debrief">
+
+    <div class="sessionbar">
+      <span class="id">Nordwerk</span><span class="sep">·</span>
+      <span class="meta">Debrief</span><span class="sep">·</span>
+      <span class="meta">Sabine Albrecht × Shadow</span><span class="sep">·</span>
+      <span class="meta">18 Sep 2026 · 03:41</span>
+      <span class="right">
+        <span class="rec"><i class="dot"></i>capture off</span>
+        <button class="ghostbtn" type="button">freeze self-exam</button>
+      </span>
+    </div>
+
+    <div class="instr">
+      <div class="debwrap" style="width:100%">
+
+        <!-- LEFT: ranked agenda, EVOI in mono -->
+        <div class="agenda">
+          <div class="sec-h"><span class="t">Ranked agenda</span><span class="n mono">4 of 11 · EVOI</span></div>
+          <div class="qrow">
+            <span class="qn">Q1</span>
+            <span class="evoi">.73</span>
+            <div>
+              <span class="kind">deferred live question · from 02:41</span>
+              <p class="qt">"Skonto — do you ever take it after the 10 days?"</p>
+              <div class="qm">q_14 · asked at 02:41, unanswered while the pause closed · target: payment_date</div>
+            </div>
+          </div>
+          <div class="qrow">
+            <span class="qn">Q2</span>
+            <span class="evoi">.61</span>
+            <div>
+              <span class="kind">stated-rule verification</span>
+              <p class="qt">"You said five thousand <em>net</em>. Is it ever gross?"</p>
+              <div class="qm">contradicts phrasing in the 03:12 quote · target: threshold basis</div>
+            </div>
+          </div>
+          <div class="qrow">
+            <span class="qn">Q3</span>
+            <span class="evoi">.54</span>
+            <div>
+              <span class="kind">BALD probe · max disagreement</span>
+              <p class="qt">"€5,200 gross but €4,370 net — where does it land?"</p>
+              <div class="qm">hypotheses H3/H5 disagree at this point, 0.41 vs 0.38 · target: basis × amount</div>
+            </div>
+          </div>
+          <div class="qrow defer">
+            <span class="qn">Q4</span>
+            <span class="evoi">.48</span>
+            <div>
+              <span class="kind">guardrail gap · uncovered condition</span>
+              <p class="qt">"Intercompany CZ with no asset number — which rule wins?"</p>
+              <div class="qm">G2 and G4 both claim this case; no observation covers the overlap · target: precedence</div>
+            </div>
+          </div>
+          <div class="budget">
+            <span class="label">ask budget spent</span>
+            <span class="m" style="margin-left:auto">2 / 5</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: probe sheet, posterior strip, teach-back -->
+        <div class="rightcol">
+
+          <div class="sec-h"><span class="t">Probe sheet · synthetic cases</span><span class="n mono">3/3 run · 2 agree · 1 corrects</span></div>
+          <div class="probes">
+            <table>
+              <colgroup><col class="pc1"><col class="pc2"><col class="pc3"><col class="pc4"></colgroup>
+              <thead>
+                <tr><th>Case</th><th>Map predicts</th><th>Sabine answers</th><th>Agr.</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="case">Same laptop, €4,900 net — capex or opex?</div>
+                    <div class="sub">equipment, asset no. present, DE</div>
+                  </td>
+                  <td class="px"><span class="pb inferred" style="padding-left:4px"><span class="glyph">◌</span><span class="body"><span class="claim">4711 opex</span></span></span></td>
+                  <td class="px"><span class="pb observed" style="padding-left:4px"><span class="glyph">▮</span><span class="body"><span class="claim">4711 opex</span></span></span></td>
+                  <td class="agree ok">✓</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="case">€5,200 gross but €4,370 net?</div>
+                    <div class="sub">equipment · asset no. present · basis ambiguity</div>
+                  </td>
+                  <td class="px"><span class="pb inferred" style="padding-left:4px"><span class="glyph">◌</span><span class="body"><span class="claim">0400 capex <span class="k">(gross)</span></span></span></span></td>
+                  <td class="px"><span class="pb observed" style="padding-left:4px"><span class="glyph">▮</span><span class="body"><span class="claim">4711 opex <span class="k">(net)</span></span></span></span></td>
+                  <td class="agree no">✗</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="case">Krämer double-biller, but in March</div>
+                    <div class="sub">consumables · second bill 34 days after the first</div>
+                  </td>
+                  <td class="px"><span class="pb inferred" style="padding-left:4px"><span class="glyph">◌</span><span class="body"><span class="claim">hold · within 1 month</span></span></span></td>
+                  <td class="px"><span class="pb observed" style="padding-left:4px"><span class="glyph">▮</span><span class="body"><span class="claim">post · outside December</span></span></span></td>
+                  <td class="agree no">✗</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PosteriorStrip: density + interval bracket + mono axis -->
+          <div class="post">
+            <div class="top">
+              <span class="label">Posterior · capex threshold</span>
+              <span class="meas">mean €5,000 · sd €260 · n=6 · basis: net <span class="dim">(p .84)</span></span>
+            </div>
+            <svg viewBox="0 0 640 76" preserveAspectRatio="none" role="img"
+                 aria-label="posterior density for the capex threshold, mean 5000, interval 4610 to 5390">
+              <!-- ruled baseline -->
+              <line x1="0" y1="70" x2="640" y2="70" stroke="#B9B3A9" stroke-width="1"/>
+              <!-- interval bracket -->
+              <line x1="150" y1="64" x2="150" y2="72" stroke="#17181A" stroke-width="1"/>
+              <line x1="490" y1="64" x2="490" y2="72" stroke="#17181A" stroke-width="1"/>
+              <line x1="150" y1="66" x2="490" y2="66" stroke="#17181A" stroke-width="1"/>
+              <!-- density: stepped bars, no fill gradient, 1px stroke -->
+              <path d="M0,70 L60,70 L60,68 L120,68 L120,64 L180,64 L180,52 L240,52 L240,34 L300,34 L300,16 L330,16 L330,10 L360,10 L360,18 L420,18 L420,40 L480,40 L480,58 L540,58 L540,67 L600,67 L600,70 L640,70"
+                    fill="none" stroke="#17181A" stroke-width="1"/>
+              <!-- mean rule -->
+              <line x1="340" y1="6" x2="340" y2="70" stroke="#17181A" stroke-width="1" stroke-dasharray="3 3"/>
+              <!-- basis rules -->
+              <line x1="200" y1="46" x2="200" y2="70" stroke="#83817E" stroke-width="1" stroke-dasharray="2 3"/>
+              <line x1="500" y1="46" x2="500" y2="70" stroke="#83817E" stroke-width="1" stroke-dasharray="2 3"/>
+            </svg>
+            <div class="axis">
+              <span style="left:9%">3,800</span>
+              <span style="left:31%">4,600</span>
+              <span style="left:53%">5,000</span>
+              <span style="left:78%">5,400</span>
+              <span style="left:97%">6,200</span>
+            </div>
+            <div class="basis">
+              <span class="b"><i class="sw"></i>net · n=6 · p .84</span>
+              <span class="b"><i class="sw dash"></i>gross · n=1 · p .16</span>
+              <span class="b dim">interval 4,610 – 5,390 (90%)</span>
+            </div>
+          </div>
+
+          <!-- Teach-back read-back of clauses -->
+          <div class="teach">
+            <div class="sec-h" style="border:0;margin:0;padding:8px 0 4px">
+              <span class="t">Teach-back · read-back</span>
+              <span class="n mono">2 confirmed · 1 corrected · 3 open</span>
+            </div>
+            <div class="row">
+              <span class="n">§2</span>
+              <span class="cl"><span class="k">net</span> <span class="k">&gt;</span> <span class="n">5000</span> <span class="k">∧</span> cat <span class="k">=</span> <span class="n">equipment</span> <span class="k">→</span> <span class="n">0400</span></span>
+              <span class="ctl"><button class="ctlbtn ok" type="button">✓ confirm</button><button class="ctlbtn" type="button">correct</button></span>
+            </div>
+            <div class="row">
+              <span class="n">§4</span>
+              <span class="cl"><span class="k">not</span> asset_number <span class="k">→</span> <span class="n">hold</span> <span class="dim">· G2</span></span>
+              <span class="ctl"><button class="ctlbtn ok" type="button">✓ confirm</button><button class="ctlbtn" type="button">correct</button></span>
+            </div>
+            <div class="row">
+              <span class="n">§5</span>
+              <span class="cl">Krämer <span class="k">∧</span> same_amount <span class="k">within</span> <span class="n">30d</span> <span class="k">→</span> <span class="n">hold</span> <span class="dim">· in Dec only?</span></span>
+              <span class="ctl"><button class="ctlbtn no" type="button">✗ correct</button><button class="ctlbtn" type="button">confirm</button></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span class="m">pause 0.91</span><span class="dotsep">·</span>
+      <span class="m">asked 2/5</span><span class="dotsep">·</span>
+      <span class="m">silent 3</span><span class="dotsep">·</span>
+      <span class="m">confirmed 2/6</span><span class="dotsep">·</span>
+      <span class="m">probes 3/3 · 1 disagreement</span>
+      <span class="right"><span class="label">capture</span><span class="capturehair" aria-hidden="true"></span></span>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       MODE 4 — TUTOR
+       ===================================================================== -->
+  <section class="mode" data-mode="tutor">
+
+    <div class="sessionbar">
+      <span class="id">Nordwerk</span><span class="sep">·</span>
+      <span class="meta">Tutor</span><span class="sep">·</span>
+      <span class="meta">Lena Vogt, new hire · day 4</span><span class="sep">·</span>
+      <span class="meta">run_map v1 · Sabine's Work Map</span>
+      <span class="right">
+        <span class="rec"><i class="dot"></i>session 04:07</span>
+        <button class="ghostbtn" type="button">show expected values</button>
+      </span>
+    </div>
+
+    <div class="instr tutor">
+      <!-- ---------- STAGE: the trainee's ERP ---------- -->
+      <div class="stage">
+        <div class="sheet">
+
+          <div class="sheet-head">
+            <span class="invno">5120</span>
+            <span class="who">Machine · new-hire case</span>
+            <span class="right">AP Inbox / open</span>
+          </div>
+
+          <div class="docmeta">
+            <div><span class="label">Machine</span><span class="v hi">€7,200.00</span></div>
+            <div><span class="label">Net</span><span class="v hi">€7,200.00</span></div>
+            <div><span class="label">VAT 19%</span><span class="v">€1,368.00</span></div>
+            <div><span class="label">Gross</span><span class="v hi">€8,568.00</span></div>
+            <div><span class="label">Asset number</span><span class="v" style="color:var(--binding)">— none on PO —</span></div>
+            <div><span class="label">Category</span><span class="v">equipment</span></div>
+            <div><span class="label">Supplier</span><span class="v">Hessler Maschinentechnik</span></div>
+            <div><span class="label">Country</span><span class="v">DE</span></div>
+          </div>
+
+          <div class="fields" style="margin-top:12px">
+            <div class="frow current">
+              <span class="fl">cost_center</span>
+              <div class="fctl">
+                <span class="goval" style="color:var(--binding)">■ expected 0400</span>
+                <span class="select" style="border-color:var(--binding)"><b style="color:var(--binding)">4711</b><span>opex – maintenance</span><span class="caret">▼</span></span>
+              </div>
+            </div>
+            <div class="frow">
+              <span class="fl">gl_account</span>
+              <div class="fctl"><span class="select"><b>4805</b><span>repairs &amp; maintenance</span><span class="caret">▼</span></span></div>
+            </div>
+            <div class="frow">
+              <span class="fl">asset_number</span>
+              <div class="fctl"><span class="goval">■ required</span><span class="blank">— blank —</span></div>
+            </div>
+            <div class="frow">
+              <span class="fl">tax_code</span>
+              <div class="fctl"><span class="select"><b>V19</b><span>19% domestic</span><span class="caret">▼</span></span></div>
+            </div>
+            <div class="frow">
+              <span class="fl">payment_date</span>
+              <div class="fctl"><span class="select"><b>31 Oct 2026</b><span>net 30</span><span class="caret">▼</span></span></div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <!-- HeldControl replaces the primary action -->
+            <div class="held">
+              <div class="hrow">
+                <button class="hbtn" type="button" aria-disabled="true">Post — held</button>
+                <span class="hint">■ guardrail G2 · block</span>
+              </div>
+              <div class="why">
+                <span class="label">to override, state why</span>
+                <div class="whyf">
+                  <input class="field" value="" placeholder="required reason">
+                  <span class="req">✗ required</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ---------- GUTTER: expected values from run_map ---------- -->
+      <aside class="gutter">
+        <div class="gut-h"><span class="g">Expected · run_map</span><span class="label">176 px</span></div>
+        <div class="gutbody">
+
+          <div class="gitem tall">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="pb binding bandin">
+                <span class="glyph">■</span>
+                <span class="body">
+                  <span class="lab">guardrail · G2 · block</span>
+                  <span class="claim">cost_center <span class="k">=</span> <span class="n">'0400'</span> <span class="k">and not</span> invoice.asset_number <span class="k">→</span> <span class="n">block</span></span>
+                  <p class="quote">No asset number, no capex booking.</p>
+                  <div class="src">
+                    <span class="who">Sabine, 03:12</span>
+                    <button class="play" type="button">▶ 03:12</button>
+                  </div>
+                </span>
+              </div>
+              <div class="fd" style="margin-top:8px">
+                <div class="track pred">
+                  <span class="g">◌</span>
+                  <div class="tr">
+                    <span class="k1">expected</span>
+                    <span class="v">0400 · capex-machinery</span>
+                    <span class="v ts">from run_map</span>
+                  </div>
+                </div>
+                <div class="track act">
+                  <span class="g">▮</span>
+                  <div class="tr">
+                    <span class="k1">trainee set</span>
+                    <span class="v">4711 · opex-maint</span>
+                    <span class="v ts">04:07:22</span>
+                  </div>
+                </div>
+                <div class="bracket">
+                  <span class="ln" style="border-bottom-color:var(--binding);border-top-color:var(--binding)"></span>
+                  <span class="cap" style="color:var(--binding)">intervention</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="pb observed">
+                <span class="glyph">▮</span>
+                <span class="body">
+                  <span class="lab">observed · evidence</span>
+                  <span class="q">"No asset number, no capex booking."</span>
+                  <div class="src" style="margin-top:4px;display:flex;gap:8px;align-items:center">
+                    <span class="mono label">— Sabine, 03:12</span>
+                    <button class="play" type="button">▶ 03:12</button>
+                  </div>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <span class="mono" style="font-size:12px;color:var(--ink-62)">▶ 03:12 · replay mark · seeks the frame in place</span>
+            </div>
+          </div>
+
+          <div class="gitem">
+            <i class="glead"></i>
+            <div class="gtext">
+              <div class="pb inferred">
+                <span class="glyph">◌</span>
+                <span class="body">
+                  <span class="lab">next expected · gl_account</span>
+                  <span class="claim"><span class="k">→</span> <span class="n">0440</span> machinery</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- ---------- TUTOR right rail: mastery ---------- -->
+      <aside class="rail">
+        <div class="blk">
+          <div class="sec-h"><span class="t">Mastery</span><span class="n mono">BKT · 3 rules</span></div>
+          <div class="mrow">
+            <div>
+              <span class="name">Lena</span>
+              <div class="meter" aria-label="R2 segment 2 of 3">
+                <i class="on"></i><i class="mid"></i><i></i>
+              </div>
+              <div class="arm">R2 · capex threshold · 34 obs</div>
+            </div>
+            <span class="delta">0.42 → <b>0.61</b></span>
+          </div>
+          <div class="mrow">
+            <div>
+              <span class="name">Lena</span>
+              <div class="meter" aria-label="G2 segment 1 of 3">
+                <i class="mid"></i><i></i><i></i>
+              </div>
+              <div class="arm">G2 · asset number guardrail · 12 obs</div>
+            </div>
+            <span class="delta">0.30 → <b>0.38</b></span>
+          </div>
+          <div class="mrow">
+            <div>
+              <span class="name">Lena</span>
+              <div class="meter" aria-label="R5 segment 3 of 3">
+                <i class="on"></i><i class="on"></i><i class="mid"></i>
+              </div>
+              <div class="arm">R5 · Krämer double-bill · 18 obs</div>
+            </div>
+            <span class="delta">0.74 → <b>0.79</b></span>
+          </div>
+          <div class="arm" style="margin-top:8px">3-segment interval · not a fill bar · segment = 1/3 of the credence interval</div>
+        </div>
+
+        <div class="blk">
+          <div class="sec-h"><span class="t">Held actions</span><span class="n mono">1 open</span></div>
+          <div class="pb binding">
+            <span class="glyph">■</span>
+            <span class="body">
+              <span class="lab">binding · not confirmed</span>
+              <span class="claim">post blocked at 04:07:22</span>
+              <p class="q">reason field required before the booking can move.</p>
+            </span>
+          </div>
+        </div>
+
+        <div class="blk">
+          <div class="sec-h"><span class="t">Session deltas</span><span class="n mono">delta as text</span></div>
+          <div class="arm">mastery is written as a text delta beside the lane — never as a colour flash.</div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="statusbar">
+      <span class="m">pause 0.88</span><span class="dotsep">·</span>
+      <span class="m">asked 1/5</span><span class="dotsep">·</span>
+      <span class="m">silent 4</span><span class="dotsep">·</span>
+      <span class="m">confirmed 3/6</span><span class="dotsep">·</span>
+      <span class="m">held 1</span>
+      <span class="right"><span class="label">capture</span><span class="capturehair" aria-hidden="true"></span></span>
+    </div>
+  </section>
+
+  </div><!-- /mock -->
+
+  <!-- ===== legend: five provenance states ===== -->
+  <div class="legend" aria-label="provenance legend">
+    <div class="cell">
+      <div class="h"><span class="g">▮</span><span class="s">Observed</span></div>
+      <div class="spec">
+        <span><i class="rule-sample rs-obs"></i>2px solid rule</span>
+        <span>glyph 6×6 · sans quote / mono value · 100% ink</span>
+        <span class="dim">a human did this · attributed, timestamped</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="h"><span class="g">◌</span><span class="s">Inferred</span></div>
+      <div class="spec">
+        <span><i class="rule-sample rs-inf"></i>1px dashed rule</span>
+        <span>6px open ring · mono claim · 62% ink</span>
+        <span class="dim">the machine thinks this · revocable</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="h"><span class="g" style="color:var(--confirmed)">✓</span><span class="s">Confirmed</span></div>
+      <div class="spec">
+        <span><i class="rule-sample rs-cf"></i>1px solid + underline</span>
+        <span>10px square · mono · 100% ink · green</span>
+        <span class="dim">earned · survived counterfactual, replay, teach-back</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="h"><span class="g" style="color:var(--binding)">■</span><span class="s">Binding</span></div>
+      <div class="spec">
+        <span><i class="rule-sample rs-bind"></i>4px solid + hairlines above/below</span>
+        <span>6×6 filled · mono predicate · red-ochre</span>
+        <span class="dim">a constraint, not a claim · the only state that interrupts</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="h"><span class="g">✗</span><span class="s">Contested</span></div>
+      <div class="spec">
+        <span><i class="rule-sample rs-con"></i>1px dashed + strike</span>
+        <span>strike through claim · 55% ink</span>
+        <span class="dim">confirmed node contradicted later · authority suspended</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Two independent channels per state — one of {glyph, line style, texture, voice} plus one of {ink weight, hue, position}. Hue alone is never sufficient; the grayscale test passes.</span>
+    <span>Looping motion: exactly one 1px capture hairline. All other transitions 120–200ms, no bounce, no scale, no re-flow of existing rows.</span>
+    <span>Palette: paper #F7F5F1 · ink #17181A · hairlines #D8D3CB / #B9B3A9 · panel #FFFFFF · binding #A8483A · confirmed #2F6B4F.</span>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* vanilla state switcher — the only script in the file */
+(function () {
+  var body = document.body;
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.switch button'));
+  function set(mode) {
+    body.setAttribute('data-mode', mode);
+    tabs.forEach(function (b) {
+      b.setAttribute('aria-selected', String(b.getAttribute('data-set') === mode));
+    });
+  }
+  tabs.forEach(function (b) {
+    b.addEventListener('click', function () { set(b.getAttribute('data-set')); });
+  });
+  // arrow-key navigation on the tab strip
+  document.querySelector('.switch').addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var n = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+    tabs[n].focus(); set(tabs[n].getAttribute('data-set')); e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>

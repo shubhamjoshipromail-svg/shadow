@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shadow v3 — C · THE SHIFT</title>
+<style>
+/* ============================================================
+   C — THE SHIFT  ·  time is the spine
+   tokens (drop-in as-is)
+   ============================================================ */
+:root{
+  --stage:#0B0C0D;
+  --spine:#121314;
+  --inspector:#0B0C0D;
+  --rule:#222426;
+  --rule-strong:#33363A;
+  --ink:#E8E6E2;
+  --ink-2:#9A9691;
+  --ink-3:#6A6663;
+  --confirmed:#7FA88C;
+  --binding:#B4705F;
+  --attention:#C9A227;
+
+  --state-observed:#E8E6E2;
+  --state-inferred:#9A9691;
+  --state-confirmed:#7FA88C;
+  --state-binding:#B4705F;
+  --state-contested:#6A6663;
+
+  --f-ui:Inter,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --f-serif:"Iowan Old Style",Palatino,Charter,Georgia,serif;
+
+  --e-scale:cubic-bezier(.22,1,.36,1);
+  --e-mark:cubic-bezier(.2,0,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--stage);color:var(--ink);font-family:var(--f-ui);
+  -webkit-font-smoothing:antialiased;font-size:12px}
+body{padding:16px 16px 40px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg{display:block;overflow:visible}
+
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.lab{font:600 10px/14px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- header, outside the app frame ---------- */
+.dochead{max-width:1512px;margin:0 auto 10px;display:flex;align-items:baseline;gap:14px;
+  border-bottom:1px solid var(--rule);padding-bottom:8px}
+.dochead h1{font:600 12px/16px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.dochead .sub{font:400 11px/16px var(--f-ui);color:var(--ink-3)}
+.dochead .ruleline{flex:1;height:1px;background:var(--rule)}
+
+/* ---------- app frame: exactly one bordered plate ---------- */
+.frame{max-width:1512px;margin:0 auto;border:1px solid var(--rule-strong);background:var(--stage)}
+.b-cell{border-right:1px solid var(--rule)}
+.hair{border-top:1px solid var(--rule)}
+.hair-s{border-top:1px solid var(--rule-strong)}
+
+/* ---------- 1 · command bar 40px ---------- */
+.cmdbar{height:40px;display:flex;align-items:center;gap:0;border-bottom:1px solid var(--rule-strong)}
+.cmdbar .seg{height:40px;display:flex;align-items:center;padding:0 12px;border-right:1px solid var(--rule)}
+.cmdbar .brand{width:96px;font:600 11px/16px var(--f-ui);letter-spacing:.18em}
+.cmdbar .ws{width:220px;font:400 12px/16px var(--f-ui);color:var(--ink-2)}
+.cmdbar .ws .who{color:var(--ink)}
+.cmdbar .modes{flex:1;gap:0;padding:0}
+.cmdbar .rec{margin-left:auto;border-right:0;border-left:1px solid var(--rule);gap:8px}
+.rec .dot{width:3px;height:3px;background:var(--ink-2);animation:none}
+
+/* scale selector = the mode selector */
+.modes button{height:40px;padding:0 12px;border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:104px;text-align:left}
+.modes button .scale{font:600 9px/11px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.modes button .m{font:400 10px/12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.modes button:hover .m{color:var(--ink-2)}
+.modes button[aria-selected="true"]{background:var(--spine)}
+.modes button[aria-selected="true"] .scale{color:var(--attention)}
+.modes button[aria-selected="true"] .m{color:var(--ink)}
+.modes button[aria-selected="true"] .scale::before{content:"▸ ";letter-spacing:0}
+.modes button[aria-selected="false"] .scale::before{content:"▸ ";visibility:hidden}
+
+/* ---------- 2 · stream: stage + inspector ---------- */
+.stream{display:grid;grid-template-columns:minmax(0,1fr) 320px}
+.stagewrap{background:var(--stage)}
+.spinewrap{background:var(--spine);border-top:1px solid var(--rule-strong)}
+.inspector{border-left:1px solid var(--rule-strong);background:var(--inspector)}
+
+/* ---------- stage (the expert's work — primary) ---------- */
+.stagehead{height:32px;display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid var(--rule)}
+.docname{font:600 13px/18px var(--f-ui)}
+.docsub{font:400 11px/16px var(--f-mono);color:var(--ink-3)}
+.stagebody{display:grid;grid-template-columns:minmax(0,1fr) 242px;grid-template-rows:minmax(0,1fr) auto}
+.col-l{min-height:0}
+.col-r{border-left:1px solid var(--rule)}
+.deckrow{grid-column:1 / -1;display:flex;align-items:center;gap:0;border-top:1px solid var(--rule);
+  font:400 10px/14px var(--f-mono);color:var(--ink-3);white-space:nowrap;overflow:hidden}
+.deckrow span{padding:6px 12px;border-right:1px solid var(--rule)}
+.deckrow span b{font-weight:400;color:var(--ink-2)}
+.deckrow .key{color:var(--ink-3)}
+.fgroup{padding:10px 12px 12px;border-bottom:1px solid var(--rule)}
+.fgrid{display:grid;grid-template-columns:96px minmax(0,1fr)}
+.fgrid dt{font:600 10px/18px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-top:1px}
+.fgrid dd{font:400 12px/18px var(--f-mono);color:var(--ink);padding:1px 0;min-height:18px}
+.fgrid dd.plain{font-family:var(--f-ui)}
+.fgrid dd.dim{color:var(--ink-2)}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font:600 9px/12px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  text-align:left;padding:8px 12px 6px;border-bottom:1px solid var(--rule)}
+.tbl td{font:400 11px/16px var(--f-mono);padding:6px 12px;border-bottom:1px solid var(--rule);color:var(--ink-2)}
+.tbl td.t{font-family:var(--f-ui);color:var(--ink)}
+.tbl .r{text-align:right}
+.sumgrid{display:grid;grid-template-columns:minmax(0,1fr) 86px;font:400 11px/16px var(--f-mono);
+  padding:6px 12px;border-bottom:1px solid var(--rule)}
+.sumgrid .k{color:var(--ink-3)}
+.sumgrid .v{text-align:right;color:var(--ink)}
+.sumgrid.net .v,.sumgrid.net .k{color:var(--ink)}
+/* the active booking field */
+.field{display:flex;align-items:center;border:1px solid var(--rule-strong);background:#0E0F10;
+  font:400 12px/18px var(--f-mono);height:26px}
+.field .v{padding:0 8px;color:var(--ink);flex:1}
+.field .caret{width:1px;height:14px;background:var(--ink);animation:caret 1.1s steps(1,end) infinite}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+.field .u{padding:0 8px;color:var(--ink-3);border-left:1px solid var(--rule)}
+/* 1px locator band on the active row */
+.located{position:relative}
+.located::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--attention)}
+.loclabel{display:flex;justify-content:space-between;font:400 9px/14px var(--f-mono);color:var(--attention)}
+
+/* ---------- 3 · inspector: one object ---------- */
+.insp-h{height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--rule);
+  font:600 10px/14px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);flex:0 0 auto}
+.insp-h .n{margin-left:auto;font:400 10px/14px var(--f-mono);color:var(--ink-3);letter-spacing:0}
+.inspbody{display:flex;flex-direction:column}
+.selhead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--rule)}
+.glyph{width:22px;height:22px;display:grid;place-items:center;font:400 13px/16px var(--f-mono);color:var(--ink)}
+.glyph.dotted{font-size:12px;color:var(--ink-2)}
+.glyph.hatched{color:var(--binding)}
+.selhead .t{font:600 13px/18px var(--f-ui)}
+.selhead .s{margin-left:auto;font:600 10px/14px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.prow{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:baseline;
+  min-height:26px;padding:5px 12px;border-bottom:1px solid var(--rule)}
+.prow .k{font:600 10px/16px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.prow .v{font:400 11px/16px var(--f-mono);color:var(--ink);text-align:right;word-break:break-word}
+.prow .v.sans{font-family:var(--f-ui);font-size:12px}
+.prow .v.g{color:var(--confirmed)}
+.prow .v.b{color:var(--binding)}
+.prow .v.a{color:var(--attention)}
+.quote{padding:12px 12px 14px;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule-strong)}
+.quote p{font:400 16px/24px var(--f-serif);color:var(--ink)}
+.quote .att{display:flex;align-items:center;gap:8px;margin-top:8px;
+  font:600 10px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.quote .att .play{font:400 10px/14px var(--f-mono);color:var(--ink-2);letter-spacing:0;border:1px solid var(--rule-strong);padding:1px 5px}
+.qsec{padding:10px 12px;border-bottom:1px solid var(--rule)}
+.qsec .h{font:600 10px/14px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;display:flex}
+.qsec .h .n{margin-left:auto;font:400 10px/14px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
+.ev{font:400 11px/20px var(--f-mono);color:var(--ink-2)}
+.ev i{font-style:normal;color:var(--ink)}
+.predicate{font:400 11px/18px var(--f-mono)}
+.predicate .kw{color:var(--ink-3)}
+.predicate .op{color:var(--attention)}
+.predicate b{font-weight:400;color:var(--ink);border-bottom:1px solid var(--rule-strong)}
+.queue{display:grid;grid-template-columns:44px 22px minmax(0,1fr);align-items:center}
+.queue .row{display:contents}
+.queue .row>span{min-height:24px;display:flex;align-items:center;border-bottom:1px solid var(--rule);
+  font:400 11px/16px var(--f-mono);color:var(--ink-2);padding:0 0}
+.queue .row>span.t{border-left:1px solid var(--rule);padding-left:6px;color:var(--ink-3)}
+.queue .row>span.g{justify-content:center;color:var(--ink-2)}
+.queue .row>span.d{padding-left:6px;font-family:var(--f-ui);font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.queue .row.ranked>span.t{border-left-color:var(--attention);color:var(--ink)}
+.queue .row.contested>span.d{text-decoration:line-through;color:var(--ink-2)}
+.edge{margin-left:auto;padding-right:2px;font:400 9px/14px var(--f-mono);color:var(--binding);border-left:1px solid var(--binding)}
+.spacer{height:2px;background:var(--rule)}
+
+/* ---------- 4 · the spine ---------- */
+.spinewrap{position:relative;padding:20px 12px 10px}
+.spinebar{height:20px;display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  font:600 9px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.spinebar .ms{margin-left:auto;font:400 9px/14px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
+.spinebar .ms b{font-weight:400;color:var(--ink-2)}
+.spinegrid{display:grid;grid-template-columns:74px minmax(0,1fr)}
+.spinegrid .ll{display:flex;flex-direction:column}
+.spinegrid .ll .ln{display:flex;align-items:center;font:400 10px/14px var(--f-mono);
+  letter-spacing:.04em;color:var(--ink-3);border-top:1px solid var(--rule);padding-right:10px;white-space:nowrap}
+.spinegrid .ll .ln.hd{border-top:0}
+.spinegrid .ll .ln .tag{margin-left:auto;color:var(--ink-3);opacity:.7}
+.spinegrid .canvas{position:relative;border-left:1px solid var(--rule);min-width:0}
+.spinegrid .canvas svg{width:100%;height:224px}
+
+.ln,.tc{transition:height .32s var(--e-scale)}
+.hd{height:24px}
+.tc{height:28px}
+.spinewrap{transition:min-height .32s var(--e-scale)}
+.spinewrap{min-height:272px}
+body[data-mode="map"] .spinewrap{min-height:382px}
+body[data-mode="debrief"] .spinewrap,
+body[data-mode="tutor"] .spinewrap{min-height:272px}
+.maptrack{display:none}
+body[data-mode="map"] .maptrack{display:grid}
+body[data-mode="map"] #lanes{display:none}
+body[data-mode="map"] #mapcanvas svg{height:348px}
+.spinegrid .ll .ln b{font:400 10px/14px var(--f-mono);color:var(--ink-2);font-weight:400}
+body[data-mode="map"] #steplabels{width:108px}
+body[data-mode="map"] .spinegrid{grid-template-columns:108px minmax(0,1fr)}
+
+/* scale ranks */
+body[data-mode="map"] .ln,body[data-mode="map"] .tc{height:40px}
+body[data-mode="debrief"] .ln,body[data-mode="debrief"] .tc{height:28px}
+body[data-mode="tutor"] .ln,body[data-mode="tutor"] .tc{height:28px}
+
+.sv-rule{stroke:#222426;stroke-width:1;shape-rendering:crispEdges}
+.sv-rule-strong{stroke:#33363A;stroke-width:1;shape-rendering:crispEdges}
+.sv-grid{stroke:#222426;stroke-width:1;shape-rendering:crispEdges;opacity:.85}
+.sv-lane{fill:#E8E6E2;opacity:.10}
+.sv-hair{stroke:#9A9691;stroke-width:1;stroke-dasharray:1 3;opacity:.75}
+.sv-hair-s{stroke:#E8E6E2;stroke-width:1;opacity:.9}
+.sv-ink{fill:#E8E6E2}
+.sv-inferred{fill:#9A9691}
+.sv-confirmed{fill:#7FA88C}
+.sv-att{stroke:#C9A227;stroke-width:1}
+.sv-attf{fill:#C9A227}
+.sb-label{font:9px/10px ui-monospace,"SF Mono",Menlo,monospace;fill:#9A9691;letter-spacing:.02em}
+.sb-label-w{font:9px/10px ui-monospace,"SF Mono",Menlo,monospace;fill:#E8E6E2}
+.sb-label-a{font:9px/10px ui-monospace,"SF Mono",Menlo,monospace;fill:#C9A227}
+.sb-label-b{font:9px/10px ui-monospace,"SF Mono",Menlo,monospace;fill:#B4705F}
+.sb-clock{font:10px/12px ui-monospace,"SF Mono",Menlo,monospace;fill:#6A6663;letter-spacing:.02em}
+.sb-tick{stroke:#33363A;stroke-width:1;shape-rendering:crispEdges;fill:none}
+
+.playhead{position:absolute;top:0;bottom:0;width:1px;background:var(--ink);
+  opacity:.4;transform-origin:50% 50%;pointer-events:none}
+
+/* stamp on mode switch (glyph-only 90ms) 1.0→1.15→1.0 */
+body[data-stamp="1"] .mk{animation:stamp 90ms var(--e-mark)}
+@keyframes stamp{
+  0%{transform:scale(1)}
+  45%{transform:scale(1.15)}
+  100%{transform:scale(1)}
+}
+.mk{transform-box:fill-box;transform-origin:center}
+/* gap areas grow right→left from the act tick; residual contraction on confirm */
+@keyframes growarea{
+  from{transform:scaleX(.04) scaleY(.35);opacity:.35}
+  to{transform:scaleX(1) scaleY(1);opacity:1}
+}
+@keyframes solidify{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes contract{from{transform:scaleX(1)}to{transform:scaleX(.05)}}
+body[data-anim="1"] .area{animation:growarea 180ms var(--e-mark) both}
+body[data-anim="1"] .chain{transform-box:fill-box;transform-origin:left center;animation:solidify 320ms var(--e-scale) both}
+body[data-anim="1"] .solidify{transform-box:fill-box;transform-origin:left center;animation:solidify 240ms var(--e-mark) both}
+body[data-anim="1"] .contract{transform-box:fill-box;transform-origin:right center;animation:contract 180ms var(--e-mark) 240ms both}
+
+/* ---------- modes: only one at a time ---------- */
+.mode{display:none}
+body[data-mode="capture"] [data-m="capture"]{display:block}
+body[data-mode="map"] [data-m="map"]{display:block}
+body[data-mode="debrief"] [data-m="debrief"]{display:block}
+body[data-mode="tutor"] [data-m="tutor"]{display:block}
+body[data-mode="tutor"] #stream{opacity:.30}
+
+/* trainee spine — phase-locked, 64px below */
+#tralane{display:none;position:relative;padding:0 12px 10px;background:var(--spine);
+  border-top:1px solid var(--rule)}
+body[data-mode="tutor"] #tralane{display:block}
+#tralane .lbl{height:78px;display:flex;align-items:flex-end;padding-bottom:6px;
+  font:600 10px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+#tralane .lbl .n{color:var(--ink-3);margin-left:8px;letter-spacing:.04em;font-family:var(--f-mono);text-transform:none}
+.trainames{display:grid;grid-template-columns:74px minmax(0,1fr)}
+.trainames .ll{display:flex;flex-direction:column}
+.trainames .ll .ln{display:flex;align-items:center;height:34px;border-top:1px solid var(--rule);
+  font:400 10px/14px var(--f-mono);color:var(--ink-3);padding-right:10px}
+.trainames .canvas{position:relative;border-left:1px solid var(--rule);min-width:0}
+.trainames .canvas svg{width:100%;height:96px}
+
+/* held control */
+.held{display:grid;grid-template-columns:6px minmax(0,1fr);border:1px solid var(--rule-strong);background:#0E0F10}
+.held .edge2{background-image:repeating-linear-gradient(45deg,#B4705F 0 1px,transparent 1px 6px);background-size:6px 6px;border-right:1px solid var(--rule-strong)}
+.held .body2{padding:8px 12px}
+.held .row1{display:flex;align-items:center;gap:10px}
+.held .hstate{font:600 11px/16px var(--f-mono);letter-spacing:.16em;color:var(--binding)}
+.held .hmeta{margin-left:auto;font:400 10px/14px var(--f-mono);color:var(--ink-3)}
+.held .reason{margin-top:8px;border-top:1px solid var(--rule);padding-top:8px}
+.held .reason .k{font:600 9px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.held .reason .f{height:24px;border:1px solid var(--rule);margin-top:5px;display:flex;align-items:center;padding:0 8px;
+  font:400 11px/16px var(--f-mono);color:var(--ink-3)}
+.held .reason .f .caret2{width:1px;height:13px;background:var(--ink-3)}
+.guar{display:grid;grid-template-columns:6px minmax(0,1fr);border:1px solid var(--rule-strong);margin:10px 12px}
+.guar .edge3{background-image:repeating-linear-gradient(45deg,#B4705F 0 1px,transparent 1px 6px);background-size:6px 6px;border-right:1px solid var(--rule-strong)}
+.guar .body3{padding:8px 10px}
+.guar .t{font:600 10px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--binding)}
+.guar .p{margin-top:6px;font:400 11px/18px var(--f-mono);color:var(--ink)}
+.guar .act{margin-top:6px;font:400 10px/14px var(--f-mono);color:var(--ink-3)}
+
+/* ---------- 5 · legend + footnote ---------- */
+.legend{display:flex;align-items:stretch;border-top:1px solid var(--rule-strong);background:var(--spine);overflow:hidden}
+.legend .lt{display:flex;align-items:center;padding:0 12px;border-right:1px solid var(--rule);
+  font:600 9px/14px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.legend .item{display:flex;align-items:center;gap:8px;padding:9px 14px;border-right:1px solid var(--rule)}
+.legend .item .nm{font:600 10px/14px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.legend .item .dm{font:400 9px/13px var(--f-mono);color:var(--ink-3)}
+.swatch{width:34px;height:14px;position:relative;flex:0 0 auto}
+.tick-s{position:absolute;left:2px;top:2px;width:2px;height:10px;background:var(--ink)}
+.tick-d{position:absolute;left:2px;top:2px;width:2px;height:10px;
+  background-image:repeating-linear-gradient(to bottom,var(--ink-2) 0 2px,transparent 2px 4px)}
+.tick-2{position:absolute;left:5px;top:2px;width:2px;height:10px;background:var(--ink)}
+.bar-s{position:absolute;left:2px;top:2px;width:30px;height:1px;background:var(--ink)}
+.bar-2{position:absolute;left:2px;top:5px;width:30px;height:1px;background:var(--ink)}
+.bar-d{position:absolute;left:2px;top:2px;width:30px;height:1px;
+  background-image:repeating-linear-gradient(to right,var(--ink-2) 0 2px,transparent 2px 5px)}
+.hatch-s{position:absolute;left:2px;top:2px;width:30px;height:10px;border:1px solid var(--rule-strong);
+  background-image:repeating-linear-gradient(45deg,#B4705F 0 1px,transparent 1px 6px);background-size:6px 6px}
+.cont-s{position:absolute;left:2px;top:2px;width:2px;height:10px;background:var(--ink-2);
+  border-left:1px dashed var(--ink-3)}
+.footline{max-width:1512px;margin:10px auto 0;display:flex;gap:16px;flex-wrap:wrap;
+  font:400 10px/14px var(--f-mono);color:var(--ink-3)}
+</style>
+</head>
+<body data-mode="capture">
+
+<!-- ============ HEADER LINE (outside the app frame) ============ -->
+<div class="dochead">
+  <h1>C — THE SHIFT</h1>
+  <span class="sub">time is the spine · one timeline at four scales · uncertainty is an area between two lines</span>
+  <span class="ruleline"></span>
+  <span class="sub mono">1512 × 945 · texture is the provenance channel</span>
+</div>
+
+<!-- ============ THE APP ============ -->
+<div class="frame">
+
+  <!-- 1 · command bar -->
+  <header class="cmdbar">
+    <div class="seg brand">SHADOW</div>
+    <div class="seg ws">Nordwerk · <span class="who">Sabine A.</span><span class="mono" style="color:var(--ink-3)"> · AP</span></div>
+    <nav class="seg modes" id="modes" role="tablist" aria-label="spine scale">
+      <button role="tab" data-mode="capture" aria-selected="true"><span class="scale">now</span><span class="m">capture</span></button>
+      <button role="tab" data-mode="map" aria-selected="false"><span class="scale">shift</span><span class="m">work map</span></button>
+      <button role="tab" data-mode="debrief" aria-selected="false"><span class="scale">unresolved</span><span class="m">debrief</span></button>
+      <button role="tab" data-mode="tutor" aria-selected="false"><span class="scale">trainee</span><span class="m">tutor</span></button>
+    </nav>
+    <div class="seg rec mono" style="color:var(--ink-2)"><span style="color:var(--binding)">●</span> on record <span style="color:var(--ink-3)">·</span> <span class="mono">03:12</span></div>
+  </header>
+
+  <!-- 2 · stage + inspector -->
+  <div class="stream" id="stream">
+
+    <!-- ============ STAGE — Capture ============ -->
+    <div class="stagewrap mode" data-m="capture">
+      <div class="stagehead">
+        <span class="docname">Invoice HM-2026-0412 · Hessler Maschinentechnik</span>
+        <span class="docsub">case 4471</span>
+        <span class="mono" style="margin-left:auto;color:var(--ink-3)">Open · due 12 Oct 2026</span>
+      </div>
+      <div class="stagebody">
+        <div class="col-l">
+          <div class="fgroup">
+            <dl class="fgrid">
+              <dt>Supplier</dt><dd class="plain">Hessler Maschinentechnik GmbH</dd>
+              <dt>VAT / IBAN</dt><dd class="dim">DE811907980 · DE89 3704 0044 0532 0130 00</dd>
+              <dt>Status</dt><dd class="dim">known · bank unchanged · DE</dd>
+              <dt>Invoice date</dt><dd>18 Sep 2026</dd>
+              <dt>Payment</dt><dd>2.0 % Skonto · 10 d · net 30 d</dd>
+            </dl>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Position</th><th class="r">Qty</th><th class="r">Unit</th><th class="r">Amount</th><th>Cat</th></tr></thead>
+            <tbody>
+              <tr><td class="t">CNC-Spindel HSK-A63 · Ersatzteil</td><td class="r">1</td><td class="r">4,300.00</td><td class="r">4,300.00</td><td>equipment</td></tr>
+              <tr><td class="t">Montage / Inbetriebnahme</td><td class="r">1</td><td class="r">2,100.00</td><td class="r">2,100.00</td><td>service</td></tr>
+            </tbody>
+          </table>
+          <div class="sumgrid"><span class="k">net</span><span class="v">€ 6,400.00</span></div>
+          <div class="sumgrid"><span class="k">VAT 19 %</span><span class="v">€ 1,216.00</span></div>
+          <div class="sumgrid net"><span class="k">gross</span><span class="v">€ 7,616.00</span></div>
+          <div class="fgroup" style="border-bottom:0">
+            <dl class="fgrid">
+              <dt>PO</dt><dd>PO-2026-8841 · ordered € 6,400.00 · recv 1.00</dd>
+              <dt>Variance</dt><dd class="dim">0.0 % price · 0.0 % qty</dd>
+              <dt>History</dt><dd class="dim">05 Feb 2026 · € 2,840.00 · posted · V19</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="col-r">
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:8px">Booking</div>
+            <dl class="fgrid">
+              <dt>Cost centre</dt>
+              <dd style="padding:0 0 10px">
+                <div class="located" style="padding-left:5px">
+                  <div class="loclabel" style="padding-left:0"><span>▏active • locator</span><span>03:12</span></div>
+                  <div class="field"><span class="v">0400</span><span class="caret"></span><span class="u">Capex – Machinery</span></div>
+                </div>
+              </dd>
+              <dt>Asset no.</dt><dd class="dim" style="color:var(--ink-3)">— not on PO</dd>
+              <dt>Tax code</dt><dd>V19 <span style="color:var(--ink-3)">· 19 % domestic</span></dd>
+              <dt>GL account</dt><dd>0440 · Machinery</dd>
+            </dl>
+          </div>
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Apprenticeship</div>
+            <div class="mono" style="font-size:11px;line-height:18px;color:var(--ink-2)">
+              Sabine Albrecht · 24 yrs<br>session sess_4471 · 03:12<br>observer attached · pinned
+            </div>
+          </div>
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Actions</div>
+            <div style="display:flex;gap:0;border:1px solid var(--rule-strong);font:600 11px/16px var(--f-ui)">
+              <span style="flex:1;padding:5px 9px;border-right:1px solid var(--rule);color:var(--ink-2)">Hold</span>
+              <span style="flex:1;padding:5px 9px;color:var(--ink-3)">2nd appr.</span>
+            </div>
+            <div class="mono" style="margin-top:6px;font-size:10px;color:var(--ink-3)">post · disabled while gap open</div>
+          </div>
+          <div class="fgroup" style="border-bottom:0">
+            <div class="lab" style="margin-bottom:6px">Second reader</div>
+            <div class="mono" style="font-size:11px;line-height:18px;color:var(--ink-2)">
+              none on this case<br>Keller is on leave<br><span style="color:var(--ink-3)">intercompany only</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="deckrow">
+        <span><span class="key">session</span> sess_4471</span>
+        <span><span class="key">observed</span> <b>11</b></span>
+        <span><span class="key">inferred</span> <b>8</b></span>
+        <span><span class="key">confirmed</span> <b>2</b></span>
+        <span><span class="key">binding</span> <b>2</b></span>
+        <span><span class="key">contested</span> <b>1</b></span>
+        <span><span class="key">silences</span> <b>3</b></span>
+        <span><span class="key">asks</span> <b>4 / 5</b></span>
+        <span style="margin-left:auto;border-right:0"><span class="key">asking later, at a pause</span></span>
+      </div>
+    </div>
+
+    <!-- ============ STAGE — Work Map ============ -->
+    <div class="stagewrap mode" data-m="map">
+      <div class="stagehead">
+        <span class="docname">Work Map — AP invoices · case 4471</span>
+        <span class="docsub">whole shift · 7 decision steps</span>
+        <span class="mono" style="margin-left:auto;color:var(--ink-3)">replay available · 03:04 → 03:12</span>
+      </div>
+      <div class="stagebody">
+        <div class="col-l">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Decision step</th><th>Outcome</th><th>State</th><th class="r">Δ area</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td class="t">Open invoice</td><td class="dim">frame read, 2 lines</td><td class="mono" style="color:var(--ink-2)">observed</td><td class="r">—</td></tr>
+              <tr><td>2</td><td class="t">Match PO</td><td class="dim">0.0 % var · recv 1.00</td><td class="mono" style="color:var(--confirmed)">confirmed</td><td class="r">0.00</td></tr>
+              <tr><td>3</td><td class="t">Check supplier status</td><td class="dim">known · bank unchanged</td><td class="mono" style="color:var(--binding)">binding</td><td class="r">0.06</td></tr>
+              <tr><td>4</td><td class="t">Code to cost centre</td><td class="dim">0400 capex</td><td class="mono" style="color:var(--confirmed)">confirmed</td><td class="r">0.71</td></tr>
+              <tr><td>5</td><td class="t">Check asset number</td><td class="dim">absent → no capex</td><td class="mono" style="color:var(--binding)">binding</td><td class="r">0.58</td></tr>
+              <tr><td>6</td><td class="t">Payment terms / Skonto</td><td class="dim">2.0 % · 10 d</td><td class="mono" style="color:var(--confirmed)">confirmed</td><td class="r">0.13</td></tr>
+              <tr><td>7</td><td class="t">Post</td><td class="dim">held — G2 not satisfied</td><td class="mono" style="color:var(--ink-2)">observed</td><td class="r">0.04</td></tr>
+            </tbody>
+          </table>
+          <div class="fgroup" style="border-bottom:0">
+            <dl class="fgrid">
+              <dt>Compiled</dt><dd class="dim">net &gt; 5000 ∧ cat = equipment → cost_center = 0400</dd>
+              <dt>Guardrails</dt><dd class="dim">G1 hold · G2 block · G3 ask controller</dd>
+              <dt>Probes</dt><dd class="dim">3 synthetic cases · 3 / 3 agreed</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="col-r">
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Coverage</div>
+            <div class="mono" style="font-size:11px;line-height:19px;color:var(--ink-2)">
+              c_04 · of 41 cases<br>rules lane · 28 % → 96 %<br>guardrails · 2 bands<br>questions asked · 4<br>silences · 1
+            </div>
+          </div>
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Residual</div>
+            <div class="mono" style="font-size:12px;line-height:20px;color:var(--ink)">3.42 → 0.61</div>
+            <div class="mono" style="font-size:10px;line-height:16px;color:var(--ink-3)">area under the spine,<br>sum of every gap</div>
+          </div>
+          <div class="fgroup" style="border-bottom:0">
+            <div class="lab" style="margin-bottom:6px">Contested</div>
+            <div class="mono" style="font-size:11px;line-height:18px;color:var(--ink-2)">
+              c_02 · net vs gross basis<br>contradicted 03:04:12<br><span style="color:var(--ink-3)">suspended authority</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="deckrow">
+        <span><span class="key">steps</span> <b>7</b></span>
+        <span><span class="key">confirmed</span> <b>4</b></span>
+        <span><span class="key">binding</span> <b>2</b></span>
+        <span><span class="key">coverage</span> <b>28 % → 96 %</b></span>
+        <span><span class="key">probes</span> <b>3 / 3</b></span>
+        <span><span class="key">residual</span> <b>3.42 → 0.61</b></span>
+        <span style="margin-left:auto;border-right:0"><span class="key">rows are steps; horizontal extent is evidence coverage</span></span>
+      </div>
+    </div>
+
+    <!-- ============ STAGE — Debrief ============ -->
+    <div class="stagewrap mode" data-m="debrief">
+      <div class="stagehead">
+        <span class="docname">Debrief — morning shift 18 Sep</span>
+        <span class="docsub">unresolved only</span>
+        <span class="mono" style="margin-left:auto;color:var(--ink-3)">5 items · ranked by EVOI</span>
+      </div>
+      <div class="stagebody">
+        <div class="col-l">
+          <table class="tbl">
+            <thead><tr><th>Probe</th><th>Case</th><th>Map prediction</th><th>Sabine</th><th>State</th></tr></thead>
+            <tbody>
+              <tr><td>p_01</td><td class="t">€4,900 laptop, no asset no.</td><td class="dim">capex 0400</td><td class="dim">hold</td><td class="mono" style="color:var(--confirmed)">confirmed</td></tr>
+              <tr><td>p_02</td><td class="t">€5,200 gross / €4,370 net</td><td class="dim">opex 4711</td><td class="dim">capex 0400</td><td class="mono" style="color:var(--confirmed)">confirmed</td></tr>
+              <tr><td>p_03</td><td class="t">Krämer, March invoice</td><td class="dim">post</td><td class="dim">hold</td><td class="mono" style="color:var(--attention)">unresolved</td></tr>
+              <tr><td>p_04</td><td class="t">Nordwerk CZ, €11,200</td><td class="dim">post 9100</td><td class="dim">2nd approval</td><td class="mono" style="color:var(--attention)">unresolved</td></tr>
+              <tr><td>p_05</td><td class="t">Austria, 2 % Skonto</td><td class="dim">net 30 d</td><td class="dim">10 d</td><td class="mono" style="color:var(--ink-2)">observed</td></tr>
+            </tbody>
+          </table>
+          <div class="fgroup" style="border-bottom:0">
+            <dl class="fgrid">
+              <dt>Basis</dt><dd class="dim">p_02 separates net from gross — basis corrected</dd>
+              <dt>Next ask</dt><dd style="color:var(--attention)">q_18 · Krämer double-bill window · EVOI 2.14</dd>
+              <dt>Teach-back</dt><dd class="dim">6 / 7 steps read back · 1 correction (step 4)</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="col-r">
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Posterior</div>
+            <div class="mono" style="font-size:11px;line-height:19px;color:var(--ink-2)">
+              € 4,900 laptop<br>€ 5,200 gross / € 4,370 net<br>Krämer in March<br>σ 1,180 → 145
+            </div>
+          </div>
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:6px">Residual left</div>
+            <div class="mono" style="font-size:12px;line-height:20px;color:var(--ink)">0.61</div>
+          </div>
+          <div class="fgroup" style="border-bottom:0">
+            <div class="lab" style="margin-bottom:6px">Frozen self-exam</div>
+            <div class="mono" style="font-size:11px;line-height:18px;color:var(--ink-2)">
+              v0 · 18 Sep 09:14<br>agreement 6 / 9<br>confabulation 0
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="deckrow">
+        <span><span class="key">queue</span> <b>5</b></span>
+        <span><span class="key">ranked by</span> EVOI</span>
+        <span><span class="key">next</span> <b>q_18 · 2.14</b></span>
+        <span><span class="key">σ</span> <b>1,180 → 145</b></span>
+        <span><span class="key">probes</span> <b>3 landed · 3 agreed</b></span>
+        <span style="margin-left:auto;border-right:0"><span class="key">filtered to state ≠ confirmed</span></span>
+      </div>
+    </div>
+
+    <!-- ============ STAGE — Tutor ============ -->
+    <div class="stagewrap mode" data-m="tutor">
+      <div class="stagehead">
+        <span class="docname">Invoice HM-2026-0512 · Hessler Maschinentechnik</span>
+        <span class="docsub">case 5120 · new hire</span>
+        <span class="mono" style="margin-left:auto;color:var(--ink-3)">Lena · trainee · run 2 of 4</span>
+      </div>
+      <div class="stagebody">
+        <div class="col-l">
+          <div class="fgroup">
+            <dl class="fgrid">
+              <dt>Supplier</dt><dd class="plain">Hessler Maschinentechnik GmbH</dd>
+              <dt>Net</dt><dd>€ 7,200.00</dd>
+              <dt>PO</dt><dd class="dim">PO-2026-9002 · € 7,200.00 · no asset number</dd>
+              <dt>Expected</dt><dd class="dim">hold → no capex booking (G2)</dd>
+            </dl>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Position</th><th class="r">Qty</th><th class="r">Amount</th><th>Cat</th></tr></thead>
+            <tbody>
+              <tr><td class="t">CNC-Spindel HSK-A63 · Ersatzteil</td><td class="r">1</td><td class="r">7,200.00</td><td>equipment</td></tr>
+            </tbody>
+          </table>
+          <div class="fgroup" style="border-bottom:0">
+            <dl class="fgrid">
+              <dt>Reason</dt>
+              <dd class="dim" style="color:var(--ink-3)">to continue, state why the booking differs from the expert's</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="col-r">
+          <div class="fgroup">
+            <div class="lab" style="margin-bottom:8px">Booking — trainee</div>
+            <dl class="fgrid">
+              <dt>Cost centre</dt>
+              <dd style="padding:0 0 6px">
+                <div class="located" style="padding-left:5px">
+                  <div class="loclabel" style="padding-left:0"><span>▏locked • mismatch</span><span>03:12:44</span></div>
+                  <div class="field" style="border-color:var(--binding)"><span class="v" style="color:var(--binding)">4711</span><span class="u">Opex – Maint.</span></div>
+                </div>
+              </dd>
+              <dt>Expected</dt><dd class="b" style="color:var(--binding)">0400 · Capex – Machinery</dd>
+              <dt>Asset no.</dt><dd style="color:var(--ink-3)">— not on PO</dd>
+            </dl>
+          </div>
+          <div class="fgroup" style="border-bottom:0">
+            <div class="held">
+              <div class="edge2"></div>
+              <div class="body2">
+                <div class="row1"><span class="hstate">HELD</span><span class="hmeta">G2 · block</span></div>
+                <div class="reason">
+                  <div class="k">Required reason</div>
+                  <div class="f"><span style="flex:1">state why to override</span><span class="caret2"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="mono" style="margin-top:8px;font-size:10px;line-height:16px;color:var(--ink-3)">
+              the stop is Sabine's, replayed:<br>▶ 03:12 · "No asset number,<br>no capex booking."
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="deckrow">
+        <span><span class="key">run</span> <b>5120</b></span>
+        <span><span class="key">expected</span> <b>hold · 0400</b></span>
+        <span><span class="key">actual</span> <b style="color:var(--binding)">4711</b></span>
+        <span><span class="key">offset</span> <b>−2.4 s</b></span>
+        <span><span class="key">mastery</span> <b>0.42 → 0.61</b></span>
+        <span style="margin-left:auto;border-right:0"><span class="key">the trainee's line moves to meet the expert's</span></span>
+      </div>
+    </div>
+
+    <!-- ============ INSPECTOR ============ -->
+    <aside class="inspector">
+      <div class="insp-h">Inspector <span class="n" id="inspn">1 object</span></div>
+
+      <!-- capture -->
+      <div class="inspbody mode" data-m="capture">
+        <div class="selhead">
+          <span class="glyph dotted">◌</span>
+          <span class="t">gap_04</span>
+          <span class="s" style="color:var(--ink-2)">structural</span>
+        </div>
+        <div class="prow"><span class="k">state</span><span class="v">inferred</span></div>
+        <div class="prow"><span class="k">ts</span><span class="v">03:11:47 <span style="color:var(--ink-3)">→</span> 03:12:09</span></div>
+        <div class="prow"><span class="k">p</span><span class="v">0.41 <span style="color:var(--ink-3)">pre-commit</span></span></div>
+        <div class="prow"><span class="k">Δ</span><span class="v a">0.71 · structural</span></div>
+        <div class="prow"><span class="k">lane</span><span class="v">pred <span style="color:var(--ink-3)">◌</span> → expert <span>▮</span></span></div>
+        <div class="prow"><span class="k">basis</span><span class="v sans">net / gross conflict not on screen</span></div>
+        <div class="quote">
+          <p>“Equipment over five thousand net is always capex.”</p>
+          <div class="att">Sabine A. <span class="play">▶ 03:12</span></div>
+        </div>
+        <div class="qsec">
+          <div class="h">when <span class="n">compiled 03:12:28 · T2</span></div>
+          <div class="predicate"><span class="kw">when</span> <b>inv.net</b> <span class="op">&gt;</span> 5000 <span class="op">∧</span> <b>line.cat</b> = <b>equipment</b><br>
+          <span class="kw">then</span> <b>cost_center</b> = <b>0400</b> <span style="color:var(--ink-3)">· p .88</span></div>
+        </div>
+        <div class="qsec">
+          <div class="h">evidence <span class="n">3 probes</span></div>
+          <div class="ev">▮ <i>03:12</i> verbatim answer<br>◌ <i>cf-04</i> counterfactual agreed<br>✓ <i>cf-05</i> replay agreed</div>
+        </div>
+        <div class="qsec">
+          <div class="h">restraint <span class="n">silence, promoted</span></div>
+          <div class="ev">gap detected <i>03:12:10.8</i><br>asked at pause <i>03:12:15</i><br><i>waited 4.2s for a pause</i></div>
+        </div>
+        <div class="qsec" style="border-bottom:0">
+          <div class="h">residual after this mark</div>
+          <div class="ev" style="font-size:12px">3.42 <span style="color:var(--ink-3)">→</span> <i>0.61</i> <span style="color:var(--ink-3)">area</span></div>
+        </div>
+      </div>
+
+      <!-- work map -->
+      <div class="inspbody mode" data-m="map">
+        <div class="selhead">
+          <span class="glyph hatched">▨</span>
+          <span class="t">guardrail G2</span>
+          <span class="s" style="color:var(--binding)">binding</span>
+        </div>
+        <div class="prow"><span class="k">type</span><span class="v b">stop_and_ask</span></div>
+        <div class="prow"><span class="k">action</span><span class="v b">block</span></div>
+        <div class="prow"><span class="k">coverage</span><span class="v">03:12:15 → 03:14:00</span></div>
+        <div class="prow"><span class="k">fires</span><span class="v">step 4 → step 5</span></div>
+        <div class="guar">
+          <div class="edge3"></div>
+          <div class="body3">
+            <div class="t">■ guardrail G2 · block</div>
+            <div class="p">cost_center = '0400' and not invoice.asset_number → block</div>
+            <div class="act">ask purchasing, then hold</div>
+          </div>
+        </div>
+        <div class="quote">
+          <p>“No asset number, no capex booking.”</p>
+          <div class="att">Sabine A. <span class="play">▶ 03:12</span></div>
+        </div>
+        <div class="qsec">
+          <div class="h">lane position</div>
+          <div class="ev">guardrails · hatched 45° · 6 px<br>the only band, the only interruption</div>
+        </div>
+        <div class="qsec" style="border-bottom:0">
+          <div class="h">coverage of the map</div>
+          <div class="ev">rules lane <i>28 % → 96 %</i><br>steps confirmed <i>4 / 7</i></div>
+        </div>
+      </div>
+
+      <!-- debrief -->
+      <div class="inspbody mode" data-m="debrief">
+        <div class="selhead">
+          <span class="glyph dotted">◌</span>
+          <span class="t">unresolved · 5</span>
+          <span class="s" style="color:var(--attention)">ranked by EVOI</span>
+        </div>
+        <div class="prow"><span class="k">residual</span><span class="v a">0.61 area</span></div>
+        <div class="prow"><span class="k">σ</span><span class="v">1,180 <span style="color:var(--ink-3)">→</span> 145</span></div>
+        <div class="prow"><span class="k">probes</span><span class="v">3 landed · 3 agreed</span></div>
+        <div class="prow"><span class="k">next ask</span><span class="v a">q_18 · EVOI 2.14</span></div>
+        <div class="qsec" style="padding-bottom:0">
+          <div class="h">queue <span class="n">worst first</span></div>
+        </div>
+        <div class="queue">
+          <div class="row ranked"><span class="t">02:10</span><span class="g">◌</span><span class="d">€4,900 laptop · capex vs hold</span></div>
+          <div class="row ranked"><span class="t">02:44</span><span class="g">◌</span><span class="d">€5,200 gross / €4,370 net · basis</span></div>
+          <div class="row"><span class="t">03:05</span><span class="g">◌</span><span class="d">Krämer in March · double-bill</span></div>
+          <div class="row"><span class="t">03:07</span><span class="g">◌</span><span class="d">Nordwerk CZ · 2nd approval</span></div>
+          <div class="row contested"><span class="t">03:04</span><span class="g">✗</span><span class="d">PO check · basis contested</span></div>
+        </div>
+        <div class="qsec">
+          <div class="h">posterior band</div>
+          <div class="ev">
+            <i>03:10</i> €0 – 6,400 · wide<br>
+            <i>03:10</i> p_01 → €5,200 – 6,400<br>
+            <i>03:11</i> p_02 → €4,370 – 6,400<br>
+            <i>03:11</i> p_03 → €6,190 – 6,610<br>
+            <span style="color:var(--ink-3)">narrowing at each probe</span>
+          </div>
+        </div>
+        <div class="qsec" style="border-bottom:0">
+          <div class="h">silence <span class="n">1</span></div>
+          <div class="ev">02:31 · 0410 vs 0400 · not worth a pause</div>
+        </div>
+      </div>
+
+      <!-- tutor -->
+      <div class="inspbody mode" data-m="tutor">
+        <div class="selhead">
+          <span class="glyph hatched">■</span>
+          <span class="t">guardrail G2</span>
+          <span class="s" style="color:var(--binding)">binding · block</span>
+        </div>
+        <div class="prow"><span class="k">state</span><span class="v b">binding</span></div>
+        <div class="prow"><span class="k">type</span><span class="v b">stop_and_ask</span></div>
+        <div class="prow"><span class="k">expected</span><span class="v">cost_center = 0400</span></div>
+        <div class="prow"><span class="k">actual</span><span class="v b">cost_center = 4711</span></div>
+        <div class="prow"><span class="k">offset</span><span class="v">−2.4 s <span style="color:var(--ink-3)">computed first</span></span></div>
+        <div class="guar" style="margin-left:0;margin-right:0">
+          <div class="edge3"></div>
+          <div class="body3">
+            <div class="t">■ G2 · when</div>
+            <div class="p">cost_center='0400' and not invoice.asset_number → block</div>
+            <div class="act">expert action replayed, attributed</div>
+          </div>
+        </div>
+        <div class="quote">
+          <p>“No asset number, no capex booking.”</p>
+          <div class="att">Sabine A. <span class="play">▶ 03:12</span></div>
+        </div>
+        <div class="qsec">
+          <div class="h">mastery <span class="n">BKT · run 2 of 4</span></div>
+          <div class="ev" style="font-size:12px"><i>0.42</i> <span style="color:var(--ink-3)">→</span> <i style="color:var(--confirmed)">0.61</i> <span style="color:var(--ink-3)">mastery</span></div>
+          <div class="ev" style="margin-top:6px;color:var(--ink-3)">resolved mismatch further right · solid line connects the ticks</div>
+        </div>
+        <div class="qsec" style="border-bottom:0">
+          <div class="h">why it blocked <span class="n">no dialog</span></div>
+          <div class="ev">hatched band drops between the spines<br>stage dimmed to <i>30 %</i> · locator locked</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============ 4 · THE SPINE ============ -->
+  <section class="spinewrap" id="spinewrap">
+    <div class="spinebar">
+      <span>the spine</span>
+      <span>· drag to resize</span>
+      <span style="color:var(--ink-2)" id="scaletag">scale · now · live window</span>
+      <span class="ms" id="spaninfo"><b>200</b> px</span>
+    </div>
+    <div class="spinegrid" id="lanes">
+      <div class="ll" id="lanecol">
+        <div class="ln hd">&nbsp;</div>
+        <div class="ln">pred</div>
+        <div class="ln">expert</div>
+        <div class="ln">gap</div>
+        <div class="ln">rules</div>
+        <div class="ln">q's</div>
+        <div class="ln">guardrails</div>
+      </div>
+      <div class="canvas" id="canvas">
+        <svg id="spine" viewBox="0 0 1000 224" preserveAspectRatio="none" role="img"
+             aria-label="the spine: prediction before act, residual areas with area, rule bars dotted to solid, question lane, hatched guardrail band">
+          <defs>
+            <pattern id="hatch-bind" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#B4705F" stroke-width="1"/>
+            </pattern>
+            <pattern id="hatch-warn" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#E8E6E2" stroke-width="1"/>
+            </pattern>
+          </defs>
+        </svg>
+        <div class="playhead" id="playhead" style="left:92%;"></div>
+      </div>
+    </div>
+    <!-- Work Map: the same spine, expanded into swimlanes per decision step -->
+    <div class="spinegrid maptrack" id="maplanes">
+      <div class="ll" id="steplabels">
+        <div class="ln hd">&nbsp;</div>
+        <div class="ln">s1 · <b>open</b></div>
+        <div class="ln">s2 · <b>match PO</b></div>
+        <div class="ln">s3 · <b>supplier</b></div>
+        <div class="ln">s4 · <b>cost centre</b></div>
+        <div class="ln">s5 · <b>asset no.</b></div>
+        <div class="ln">s6 · <b>terms</b></div>
+        <div class="ln">s7 · <b>post</b></div>
+        <div class="ln">residual</div>
+      </div>
+      <div class="canvas" id="mapcanvas">
+        <svg id="mapspine" viewBox="0 0 1000 356" preserveAspectRatio="none" role="img"
+             aria-label="Work Map swimlanes: one ruled row per decision step, rule coverage, guardrail bands, residual area narrowing">
+          <g id="mapG"></g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Trainee spine (Tutor) — phase-locked, 64px below ============ -->
+  <div id="tralane">
+    <div class="lbl">Lena (trainee) <span class="n">phase-locked · same ruler · run 2 of 4</span></div>
+    <div class="trainames">
+      <div class="ll"><div class="ln">expected</div><div class="ln">actual</div></div>
+      <div class="canvas" id="tracanvas">
+        <svg id="tspine" viewBox="0 0 1000 96" preserveAspectRatio="none" role="img"
+             aria-label="trainee spine: the expert's expected tick offset left, the trainee's actual tick, a hatched band dropping between the two spines, and a resolved mismatch joined by a solid line">
+          <g id="tagrid" opacity=".45"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 5 · legend ============ -->
+  <div class="legend">
+    <div class="lt">texture legend</div>
+    <div class="item"><span class="swatch"><span class="tick-s"></span></span>
+      <span><span class="nm">Observed</span><br><span class="dm">solid tick 2×10 · expert lane · true ts</span></span></div>
+    <div class="item"><span class="swatch"><span class="tick-d"></span></span>
+      <span><span class="nm">Inferred</span><br><span class="dm">dotted tick 2×10 · 50 % · pred lane</span></span></div>
+    <div class="item"><span class="swatch"><span class="bar-s"></span><span class="bar-2"></span></span>
+      <span><span class="nm">Confirmed</span><br><span class="dm">doubled rule bar · solid across coverage</span></span></div>
+    <div class="item"><span class="swatch"><span class="hatch-s"></span></span>
+      <span><span class="nm">Binding</span><br><span class="dm">hatched 45° · 1 px · 6 px pitch · its own lane</span></span></div>
+    <div class="item"><span class="swatch"><span class="cont-s"></span></span>
+      <span><span class="nm">Contested</span><br><span class="dm">tick + dashed vertical back to the act</span></span></div>
+    <div class="item" style="border-right:0">
+      <span><span class="nm" style="color:var(--ink-3)">One shared 320 ms transform</span><br>
+      <span class="dm">now · shift · unresolved · trainee — the same DOM, re-scaled. Lanes are never rebuilt.</span></span></div>
+  </div>
+</div>
+
+<div class="footline">
+  <span>spine · single shared transform: translateX()</span>
+  <span>playhead · 1 px · 40 % ink · the only continuously moving element</span>
+  <span>marks stamp 1.0 → 1.15 → 1.0 · 90 ms</span>
+  <span>gap areas grow right→left from the act tick · 180 ms</span>
+  <span>serif appears once: a verbatim human quote, inside the Inspector</span>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================================
+     C — THE SHIFT · the spine
+     ONE time model. Every mark is stored in seconds and placed by x(t); the four
+     modes are four scales of the same array, not four screens. A scale change
+     re-renders the spine and moves one shared surface — lanes are never rebuilt
+     at a different pitch.
+     ========================================================================= */
+
+  var W = 1000, RH = 24, LANE_H = 28, SPAN = 100;   // W re-measured per container
+  var VIEW_H = RH + 7 * LANE_H;              // timeline spine: 224
+  var CAPT_H = 26;                           // a caption strip inside the same 224
+  var MAP_H  = RH + 7 * 40 + 44;             // map spine: 348
+  var E = 0.35;                              // edge inset so t0 / tEnd read
+
+  function sec(t){                           // "03:12:09.4" → 105729.4
+    var p = String(t).split(":"), h = +p[0], m = +p[1], s = parseFloat(p[2]);
+    return h * 3600 + m * 60 + s;
+  }
+
+  var TS = {
+    open:"03:04:02",  match:"03:04:12", supplier:"03:05:58",
+    q14:"03:05:34",   q15:"03:08:44",   q16:"03:10:23",
+    ask:"03:12:15",   assert:"03:12:09", pre:"03:11:47",
+    detect:"03:12:10.8", answered:"03:12:21", confirm:"03:12:28", run:"03:12:32"
+  };
+
+  /* the four scales — now · shift · unresolved · trainee */
+  var SCALES = {
+    capture: { from:"03:10:40", span:100, px:200,
+               label:"now · live window", note:"marks stream in at the right edge",
+               info:"03:10:40 → 03:12:20" },
+    map:     { from:"03:03:00", span:600, px:320,
+               label:"shift · swimlanes per step", note:"the Work Map is this spine, expanded",
+               info:"03:03:00 → 03:13:00" },
+    debrief: { from:"03:03:00", span:600, px:480,
+               label:"unresolved · state ≠ confirmed", note:"only what Shadow does not yet know",
+               info:"03:03:00 → 03:13:00" },
+    tutor:   { from:"03:11:30", span:90,  px:480,
+               label:"trainee · phase-locked pair", note:"a second spine, 64 px below",
+               info:"03:11:30 → 03:13:00" }
+  };
+
+  var T0 = sec(SCALES.capture.from);
+  function setWindow(from, span){ T0 = sec(from); SPAN = span; }
+  function xp(t){
+    var p = (sec(t) - T0) / SPAN;
+    return E + Math.max(0, Math.min(1, p)) * (W - 2 * E);
+  }
+  function fmt(s){
+    var h = Math.floor(s/3600), m = Math.floor(s/60)%60, ss = Math.floor(s%60);
+    return (h ? String(h).padStart(2,"0")+":" : "") + String(m).padStart(2,"0")+":" + String(ss).padStart(2,"0");
+  }
+  function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function laneY(i){ return RH + i * LANE_H; }
+
+  /* ticks are 2 × 10 unless a mark says otherwise */
+  function tick(X, Y, h, fill, op){
+    return '<g class="mk"><rect x="'+(X-1).toFixed(1)+'" y="'+Y+'" width="2" height="'+h+'" fill="'+fill+'"'
+      + (op ? ' opacity="'+op+'"' : '') + '/></g>';
+  }
+  function dottedTick(X, Y, h, colour){
+    return '<line class="mk" x1="'+X.toFixed(1)+'" y1="'+Y+'" x2="'+X.toFixed(1)+'" y2="'+(Y+h)+'"'
+      + ' stroke="'+colour+'" stroke-width="2" stroke-dasharray="2 2.6"'
+      + ' vector-effect="non-scaling-stroke" opacity=".7"/>';
+  }
+
+  /* ---------------------------------------------------------------- ruler ---
+     mm:ss, 2 s minor ticks, mono. The label collides into the edge when the
+     window starts mid-interval, so the first and last labels anchor inward.  */
+  function rulerSVG(step, bodyBottom, dense){
+    var start = Math.ceil(T0 / 2) * 2, end = T0 + SPAN, out = "", labels = "", s;
+    for (s = start; s <= end; s += 2){
+      var X = xp(s);
+      out += '<line class="sv-rule" x1="'+X.toFixed(1)+'" y1="'+RH+'" x2="'+X.toFixed(1)+'" y2="'+bodyBottom+'" opacity="'
+           + ((s % step === 0) ? (dense ? ".55" : ".9") : (dense ? ".30" : ".45")) + '"/>';
+    }
+    for (s = Math.ceil(T0 / step) * step; s <= end; s += step){
+      var X2 = xp(s);
+      if (X2 < -60 || X2 > W + 60) continue;
+      var anchor = "middle", Tx = X2;
+      if (X2 < 26){ anchor = "start"; Tx = 2; }
+      if (X2 > W - 26){ anchor = "end"; Tx = W - 2; }
+      labels += '<line class="sv-rule-strong" x1="'+X2.toFixed(1)+'" y1="12" x2="'+X2.toFixed(1)+'" y2="'+RH+'"/>'
+              + '<text class="sb-clock" x="'+Tx.toFixed(1)+'" y="10" text-anchor="'+anchor+'">'+fmt(s)+'</text>';
+    }
+    return '<line class="sv-rule-strong" x1="0" y1="'+RH+'" x2="'+W+'" y2="'+RH+'"/>' + out + labels;
+  }
+
+  /* ------------------------------------------------------- the timeline ------
+     The marks, in seconds. state → texture:
+       Observed  solid tick, full ink, on the expert lane, at its true ts
+       Inferred  dotted tick, 50 % ink, on the pred lane
+       Confirmed solid tick + a second tick offset 3 px, on the rules lane
+       Binding   a lane-wide hatched band (45°, 1 px, 6 px pitch)
+       Contested tick + a 1 px dashed line back to the contradicting act       */
+  var PRED = ["03:04:30","03:05:12","03:06:40","03:08:49","03:09:32","03:10:52","03:11:20"];
+  var PRED_CONFIRMED = ["03:10:52","03:11:20"];
+  var OBS = [TS.open, TS.match, TS.supplier, "03:10:34", "03:11:12", "03:11:36", "03:11:58", "03:12:05"];
+  var QUESTIONS = [["q_14",TS.q14],["q_15",TS.q15],["q_16",TS.q16],["q_17",TS.ask]];
+
+  function renderSpine(scale){
+    var step = (scale === "capture") ? 30 : 60;
+    var dense = (scale === "map");
+    var L = [laneY(0), laneY(1), laneY(2), laneY(3), laneY(4), laneY(5), laneY(6)];
+    var o = "";
+
+    /* lane value fields — alternate lanes are ruled fields, like a piano roll */
+    o += '<rect class="sv-lane" x="0" y="'+L[0]+'" width="'+W+'" height="'+LANE_H+'"/>';
+    o += '<rect class="sv-lane" x="0" y="'+L[2]+'" width="'+W+'" height="'+LANE_H+'"/>';
+    o += '<rect class="sv-lane" x="0" y="'+L[4]+'" width="'+W+'" height="'+LANE_H+'"/>';
+    for (var i=0;i<7;i++) o += '<line class="sv-rule" x1="0" y1="'+L[i]+'" x2="'+W+'" y2="'+L[i]+'"/>';
+
+    o += rulerSVG(step, VIEW_H, dense);
+
+    /* ---------- gap areas: uncertainty as the area between two ticks ------- */
+    var yP = L[0] + 13, yA = L[1] + 6, apex = L[2] + 4, base = L[2] + LANE_H - 1;
+    var aX = xp(TS.assert), pX = xp(TS.pre), dX = xp(TS.detect), cX = xp("03:10:20");
+    o += '<g id="gapareas">';
+    // residual 2 — gap detected → act (structural). Grows right→left from the act.
+    o += '<polygon class="mk area" points="'
+       + [dX.toFixed(1), apex, aX.toFixed(1), yA, aX.toFixed(1), base+1, cX.toFixed(1), base].join(" ")
+       + '" fill="#E8E6E2" fill-opacity=".20" stroke="#E8E6E2" stroke-width="1.4" vector-effect="non-scaling-stroke"/>';
+    // residual 1 — pre-commit → act (parametric)
+    o += '<polygon class="mk area" points="'
+       + [pX.toFixed(1), apex, aX.toFixed(1), yA, aX.toFixed(1), base+1, pX.toFixed(1), base].join(" ")
+       + '" fill="#E8E6E2" fill-opacity=".12" stroke="#6A6663" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    // the live leading edge is the right edge: 1px, 40 % ink, then it seals solid
+    o += '<line x1="'+aX.toFixed(1)+'" y1="'+(yA-14)+'" x2="'+aX.toFixed(1)+'" y2="'+(base+1)+'"'
+       + ' stroke="#E8E6E2" stroke-width="1" opacity=".4" vector-effect="non-scaling-stroke"/>';
+    // M1 connector — prediction tick → act tick, 1 px
+    o += '<line class="chain mk" x1="'+pX.toFixed(1)+'" y1="'+yP+'" x2="'+pX.toFixed(1)+'" y2="'+(apex-3)+'"'
+       + ' stroke="#9A9691" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="chain mk" x1="'+pX.toFixed(1)+'" y1="'+(apex-3)+'" x2="'+aX.toFixed(1)+'" y2="'+(apex-3)+'"'
+       + ' stroke="#9A9691" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="chain mk" x1="'+dX.toFixed(1)+'" y1="'+(apex-3)+'" x2="'+aX.toFixed(1)+'" y2="'+(apex-3)+'"'
+       + ' stroke="#6A6663" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>';
+    o += '</g>';
+    // area labels, placed by time so they cannot land on each other
+    var lw = 130;
+    o += '<g class="area"><rect x="'+(aX-176).toFixed(1)+'" y="'+(L[2]+6)+'" width="'+lw+'" height="13"'
+       + ' fill="#121314" fill-opacity=".92"/>'
+       + '<text class="sb-label-w" x="'+(aX-172).toFixed(1)+'" y="'+(L[2]+24)+'">Δ 0.71 · structural</text></g>';
+    o += '<text class="sb-label" x="'+(pX-8).toFixed(1)+'" y="'+(L[2]+13)+'" text-anchor="end">Δ 0.42 · parametric</text>';
+
+    /* ---------- rules lane: dotted → solid, doubled ------------------------ */
+    var yR = L[3] + 5, cA = xp("03:10:20").toFixed(1), cB = xp(TS.run).toFixed(1);
+    o += '<g id="rulebars">';
+    // inferred (c_05): dotted bar + probe extensions offset 3 px, stamping in
+    var iA = xp("03:11:40").toFixed(1);
+    o += '<line class="mk" x1="'+iA+'" y1="'+yR+'" x2="'+cB+'" y2="'+yR+'" stroke="#9A9691" stroke-width="1"'
+       + ' stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+iA+'" y1="'+(yR+4)+'" x2="'+xp("03:12:00").toFixed(1)+'" y2="'+(yR+4)+'"'
+       + ' stroke="#9A9691" stroke-width="1" stroke-dasharray="2 3" opacity=".8" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+iA+'" y1="'+(yR+8)+'" x2="'+xp(TS.answered).toFixed(1)+'" y2="'+(yR+8)+'"'
+       + ' stroke="#9A9691" stroke-width="1" stroke-dasharray="2 3" opacity=".55" vector-effect="non-scaling-stroke"/>';
+    // confirmed (c_04): a dot-dash trace, then the doubled solid bar across coverage
+    o += '<line x1="'+cA+'" y1="'+(yR+5)+'" x2="'+cB+'" y2="'+(yR+5)+'" stroke="#E8E6E2" stroke-width="1"'
+       + ' stroke-dasharray="1 3" opacity=".26" vector-effect="non-scaling-stroke"/>';
+    o += '<line x1="'+cA+'" y1="'+(yR+9)+'" x2="'+cB+'" y2="'+(yR+9)+'" stroke="#E8E6E2" stroke-width="1"'
+       + ' stroke-dasharray="1 3" opacity=".26" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+cA+'" y1="'+(yR+5)+'" x2="'+cB+'" y2="'+(yR+5)+'" stroke="#E8E6E2" stroke-width="1"'
+       + ' vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+cA+'" y1="'+(yR+9)+'" x2="'+cB+'" y2="'+(yR+9)+'" stroke="#E8E6E2" stroke-width="1"'
+       + ' vector-effect="non-scaling-stroke"/>';
+    // confirmed also carries a doubled tick at each act inside its coverage
+    [["03:10:52",1],["03:11:20",1],["03:12:09",1]].forEach(function(m){
+      var X = xp(m[0]);
+      o += tick(X, yR+2, 12, "#E8E6E2");
+      o += tick(X+3, yR+2, 12, "#E8E6E2", ".85");
+    });
+    o += tick(xp(TS.confirm), yR+2, 12, "#E8E6E2");
+    o += '</g>';
+    /* a fixed caption strip below the lanes: a rule caption can never land on a lane,
+       and the full predicate stays available on the label itself */
+    o += '<line class="sv-rule-strong" x1="0" y1="'+(VIEW_H-CAPT_H)+'" x2="'+W+'" y2="'+(VIEW_H-CAPT_H)+'"/>';
+    o += '<g id="rulecaptions">';
+    o += '<text class="sb-label-w" x="'+cA+'" y="'+(VIEW_H-CAPT_H+11)+'"><title>c_04 net &gt; 5000 ∧ equipment → cost_center 0400 (confirmed, 3 probes)</title>c_04 · confirmed · doubled · ✓ 3 probes</text>';
+    o += '<text class="sb-label" x="'+cB+'" y="'+(VIEW_H-7)+'" text-anchor="end"><title>c_05 2 % Skonto → pay within 10 days (inferred, dotted; probe extensions offset 3 px)</title>c_05 · dotted · 2 % Skonto → pay within 10 d</text>';
+    o += '<text class="sb-label" x="'+E+'" y="'+(VIEW_H-7)+'">inferred</text>';
+    o += '</g>';
+
+    /* ---------- questions lane + the restraint segment -------------------- */
+    var qID = L[4] + 11, qTop = L[4] + 15, qBot = L[4] + 25, rY = L[4] + LANE_H - 2;
+    o += '<g id="questions">';
+    QUESTIONS.forEach(function(q){
+      var X = xp(q[1]), last = (q[0] === "q_17");
+      o += '<line class="mk" x1="'+X.toFixed(1)+'" y1="'+qTop+'" x2="'+X.toFixed(1)+'" y2="'+qBot+'"'
+         + ' stroke="'+(last ? "#C9A227" : "#E8E6E2")+'" stroke-width="1"'
+         + (last ? '' : ' opacity=".85"') + ' vector-effect="non-scaling-stroke"/>';
+      /* one fixed baseline for every q label, and a right-edge lock for the
+         live one, so a question mark can never collide with the restraint line */
+      var anchor = (X > W - 34) ? "end" : "start";
+      o += '<text class="sb-label'+(last ? '-a' : '')+'" x="'+(X + (anchor === "end" ? -7 : 0)).toFixed(1)
+         + '" y="'+qID+'" text-anchor="'+anchor+'">'+q[0]+'</text>';
+    });
+    // WaitSegment: gap detected → asked at pause. Silence becomes visible.
+    o += '<line class="mk" x1="'+dX.toFixed(1)+'" y1="'+rY+'" x2="'+aX.toFixed(1)+'" y2="'+rY+'"'
+       + ' stroke="#C9A227" stroke-width="1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+dX.toFixed(1)+'" y1="'+(rY-4)+'" x2="'+dX.toFixed(1)+'" y2="'+(rY+4)+'"'
+       + ' stroke="#C9A227" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    o += '<line class="mk" x1="'+dX.toFixed(1)+'" y1="'+(rY+4)+'" x2="'+aX.toFixed(1)+'" y2="'+(rY+4)+'"'
+       + ' stroke="#C9A227" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    o += '<circle class="mk" cx="'+aX.toFixed(1)+'" cy="'+(rY+4)+'" r="2.2" fill="#C9A227"/>';
+    o += '<text class="sb-label-a" x="'+(dX-8).toFixed(1)+'" y="'+(rY+10)+'" text-anchor="end">waited 4.2 s for a pause</text>';
+    o += '</g>';
+
+    /* ---------- guardrails: the only band, the only interruption ---------- */
+    o += '<g id="guardrails">';
+    var g3a = xp("03:10:00"), g3b = xp("03:11:05"), g1a = xp("03:11:20"), g1b = W - 1;
+    o += '<rect class="mk" x="'+g1a.toFixed(1)+'" y="'+(L[5]+5)+'" width="'+(g1b-g1a).toFixed(1)+'" height="'+(LANE_H-9)+'"'
+       + ' fill="url(#hatch-bind)" opacity=".62"/>';
+    o += '<rect class="mk" x="'+g3a.toFixed(1)+'" y="'+(L[5]+5)+'" width="'+(g3b-g3a).toFixed(1)+'" height="'+(LANE_H-9)+'"'
+       + ' fill="url(#hatch-bind)" opacity=".28"/>';
+    o += '<text class="sb-label-b" x="'+(g1a+6).toFixed(1)+'" y="'+(L[5]+15)+'">▨ hold while a booking field is open (G1 · G2)</text>';
+    o += '<text class="sb-label-b" x="'+(g3a+4).toFixed(1)+'" y="'+(L[5]+18)+'">G3</text>';
+    o += '</g>';
+
+    /* ---------- pred lane: the pre-commitment ---------------------------- */
+    o += '<g id="predlane">';
+    PRED.forEach(function(t){
+      var X = xp(t), isConf = (PRED_CONFIRMED.indexOf(t) >= 0);
+      if (isConf) o += tick(X, L[0]+8, 10, "#E8E6E2");
+      else o += dottedTick(X, L[0]+8, 10, "#9A9691");
+    });
+    // the pre-commit tick: an open ring, timestamped before the act
+    o += '<g class="mk"><circle cx="'+pX.toFixed(1)+'" cy="'+(L[0]+13)+'" r="4.5" fill="none" stroke="#E8E6E2" stroke-width="1.4"/>'
+       + '<circle cx="'+pX.toFixed(1)+'" cy="'+(L[0]+13)+'" r="1.4" fill="#E8E6E2"/></g>';
+    /* caption slots are fixed per lane, so no two labels can share a baseline */
+    o += '<text class="sb-label-w" x="'+(pX-8).toFixed(1)+'" y="'+(L[0]+LANE_H-6)+'" text-anchor="end">◌ 03:11:47 · pre-commit · p .41</text>';
+    o += '</g>';
+
+    /* ---------- expert lane: what actually happened ---------------------- */
+    o += '<g id="expertlane">';
+    OBS.forEach(function(t){ o += tick(xp(t), L[1]+8, 10, "#E8E6E2"); });
+    o += tick(aX, L[1]+5, 16, "#E8E6E2");                       // the act: 2 × 16 solid
+    o += '<text class="sb-label-w" x="'+(W-2)+'" y="'+(L[1]+LANE_H-4)+'" text-anchor="end">▮ 03:12:09 · expert set cost_center 0400</text>';
+    // contested: a tick with a 1 px dashed line back to the contradicting act
+    o += '<line class="mk" x1="'+xp(TS.match).toFixed(1)+'" y1="'+(L[1]+12)+'" x2="'+xp(TS.match).toFixed(1)+'" y2="'+(L[1]+LANE_H-2)+'"'
+       + ' stroke="#6A6663" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>';
+    o += '<text class="sb-label" x="'+(xp(TS.match)+5).toFixed(1)+'" y="'+(L[1]+LANE_H-5)+'" fill="#6A6663">✗ contested · c_02 · 03:04</text>';
+    o += '</g>';
+
+    /* ---------- debrief: the unresolved overlay + the posterior band ------ */
+    if (scale === "debrief"){
+      o += '<g id="unresolved">';
+      var pb = L[6] + 4, hh = LANE_H - 8;
+      var pts = [[xp("03:03:00"), hh], [xp("03:05:00"), hh*.80], [xp("03:05:40"), hh*.64],
+                 [xp("03:09:00"), hh*.44], [xp("03:09:40"), hh*.30], [xp(TS.run), hh*.10]];
+      var d = "";
+      pts.forEach(function(p, i){ d += (i ? " L " : "M ") + p[0].toFixed(1) + " " + (pb + hh - p[1]).toFixed(1); });
+      for (var k = pts.length - 1; k >= 0; k--) d += " L " + pts[k][0].toFixed(1) + " " + (pb + hh).toFixed(1);
+      o += '<path class="chain mk" d="'+d+' Z" fill="#E8E6E2" fill-opacity=".07" stroke="#9A9691" stroke-width="1"'
+         + ' vector-effect="non-scaling-stroke"/>';
+      pts.forEach(function(p){
+        o += '<line class="mk" x1="'+p[0].toFixed(1)+'" y1="'+(pb+hh)+'" x2="'+p[0].toFixed(1)+'" y2="'+(pb+hh-p[1]-3).toFixed(1)+'"'
+           + ' stroke="#6A6663" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+      });
+      o += '<text class="sb-label" x="'+xp("03:03:02").toFixed(1)+'" y="'+(pb+10)+'">posterior band · σ 1,180 → 145 · narrows at each probe</text>';
+      o += '<text class="sb-label-a" x="'+(W-2)+'" y="'+(pb+10)+'" text-anchor="end">residual area 3.42 → 0.61</text>';
+      o += '</g>';
+    }
+
+    /* ---------- tutor: the band drops between the two spines -------------- */
+    if (scale === "tutor"){
+      /* the expected action is computed first, so it always sits to the LEFT of
+         the trainee's actual action at the same decision point */
+      var eX = xp("03:12:41"), tX = xp("03:12:44");
+      var bw = Math.max(4, (tX + 2) - (eX - 5));
+      var bx = eX - 5, by = L[1] + 20, bh = (VIEW_H - by) + 96;
+      o += '<g id="trainties">';
+      o += '<rect class="mk" x="'+bx.toFixed(1)+'" y="'+by+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="url(#hatch-bind)" opacity=".85"/>';
+      o += '<rect x="'+bx.toFixed(1)+'" y="'+by+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="none" stroke="#B4705F"'
+         + ' stroke-width="1" opacity=".45" vector-effect="non-scaling-stroke"/>';
+      o += '<text class="sb-label-b" x="'+(bx-9).toFixed(1)+'" y="'+(by+12)+'" text-anchor="end">expected 0400 · computed first</text>';
+      o += '<text class="sb-label-b" x="'+(bx+bw+7).toFixed(1)+'" y="'+(by+24)+'">actual 4711 · 03:12:44</text>';
+      /* the expert's expected action is a real tick on the expert lane */
+      o += tick(eX, L[1]+6, 14, "#7FA88C");
+      o += '<text class="sb-label" x="'+(eX-6).toFixed(1)+'" y="'+(L[1]+24)+'" text-anchor="end">expected</text>';
+      o += '</g>';
+    }
+
+    return o;
+  }
+
+  /* --------------------------------------------------- the Work Map spine ---
+     ~7 step lanes. A ruled monochrome piano-roll: a row per decision step, a
+     mark per decision, the rule bar's coverage across the rows it governs, the
+     guardrail band across the rows it binds, and the sum of residual as a band
+     that narrows along the whole spine.                                       */
+  var STEPS = [
+    { n:"open invoice",           from:"03:04:00", to:"03:04:20", marks:["03:04:02"],  state:"observed"  },
+    { n:"match PO",               from:"03:04:20", to:"03:06:40", marks:["03:04:12","03:05:20"], state:"confirmed" },
+    { n:"check supplier status",  from:"03:05:40", to:"03:06:40", marks:["03:05:58"],  state:"binding"   },
+    { n:"code to cost centre",    from:"03:09:20", to:"03:12:40", marks:[TS.pre,TS.assert,TS.confirm], state:"confirmed" },
+    { n:"check asset number",     from:"03:11:44", to:"03:12:40", marks:["03:12:02"],  state:"binding"   },
+    { n:"payment terms / Skonto", from:"03:09:50", to:"03:12:40", marks:["03:10:23","03:11:20"], state:"confirmed" },
+    { n:"post",                   from:"03:12:24", to:"03:13:00", marks:[TS.run],      state:"observed"  }
+  ];
+
+  function renderMap(){
+    var o = "", laneH = 40, top = RH, la = function(i){ return top + i * laneH; }, i;
+    o += '<rect class="sv-lane" x="0" y="'+la(0)+'" width="'+W+'" height="'+(7*laneH)+'"/>';
+
+    var start = Math.ceil(T0/10)*10, end = T0 + SPAN, s;
+    for (s = start; s <= end; s += 10){
+      var X = xp(s), major = (s % 60 === 0);
+      if (!major && X < 6) continue;
+      o += '<line class="sv-rule" x1="'+X.toFixed(1)+'" y1="'+RH+'" x2="'+X.toFixed(1)+'" y2="'+(top+7*laneH)+'" opacity="'
+         + (major ? ".55" : ".20") + '"/>';
+    }
+    var labels = "";
+    for (s = Math.ceil(T0/60)*60; s <= end; s += 60){
+      var X2 = xp(s);
+      if (X2 < -60 || X2 > W + 60) continue;
+      var anchor = "middle", Tx = X2;
+      if (X2 < 26){ anchor = "start"; Tx = 2; }
+      if (X2 > W - 26){ anchor = "end"; Tx = W - 2; }
+      labels += '<line class="sv-rule-strong" x1="'+X2.toFixed(1)+'" y1="12" x2="'+X2.toFixed(1)+'" y2="'+RH+'"/>'
+              + '<text class="sb-clock" x="'+Tx.toFixed(1)+'" y="10" text-anchor="'+anchor+'">'+fmt(s)+'</text>';
+    }
+    o += '<line class="sv-rule-strong" x1="0" y1="'+RH+'" x2="'+W+'" y2="'+RH+'"/>' + labels;
+
+    /* rule coverage extent across the whole map */
+    var cA = xp("03:04:12"), cB = xp(TS.run);
+    o += '<rect x="'+cA.toFixed(1)+'" y="'+(top+1)+'" width="'+(cB-cA).toFixed(1)+'" height="'+(7*laneH-2)+'"'
+       + ' fill="none" stroke="#33363A" stroke-width="1"/>';
+    o += '<text class="sb-label" x="'+cA.toFixed(1)+'" y="'+(top-4)+'">rule coverage · c_04 + c_05</text>';
+    o += '<text class="sb-label" x="'+cB.toFixed(1)+'" y="'+(top-4)+'" text-anchor="end" fill="#7FA88C">✓ 96 %</text>';
+
+    /* guardrail bands span the rows they bind */
+    o += '<rect class="mk" x="'+xp("03:05:40").toFixed(1)+'" y="'+la(2)+'" width="'+(xp("03:06:40")-xp("03:05:40")).toFixed(1)
+       + '" height="'+laneH+'" fill="url(#hatch-bind)" opacity=".55"/>';
+    o += '<rect class="mk" x="'+xp("03:11:44").toFixed(1)+'" y="'+la(4)+'" width="'+(xp("03:12:40")-xp("03:11:44")).toFixed(1)
+       + '" height="'+laneH+'" fill="url(#hatch-bind)" opacity=".55"/>';
+
+    /* the step lanes */
+    STEPS.forEach(function(st, n){
+      var y = la(n);
+      o += '<line class="sv-rule" x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>';
+      var a = xp(st.from), b = Math.max(xp(st.to), a + 8);
+      o += '<rect class="mk" x="'+a.toFixed(1)+'" y="'+(y+16)+'" width="'+(b-a).toFixed(1)+'" height="14"'
+         + ' fill="#E8E6E2" fill-opacity="'+(st.state === "observed" ? ".30" : st.state === "binding" ? ".16" : ".55")+'"'
+         + (st.state === "binding" ? ' stroke="#B4705F" stroke-width="1"' : '') + '/>';
+      st.marks.forEach(function(t){
+        o += tick(xp(t), y+13, 20, st.state === "confirmed" ? "#7FA88C" : st.state === "binding" ? "#B4705F" : "#E8E6E2");
+      });
+      o += '<text class="sb-label-w" x="'+(a+7).toFixed(1)+'" y="'+(y+13)+'" font-size="10">'+esc(STEP_LABELS[n].split("|")[1])+'</text>';
+      if (n === 6){
+        o += '<text class="sb-label-b" x="'+(b-4).toFixed(1)+'" y="'+(y+26)+'" text-anchor="end">held · G2 not satisfied</text>';
+      }
+    });
+    o += '<line class="sv-rule" x1="0" y1="'+(top+7*laneH)+'" x2="'+W+'" y2="'+(top+7*laneH)+'"/>';
+
+    o += '<text class="sb-label-b" x="'+(xp("03:05:42")).toFixed(1)+'" y="'+(la(2)+26)+'">▨ G3 · supplier bank changed → ask controller</text>';
+    o += '<text class="sb-label-b" x="'+(W-2)+'" y="'+(la(4)+37)+'" text-anchor="end">▨ G2 · 0400 ∧ no asset number → block</text>';
+
+    /* the sum of residual: the headline, an area narrowing along the spine */
+    var yb = top + 7*laneH + 8, hh = 26;
+    var wA = 22, wB = 17, wC = 10, wD = 3;
+    var path = "M " + E + " " + (yb + hh/2)
+             + " L " + xp("03:05:40").toFixed(1) + " " + (yb + (hh-wA)/2)
+             + " L " + xp("03:09:40").toFixed(1) + " " + (yb + (hh-wB)/2)
+             + " L " + xp(TS.run).toFixed(1) + " " + (yb + (hh-wC)/2)
+             + " L " + (W-E) + " " + (yb + (hh-wD)/2)
+             + " L " + (W-E) + " " + (yb + (hh+wD)/2)
+             + " L " + xp(TS.run).toFixed(1) + " " + (yb + (hh+wC)/2)
+             + " L " + xp("03:09:40").toFixed(1) + " " + (yb + (hh+wB)/2)
+             + " L " + xp("03:05:40").toFixed(1) + " " + (yb + (hh+wA)/2)
+             + " L " + E + " " + (yb + hh/2) + " Z";
+    o += '<path class="mk" d="'+path+'" fill="#E8E6E2" fill-opacity=".10" stroke="#9A9691" stroke-width="1"'
+       + ' vector-effect="non-scaling-stroke"/>';
+    o += '<text class="sb-label" x="'+E+'" y="'+(yb-3)+'">3.42</text>';
+    o += '<text class="sb-label" x="'+(xp("03:05:40")-9).toFixed(1)+'" y="'+(yb-3)+'">2.10</text>';
+    o += '<text class="sb-label" x="'+(xp("03:09:40")-9).toFixed(1)+'" y="'+(yb-3)+'">1.18</text>';
+    o += '<text class="sb-label-w" x="'+(W-2)+'" y="'+(yb+hh+11)+'" text-anchor="end">residual area 3.42 → 0.61</text>';
+    o += '<text class="sb-label" x="'+E+'" y="'+(yb+hh+11)+'">uncertainty resolving into verified human knowledge</text>';
+
+    /* the live playhead reaches into the map as a 1 px rule */
+    o += '<line x1="'+(W-E).toFixed(1)+'" y1="'+RH+'" x2="'+(W-E).toFixed(1)+'" y2="'+(top+7*laneH)+'"'
+       + ' stroke="#E8E6E2" stroke-width="1" opacity=".4" vector-effect="non-scaling-stroke"/>';
+    return o;
+  }
+
+  /* -------------------------------------------------------- trainee spine ---
+     Phase-locked to the expert ruler. Expected is computed first, so it sits to
+     the left of the actual; a hatched band drops between the two spines at the
+     mismatch; a resolved mismatch is joined by a solid line.                  */
+  function renderTrainee(){
+    var o = "", h = 96, yE = 30, yA = 62;
+    /* the ruler is shared, so the trainee pane re-phases the same ticks —
+       this is what "phase-locked" means: identical x for identical time */
+    var start = Math.ceil(T0/2)*2, end = T0 + SPAN, s;
+    for (s = start; s <= end; s += 2){
+      var X = xp(s);
+      o += '<line class="sv-rule" x1="'+X.toFixed(1)+'" y1="0" x2="'+X.toFixed(1)+'" y2="'+h+'" opacity="'
+         + ((s % 30 === 0) ? ".55" : ".22") + '"/>';
+    }
+    /* --- the mismatch: expected was computed first, so it sits to the LEFT --- */
+    var eX = xp("03:12:41"), tX = xp("03:12:44"), bw = Math.max(4, (tX + 1) - (eX - 5)), bx = eX - 5;
+    o += tick(eX, yE-6, 12, "#E8E6E2");
+    o += '<text class="sb-label" x="'+(eX-8).toFixed(1)+'" y="'+(yE+4)+'" text-anchor="end">expected 0400 · run_map</text>';
+    o += tick(tX, yA-6, 12, "#B4705F");
+    o += '<text class="sb-label-b" x="'+(tX+8).toFixed(1)+'" y="'+(yA+17)+'">mismatch · 03:12:44 · 4711</text>';
+    /* the hatched band drops the height of the gap into the expert spine */
+    o += '<rect class="mk" x="'+bx.toFixed(1)+'" y="-92" width="'+bw.toFixed(1)+'" height="'+(yE+6+92)+'"'
+       + ' fill="url(#hatch-bind)" opacity=".85"/>';
+    o += '<rect x="'+bx.toFixed(1)+'" y="-92" width="'+bw.toFixed(1)+'" height="'+(yE+6+92)+'" fill="none" stroke="#B4705F"'
+       + ' stroke-width="1" opacity=".45" vector-effect="non-scaling-stroke"/>';
+    /* --- the resolved mismatch further right: a solid line joins the two ticks
+           (the trainee's act is now aligned with the expert's) --- */
+    var rx = xp("03:12:50"), ra = rx - 7, rb = rx + 4;
+    o += '<line class="chain" x1="'+ra.toFixed(1)+'" y1="'+(yE-4)+'" x2="'+rb.toFixed(1)+'" y2="'+(yA+6)+'" stroke="#7FA88C"'
+       + ' stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    o += tick(ra, yE-6, 12, "#E8E6E2");
+    o += tick(rb, yA-6, 12, "#7FA88C");
+    o += '<text class="sb-label" x="'+(rb+8).toFixed(1)+'" y="'+(yA+4)+'" fill="#7FA88C">resolved · mastery 0.42 → 0.61</text>';
+    /* mastery belongs beside the lane, as a written delta */
+    o += '<text class="sb-label" x="'+(W-2)+'" y="'+(yA+17)+'" text-anchor="end" fill="#7FA88C">mastery 0.42 → 0.61</text>';
+    return o;
+  }
+
+  /* -------------------------------------------------------------- the DOM --- */
+  var body = document.body;
+  var spineSVG  = document.getElementById("spine");
+  var mapG      = document.getElementById("mapG");
+  var mapSVG    = document.getElementById("mapspine");
+  var tspinesvg = document.getElementById("tspine");
+  var lanecol   = document.getElementById("lanecol");
+  var lanesEl   = document.getElementById("lanes");
+  var maplanes  = document.getElementById("maplanes");
+
+  var lastW = 0;
+  var canvasEl    = document.getElementById("canvas");
+  var mapCanvasEl = document.getElementById("mapcanvas");
+
+  /* The spine is drawn 1 unit = 1 rendered pixel. That is what keeps the
+     texture honest: the 6 px hatch pitch and the 2 px tick are the pitch and
+     the tick you actually see, at any container width. */
+  function measure(){
+    var cw = canvasEl.clientWidth, mw = mapCanvasEl.clientWidth;
+    W = Math.max(360, Math.round(Math.max(cw, mw)) || 1000);
+    spineSVG.setAttribute("width", W);
+    mapSVG.setAttribute("width", W);
+  }
+
+  var LANE_LABELS = ["pred","expert","gap","rules","q's","guardrails"];
+  var STEP_LABELS = ["s1|open invoice","s2|match PO","s3|supplier status","s4|code to cost centre",
+                     "s5|asset number","s6|terms / Skonto","s7|post"];
+
+  function setLaneCol(map){
+    var html = '<div class="ln hd">&nbsp;</div>';
+    if (map){
+      STEP_LABELS.forEach(function(t){
+        var p = t.split("|");
+        html += '<div class="ln">'+p[0]+' · <b>'+esc(p[1])+'</b></div>';
+      });
+      html += '<div class="ln">residual</div>';
+    } else {
+      LANE_LABELS.forEach(function(t){ html += '<div class="ln">'+esc(t)+'</div>'; });
+    }
+    lanecol.innerHTML = html;
+  }
+
+  function render(scale){
+    var isMap = (scale === "map");
+    measure();
+    if (isMap){
+      mapG.innerHTML = renderMap();
+      mapSVG.setAttribute("viewBox", "0 0 " + W + " " + MAP_H);
+      maplanes.style.display = "grid";
+      lanesEl.style.display = "none";
+    } else {
+      var defs = spineSVG.querySelector("defs");
+      spineSVG.setAttribute("viewBox", "0 0 " + W + " " + VIEW_H);
+      spineSVG.innerHTML = (defs ? defs.outerHTML : "") + renderSpine(scale);
+      maplanes.style.display = "none";
+      lanesEl.style.display = "grid";
+    }
+    setLaneCol(isMap);
+    tspinesvg.innerHTML = renderTrainee();
+  }
+
+  /* ------------------------------------------------------------ the modes --- */
+  function applyScale(scale){
+    var sc = SCALES[scale] || SCALES.capture;
+    setWindow(sc.from, sc.span);
+    render(scale);
+    document.getElementById("scaletag").textContent = "scale · " + sc.label;
+    document.getElementById("spaninfo").innerHTML =
+      "<b>" + sc.px + "</b> px · " + sc.info + " · " + Math.round(sc.span) + " s";
+  }
+
+  function setMode(scale){
+    if (!SCALES[scale]) scale = "capture";
+    body.setAttribute("data-mode", scale);
+    /* measure the container that is actually on screen */
+    void (scale === "map" ? mapCanvasEl : canvasEl).clientWidth;
+    applyScale(scale);
+    var tabs = document.querySelectorAll("#modes button");
+    for (var i=0;i<tabs.length;i++){
+      tabs[i].setAttribute("aria-selected", tabs[i].getAttribute("data-mode") === scale ? "true" : "false");
+    }
+    document.getElementById("inspn").textContent =
+      scale === "capture" ? "1 object" :
+      scale === "map" ? "1 object · guardrail" :
+      scale === "debrief" ? "6 objects" : "1 object · binding";
+
+    /* marks stamp: glyph only, 1.0 → 1.15 → 1.0, 90 ms.
+       Gap areas grow from the act tick leftward. Nothing else moves. */
+    body.removeAttribute("data-stamp");
+    body.removeAttribute("data-anim");
+    void body.offsetWidth;
+    body.setAttribute("data-stamp","1");
+    body.setAttribute("data-anim","1");
+    window.setTimeout(function(){ body.removeAttribute("data-stamp"); }, 150);
+    window.setTimeout(function(){ body.removeAttribute("data-anim"); }, 660);
+  }
+
+  var modes = document.getElementById("modes");
+  modes.addEventListener("click", function(e){
+    var b = e.target.closest("button[data-mode]");
+    if (b) setMode(b.getAttribute("data-mode"));
+  });
+  modes.addEventListener("keydown", function(e){
+    var keys = ["capture","map","debrief","tutor"];
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    var i = keys.indexOf(body.getAttribute("data-mode"));
+    i = (e.key === "ArrowRight") ? (i + 1) % 4 : (i + 3) % 4;
+    setMode(keys[i]);
+    modes.querySelector('[data-mode="' + keys[i] + '"]').focus();
+  });
+
+  /* playhead: 1 px, 40 % ink — the only continuously moving element.
+     Tracks in Capture; held at the event in every other scale. */
+  (function playhead(){
+    var el = document.getElementById("playhead");
+    var pos = 0;
+    window.setInterval(function(){
+      var m = body.getAttribute("data-mode");
+      /* Capture is a 100 s window, so 1× real time is ~1.1 % per second */
+      if (m === "capture"){ pos += 0.018; if (pos > 14) pos = 0; } else { pos = 0; }
+      /* the map carries its own 1px leading rule, so the playhead stands down */
+      el.style.display = (m === "map") ? "none" : "block";
+      var base = (m === "capture") ? 78 : 96.5;
+      el.style.left = Math.min(99.4, Math.max(0.6, base + pos)).toFixed(2) + "%";
+    }, 60);
+  })();
+
+  /* the spine is the layout, so it re-measures when the window does */
+  (function responsive(){
+    var pending = null;
+    function remeasure(){
+      if (pending) window.clearTimeout(pending);
+      pending = window.setTimeout(function(){
+        var cw = canvasEl.clientWidth;
+        if (cw && cw !== lastW){ lastW = cw; applyScale(body.getAttribute("data-mode")); }
+      }, 120);
+    }
+    window.addEventListener("resize", remeasure);
+    window.addEventListener("load", function(){
+      lastW = canvasEl.clientWidth;
+      applyScale(body.getAttribute("data-mode"));
+    });
+  })();
+
+  /* deep link: c-shift.html#map — the four scales are addressable */
+  (function deepLink(){
+    function fromHash(){
+      var h = (location.hash || "").replace(/^#/,"");
+      return SCALES[h] ? h : null;
+    }
+    setMode(fromHash() || "capture");
+    window.addEventListener("hashchange", function(){
+      var m = fromHash(); if (m) setMode(m);
+    });
+  })();
+})();
+</script>
+</body>
+</html>

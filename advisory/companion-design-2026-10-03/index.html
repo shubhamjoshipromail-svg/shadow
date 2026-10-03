@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shadow · companion study</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f1e9;color:#30372e;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}button,input{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #748363;outline-offset:4px}
+    .page{max-width:1440px;margin:auto;padding:36px 48px 24px}.mast{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d9ddd0;padding-bottom:18px}.wordmark{font-size:17px;letter-spacing:-.6px;font-weight:700;display:flex;align-items:center;gap:10px}.mark{width:13px;height:13px;background:#6b7a56;box-shadow:4px -4px 0 #c8cfb7}.edition,.eyebrow{font:10px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:1.3px;text-transform:uppercase;color:#757b6b}.intro{display:flex;align-items:end;justify-content:space-between;margin:31px 0 28px;gap:20px}h1{font:normal 40px/1.08 Georgia,serif;letter-spacing:-1.5px;margin:9px 0}.intro p{font-size:13px;color:#737969;max-width:335px;margin:0 0 4px}.layout{display:grid;grid-template-columns:242px minmax(0,1fr);gap:32px}.controls{padding-top:2px}.portrait-study{background:#e9e9df;border:1px solid #dbdfd0;border-radius:12px;min-height:192px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}.portrait-study shadow-intern{--shadow-size:111px;pointer-events:none;margin-top:14px}.portrait-study small{position:absolute;left:13px;top:11px;font:9px ui-monospace,monospace;color:#838978;letter-spacing:1px}.caption{font-size:11px;color:#7e8474;margin:9px 0 25px}.states{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.states button{background:transparent;border:1px solid #d1d7c7;border-radius:6px;padding:6px 10px;font-size:11px;color:#606b55}.states button[aria-pressed=true]{background:#354333;color:#f5f5e9;border-color:#354333}.setting{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid #dcdfd3;font-size:11px;color:#67715d}.setting:first-of-type{margin-top:15px}.setting input{accent-color:#677d52}.setting select{border:1px solid #d5dbc9;background:#f8f7f0;border-radius:5px;color:#58634e;padding:4px;font-size:11px}.note{font-size:11px;color:#7a826f;line-height:1.7;margin-top:20px}.browser{border:1px solid #cdd4c3;border-radius:13px;overflow:hidden;background:#fffefb;box-shadow:0 10px 36px #26351b08}.chrome{height:44px;display:flex;align-items:center;gap:7px;background:#e8ebe2;padding:0 17px;border-bottom:1px solid #d7ddcf}.dot{width:7px;height:7px;border-radius:50%;background:#c0c7b6}.tabs{display:flex;align-self:stretch;margin-left:15px;gap:3px}.tab{border:0;background:transparent;font-size:11px;padding:0 18px;color:#7d8773}.tab.active{background:#fffefb;color:#3b4833;border-radius:8px 8px 0 0;margin-top:6px}.address{font:10px ui-monospace,monospace;color:#8a9282;margin-left:auto}.work{position:relative;min-height:520px;padding:25px 30px 100px}.work-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}.org{font-weight:650;font-size:13px;letter-spacing:-.2px}.avatar{display:flex;align-items:center;gap:8px;color:#8a917f;font-size:10px}.avatar b{display:grid;place-items:center;width:26px;height:26px;background:#e9eddf;border-radius:50%;font-weight:500;color:#6e7d61}h2{font-size:23px;font-weight:500;letter-spacing:-.6px;margin:0 0 5px}.sub{font-size:11px;color:#939b87;margin:0 0 24px}.table{width:100%;border-collapse:collapse;font-size:11px}.table th{text-align:left;color:#969e8b;font-weight:400;font-size:10px;border-bottom:1px solid #e7ebdf;padding:11px 0}.table td{border-bottom:1px solid #eef0e8;padding:15px 0;color:#616d54}.table td:first-child{color:#414e36}.pill{padding:3px 7px;background:#eef1e8;border-radius:4px;font-size:9px;color:#788369}.pill.amber{background:#f3eddb;color:#9a8958}.number{font-variant-numeric:tabular-nums}.table th:last-child,.table td:last-child{text-align:right}.work.dark{background:#262d27;color:#ecede4}.dark .org,.dark h2{color:#e1e5d7}.dark .table td{color:#b0bba4;border-color:#3a4336}.dark .table td:first-child{color:#d9dfcf}.dark .table th{border-color:#44513c}.dark .pill{background:#3b4734;color:#b5c5a4}.dark .pill.amber{background:#4c4632;color:#d5c396}.dark .avatar b{background:#404c38;color:#b9c5ac}
+    #companion{position:absolute;right:24px;bottom:17px;z-index:2}.presence{position:absolute;left:30px;bottom:24px;max-width:65%;font:10px/1.6 ui-monospace,monospace;color:#a0a894}.below{display:flex;justify-content:space-between;gap:16px;margin:13px 2px 0;font-size:10px;color:#818975}.below b{font-weight:500;color:#5e6e50}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #d9ddd0;margin-top:35px;padding-top:16px;color:#858d79;font-size:10px}.footer a{color:#66775a;text-underline-offset:3px}.toast{min-height:34px;margin-top:12px;font-size:11px;color:#6e7c61}.message-line{padding:18px 0;border-bottom:1px solid #e9ede1;display:flex;gap:16px}.message-line .sender{font-size:11px;width:92px;flex-shrink:0;color:#59674e}.message-line p{margin:0;font-size:11px;color:#8a947e}.message-line b{font-weight:500;color:#4a5b3d}.dark .message-line{border-color:#3a4336}.dark .message-line b,.dark .message-line .sender{color:#c8d4bd}
+    @media(max-width:850px){.page{padding:24px}.layout{grid-template-columns:185px minmax(0,1fr);gap:18px}.work{padding:20px 18px 110px;min-height:500px}.address{display:none}.intro p{max-width:250px}.table td:nth-child(2),.table th:nth-child(2){display:none}h1{font-size:34px}.portrait-study{min-height:175px}}
+    @media(max-width:600px){.page{padding:20px 14px}.edition{font-size:8px}.intro{display:block;margin-top:23px}.intro p{max-width:100%;margin-top:12px}.layout{display:flex;flex-direction:column}.controls{display:grid;grid-template-columns:105px 1fr;gap:0 16px}.portrait-study{grid-row:span 3;min-height:130px}.portrait-study shadow-intern{--shadow-size:76px}.caption,.controls>.note{display:none}.controls>.eyebrow{margin:0}.states{margin:6px 0 10px}.setting{padding:7px 0}.setting:first-of-type{margin:0}.portrait-study small{font-size:7px}.work{min-height:430px}.footer{flex-direction:column;gap:6px;margin-top:20px}.below{font-size:9px}.toast{margin-top:4px}.table td{padding:13px 0}.tabs{margin-left:6px}.tab{padding:0 13px}}
+  </style>
+</head>
+<body><main class="page">
+  <header class="mast"><div class="wordmark"><span class="mark"></span>shadow</div><span class="edition">Companion study / 01</span></header>
+  <section class="intro"><div><div class="eyebrow">An apprentice, quietly present</div><h1>A little company.<br>A lot less interruption.</h1></div><p>Round glasses. A notebook. A patient presence at the edge of your work.</p></section>
+  <div class="layout">
+    <aside class="controls" aria-label="Preview controls">
+      <div class="portrait-study"><small>CHARACTER DETAIL · 2×</small><shadow-intern id="study"></shadow-intern></div><p class="caption">Wavy chestnut hair · sage cardigan · warm paper</p>
+      <div class="eyebrow">Try a state</div><div class="states" id="states">
+        <button data-state="idle" aria-pressed="true">Quiet</button><button data-state="question" aria-pressed="false">Question</button><button data-state="listening" aria-pressed="false">Listening</button><button data-state="thinking" aria-pressed="false">Checking</button><button data-state="learned" aria-pressed="false">Noted</button><button data-state="paused" aria-pressed="false">Paused</button><button data-state="offline" aria-pressed="false">Offline</button>
+      </div>
+      <label class="setting">Gentle motion<input id="motion" type="checkbox" checked></label>
+      <label class="setting">Work surface<select id="surface"><option value="light">Paper</option><option value="dark">Charcoal</option></select></label>
+      <p class="note">Mostly still. One soft blink every few seconds. A curl barely shifts. A question waits until you open it.</p>
+    </aside>
+    <section aria-label="Companion in context">
+      <div class="browser"><div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><nav class="tabs" aria-label="Example work surfaces"><button class="tab active" data-tab="invoices" aria-pressed="true">Invoices</button><button class="tab" data-tab="inbox" aria-pressed="false">Inbox</button></nav><span class="address">preview / your workspace</span></div>
+      <div class="work" id="work"><div class="work-head"><span class="org">Nordwerk</span><span class="avatar">Finance workspace <b>SA</b></span></div>
+        <div id="task"></div>
+        <div class="presence">DESIGN PREVIEW<br>No screen or microphone capture.</div>
+        <shadow-intern id="companion"></shadow-intern>
+      </div></div>
+      <div class="below"><span><b>Actual companion size: 56 px</b> · Click her to open the notebook panel.</span><span>Local demo · no backend</span></div><div class="toast" id="toast" role="status"></div>
+    </section>
+  </div>
+  <footer class="footer"><span>Small presence. Clear states. No constant waving, bouncing, or glow.</span><a href="README.md">Design & integration notes ↗</a></footer>
+</main>
+<script type="module">
+  import './shadow-companion.js';
+  const companion = document.querySelector('#companion'), study = document.querySelector('#study');
+  const toast = document.querySelector('#toast');
+  let state = 'idle';
+  const views = {
+    invoices: `<h2>Supplier invoices</h2><p class="sub">Four invoices to review. Take them one at a time.</p><table class="table"><thead><tr><th>Supplier</th><th>Invoice</th><th>Status</th><th>Amount</th></tr></thead><tbody><tr><td>Schmidt Antriebstechnik</td><td>4471</td><td><span class="pill amber">In review</span></td><td class="number">€7,616.00</td></tr><tr><td>Weber Industrieteile</td><td>4472</td><td><span class="pill">Ready</span></td><td class="number">€2,380.00</td></tr><tr><td>Nordwerk Services</td><td>4473</td><td><span class="pill">Ready</span></td><td class="number">€4,200.00</td></tr><tr><td>Keller Bürobedarf</td><td>4474</td><td><span class="pill">Ready</span></td><td class="number">€846.00</td></tr></tbody></table>`,
+    inbox: `<h2>Your inbox</h2><p class="sub">A different tab. The same quiet companion.</p><div class="message-line"><span class="sender">Mara · Finance</span><p><b>One detail on the new supplier</b><br>Could you check the payment details before approving?</p></div><div class="message-line"><span class="sender">Operations</span><p><b>Purchase order received</b><br>The matching delivery note is now attached.</p></div><div class="message-line"><span class="sender">Team notebook</span><p><b>This week’s process notes</b><br>A small clarification on the approval route.</p></div>`,
+  };
+  function changeState(next) {
+    state = next; companion.setState(next); study.setState(next);
+    document.querySelectorAll('[data-state]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.state === next)));
+    toast.textContent = next === 'question' ? 'A small question marker appears. The panel stays closed until you choose to open it.' : next === 'learned' ? '“Noted” means captured—not independently verified. This state is previewed manually here.' : '';
+  }
+  document.querySelectorAll('[data-state]').forEach(b => b.addEventListener('click', () => changeState(b.dataset.state)));
+  document.querySelector('#motion').addEventListener('change', e => { companion.setMotion(e.target.checked); study.setMotion(e.target.checked); });
+  document.querySelector('#surface').addEventListener('change', e => document.querySelector('#work').classList.toggle('dark', e.target.value === 'dark'));
+  document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+    document.querySelector('#task').innerHTML = views[b.dataset.tab];
+    document.querySelectorAll('[data-tab]').forEach(t => { t.classList.toggle('active', t === b); t.setAttribute('aria-pressed', String(t === b)); });
+    toast.textContent = 'Preview surface changed; companion state retained. This is a mock browser, not an installed extension.';
+  }));
+  companion.addEventListener('shadow-action', e => {
+    const { action, text } = e.detail;
+    if (action === 'pause') changeState('paused');
+    if (action === 'resume' || action === 'defer') changeState('idle');
+    if (action === 'answer') { changeState('thinking'); toast.textContent = `Preview answer received (${text.length} characters). Nothing was sent or learned.`; }
+    if (action === 'notebook') toast.textContent = 'Notebook action emitted. Opus can connect this to the existing Work Map.';
+  });
+  document.querySelector('#task').innerHTML = views.invoices;
+</script></body></html>

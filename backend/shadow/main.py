@@ -334,6 +334,12 @@ async def capture_js() -> FileResponse:
                         headers={"Cache-Control": "no-store"})
 
 
+@app.get("/companion/intern.png")
+async def companion_art() -> FileResponse:
+    """Sprite sheet for the in-app companion (portrait + blink frame)."""
+    return FileResponse(STATIC / "intern.png", media_type="image/png", headers={"Cache-Control": "max-age=3600"})
+
+
 @app.get("/api/erp/cases")
 async def erp_cases(session: str | None = None) -> list[dict[str, Any]]:
     if not sessions:

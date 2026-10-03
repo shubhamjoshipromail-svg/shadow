@@ -1,33 +1,29 @@
-import { motion } from 'framer-motion'
-import { MessageCircleQuestion } from 'lucide-react'
 import type { Inquiry } from '../lib/types'
 
 const TYPE_LABEL: Record<string, string> = {
-  cue_probe: 'Open probe', confirm: 'Confirm', comparison: 'Comparison', counterfactual: 'Counterfactual',
-  boundary: 'Boundary', guardrail: 'Guardrail', exam: 'Self-exam', teachback: 'Teach-back',
+  cue_probe: 'open question', confirm: 'confirmation', comparison: 'comparison', counterfactual: 'what-if',
+  boundary: 'boundary', guardrail: 'guardrail', exam: 'self-exam', teachback: 'teach-back',
 }
 
+/** A margin query: a question mark, a rule down to what it concerns, and the question in plain words. */
 export default function Question({ q, live }: { q: Inquiry | null; live: boolean }) {
   if (!q) return null
   return (
-    <motion.div key={q.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-      className={`relative overflow-hidden rounded-2xl border p-5 ${live ? 'border-ask/60 bg-ask/[0.07]' : 'border-line bg-panel'}`}>
-      {live && <div className="breathe absolute inset-x-0 top-0 h-0.5 bg-ask" />}
-      <div className="flex items-center gap-2">
-        <MessageCircleQuestion size={15} className="text-ask" />
-        <span className="label !text-ask">{live ? 'Shadow is asking' : 'Last question'} · {TYPE_LABEL[q.type] ?? q.type} · {q.phase}</span>
+    <div key={q.id} className={`ink-in relative border-l-2 py-1 pl-5 ${live ? 'border-query' : 'border-rule-strong'}`}>
+      <div className="label flex items-center gap-2">
+        <span className={`num text-[13px] leading-none ${live ? 'text-query' : 'text-ink-3'}`}>?</span>
+        <span className={live ? '!text-query' : ''}>{live ? 'Asking now' : 'Last question'} · {TYPE_LABEL[q.type] ?? q.type} · {q.phase}</span>
       </div>
-      <div className="mt-3 font-serif text-[26px] leading-[1.25] text-text">“{q.text}”</div>
+      <div className="testimony mt-2 text-[24px] leading-[1.3]">{q.text}</div>
+      {q.probe_delta && q.type !== 'teachback' && (
+        <div className="mt-2 text-[12.5px] text-candidate"><span className="num">◌</span> hypothetical case: {q.probe_delta}</div>
+      )}
       {q.type !== 'teachback' && (
-        <div className="num mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
-          <span>EVOI <b className="text-text">{q.evoi.toFixed(2)}</b> bits</span>
-          <span>× impact <b className="text-text">{q.impact.toFixed(2)}</b></span>
-          {q.guardrail_gap > 0 && <span>+ guardrail gap <b className="text-text">{q.guardrail_gap.toFixed(1)}</b></span>}
-          <span>− cost <b className="text-text">{q.cost.toFixed(2)}</b></span>
-          <span>= value <b className="text-ask">{q.value.toFixed(2)}</b></span>
+        <div className="num mt-2.5 text-[10.5px] text-ink-3">
+          worth asking: {q.evoi.toFixed(2)} bits × impact {q.impact.toFixed(2)}
+          {q.guardrail_gap > 0 && <> + guardrail {q.guardrail_gap.toFixed(1)}</>} − interruption {q.cost.toFixed(2)} = <span className="text-ink-1">{q.value.toFixed(2)}</span>
         </div>
       )}
-      {q.reason && q.type === 'teachback' ? null : q.probe_delta && <div className="mt-2 text-[12px] text-hyp">Synthesized unseen case: {q.probe_delta}</div>}
-    </motion.div>
+    </div>
   )
 }

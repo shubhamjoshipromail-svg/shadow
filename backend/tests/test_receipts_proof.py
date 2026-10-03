@@ -155,6 +155,23 @@ def test_restarted_session_uses_saved_map(tmp_path):
     asyncio.run(run())
 
 
+def test_rehearsal_maps_are_never_continued_from(tmp_path):
+    async def run():
+        store = Store(f"sqlite:///{tmp_path}/shadow.db")
+        live = Session("live", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=SpokenCompiler(),
+                       store=store)
+        await teach(live)
+        store.create_session("reh", "capture", PACK.id, live.expert, {"simulated": True})
+        reh = Session("reh", PACK, mode="capture", use_llm=False, store=store)
+        reh.simulated = True
+        reh._save_map()
+        store.save_map(live.expert, PACK.id, "reh", 99, reh.wm.model_dump())  # a stale row from before the guard
+        row = store.latest_map_row(live.expert, PACK.id)
+        assert row["session_id"] == "live"
+
+    asyncio.run(run())
+
+
 def test_live_session_refuses_simulated_steps_and_rehearsal_refuses_proofs():
     live = Session("live1", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=SpokenCompiler())
     rehearsal = Session("reh1", PACK, mode="capture", use_llm=False)

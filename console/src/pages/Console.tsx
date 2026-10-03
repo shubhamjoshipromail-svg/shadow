@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConversationProvider } from '@elevenlabs/react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Download, EyeOff, GraduationCap, Lock, Map as MapIcon, Mic, MicOff, MonitorUp, PauseCircle, Send, Sparkles } from 'lucide-react'
 import { API, api, mmss, useShadow } from '../lib/api'
 import { useScreen } from '../lib/screen'
 import { useVoiceBridge } from '../lib/voice'
@@ -17,7 +15,7 @@ import Checklist from '../components/Checklist'
 import Mastery from '../components/Mastery'
 import MomentModal from '../components/MomentModal'
 import Receipts from '../components/Receipts'
-import { Btn, Dot, Section } from '../components/ui'
+import { Btn, Dot, Section, Wordmark } from '../components/ui'
 
 export default function Console() {
   const { sid } = useParams()
@@ -85,7 +83,7 @@ function ConsoleInner({ sid }: { sid: string }) {
   const question = asked ?? lastAnswered
 
   if (!snap) {
-    return <div className="flex h-full items-center justify-center text-muted">{connected ? 'Loading session…' : 'Connecting to Shadow Core…'}</div>
+    return <div className="flex h-full items-center justify-center text-[13px] text-ink-2">{connected ? 'Opening the session…' : 'Connecting to Shadow Core…'}</div>
   }
 
   const openMoment = (ts: number | null, node?: MapNode) => setMoment({ ts, quote: node?.quote, title: node?.title })
@@ -119,131 +117,131 @@ function ConsoleInner({ sid }: { sid: string }) {
   const voiceOn = voice.conv.status === 'connected'
   const activity = live.activity ?? snap.activity
 
+  const modeWord = mode === 'capture' ? 'Capture' : mode === 'debrief' ? 'Debrief' : 'Tutor'
+  const stats: [string, string][] = [
+    ['predicted right', acc == null ? '—' : `${Math.round(acc * 100)}%`],
+    ['asked live + debrief', `${m.questions_live} + ${m.questions_debrief}`],
+    ['stayed quiet', `${m.silent_decisions}`],
+    ['rules confirmed', `${m.rules_confirmed} / ${m.rules_learned}`],
+  ]
+
   return (
     <div className="flex h-full flex-col">
-      {/* header */}
-      <header className="flex items-center gap-3 border-b border-line px-5 py-3">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-5 w-5 rounded-full bg-gradient-to-br from-learn to-predict" />
-          <span className="font-bold tracking-tight">Shadow</span>
-        </Link>
-        <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${mode === 'tutor' ? 'border-predict/50 text-predict' : mode === 'debrief' ? 'border-ask/50 text-ask' : 'border-learn/50 text-learn'}`}>
-          {mode === 'capture' ? 'Capturing' : mode === 'debrief' ? 'Debrief' : 'Tutoring'} · {mode === 'tutor' ? `${snap.trainee} learning from ${snap.expert}` : snap.expert}
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-muted"><Dot on={connected} /> {connected ? 'live' : 'reconnecting'}</span>
-        {snap.map_source.kind === 'saved' && <span className="num rounded-full bg-panel-2 px-2.5 py-0.5 text-[11px] text-muted">continued from saved map v{snap.map_source.version}</span>}
-        {snap.pending.compiling && <span className="rounded-full bg-ask/10 px-2.5 py-0.5 text-[11px] text-ask">compiling answer…</span>}
-        {snap.off_record && <span className="flex items-center gap-1 rounded-full bg-panel-2 px-2.5 py-0.5 text-[11px] text-muted"><EyeOff size={12} /> off the record</span>}
-        <div className="ml-auto flex items-center gap-2">
-          {snap.simulated && (
-            <span className="flex items-center gap-1 rounded-lg border border-hyp/40 px-1 py-0.5">
-              <span className="px-1.5 text-[10.5px] font-semibold text-hyp">simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>
-              <Btn tone="ghost" onClick={simStep}>step</Btn>
-              <Btn tone="ghost" onClick={() => setAutoplay((a) => !a)}>{autoplay ? 'pause' : 'autoplay'}</Btn>
-            </span>
-          )}
-          <Btn tone="ghost" onClick={toggleRecord}><EyeOff size={14} />{snap.off_record ? 'Back on record' : 'Off the record'}</Btn>
-          {mode === 'capture' && <Btn tone="ask" onClick={startDebrief}><Sparkles size={14} />Start debrief</Btn>}
-          {mode !== 'tutor' && <Btn onClick={startTutor}><GraduationCap size={14} />Teach a new hire</Btn>}
-          {mode !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases"><Lock size={14} />Test it</Btn></Link>}
-          <Link to={`/s/${sid}/map`}><Btn><MapIcon size={14} />Work Map</Btn></Link>
-          <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn tone="ghost" title="Agent-ready guardrails"><Download size={14} />Agent skill</Btn></a>
+      {/* folio */}
+      <header className="flex items-center gap-4 border-b border-rule-strong bg-sheet px-5 py-2.5">
+        <Link to="/"><Wordmark /></Link>
+        <div className="num flex items-center gap-3 text-[11px] text-ink-2">
+          <span className="text-ink-1">{modeWord}</span>
+          <span>{mode === 'tutor' ? `${snap.trainee} learning from ${snap.expert}` : snap.expert}</span>
+          <span className="flex items-center gap-1.5"><Dot on={connected && !snap.off_record} />{snap.off_record ? 'off the record' : connected ? 'on record' : 'reconnecting'}</span>
+          <span>map v{snap.map.version}{snap.map_source.kind === 'saved' ? ` · continued from saved v${snap.map_source.version}` : ''}</span>
+          {snap.pending.compiling && <span className="text-query">compiling an answer…</span>}
+          {snap.simulated && <span className="text-candidate">rehearsal · simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>}
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          {snap.simulated && <>
+            <Btn tone="ghost" onClick={simStep}>step</Btn>
+            <Btn tone="ghost" onClick={() => setAutoplay((a) => !a)}>{autoplay ? 'pause' : 'autoplay'}</Btn>
+          </>}
+          <Btn tone="ghost" onClick={toggleRecord}>{snap.off_record ? 'Back on record' : 'Off the record'}</Btn>
+          {mode === 'capture' && <Btn tone="ask" onClick={startDebrief}>Start debrief</Btn>}
+          {mode !== 'tutor' && <Btn onClick={startTutor}>Teach a new hire</Btn>}
+          {mode !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases">Test it</Btn></Link>}
+          <Link to={`/s/${sid}/map`}><Btn tone="primary">Work Map</Btn></Link>
+          <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn tone="ghost" title="Agent-ready guardrails">Agent skill ↗</Btn></a>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[340px_minmax(0,1fr)_420px] gap-4 p-4">
-        {/* LEFT: screen + voice */}
-        <div className="scroll-thin flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <Section title="Shared screen" right={screen.stream ? <span className="num text-[10px] text-faint">{screen.frameCount} frames kept locally</span> : null}>
+      <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)_400px] gap-5 px-5 py-5">
+        {/* LEFT: the exhibit + the conversation */}
+        <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
+          <Section title="Exhibit · the expert's screen" right={screen.stream ? <span className="num text-[10px] text-ink-3">{screen.frameCount} frames, kept locally</span> : null}>
             {screen.stream ? (
-              <video ref={screen.videoRef} muted className="aspect-video w-full rounded-lg border border-line bg-ink object-contain" />
+              <video ref={screen.videoRef} muted className="aspect-video w-full border border-rule bg-wash object-contain" />
             ) : (
-              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-2 text-sm text-muted hover:border-learn hover:text-text">
-                <MonitorUp size={22} /> Share the expert’s screen
+              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-rule-strong text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink-1">
+                Share the expert’s screen
+                <span className="text-[11px] text-ink-3">frames stay in this browser</span>
               </button>
             )}
-            <label className="mt-3 flex items-center gap-2 text-[12px] text-muted">
-              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="accent-learn" />
-              Vision events (Claude reads changed frames; PII blurred first)
+            <label className="mt-3 flex items-start gap-2 text-[12px] text-ink-2">
+              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="mt-0.5 accent-[#4e6b44]" />
+              Read changed frames with a vision model (personal data blurred first)
             </label>
-            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-faint">“{screen.lastVision}”</div>}
+            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
           </Section>
 
           <Section title="When to ask">
-            <div className={`flex items-center gap-2 text-[13px] font-semibold ${activity?.paused ? 'text-learn' : 'text-muted'}`}>
-              <PauseCircle size={16} /> {activity?.paused ? 'Natural pause — Shadow may speak' : 'Staying quiet'}
+            <div className={`text-[13px] ${activity?.paused ? 'text-confirmed' : 'text-ink-2'}`}>
+              {activity?.paused ? 'Natural pause. Shadow may speak.' : 'She is working. Shadow stays quiet.'}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {(activity?.blocking ?? []).map((b) => <span key={b} className="rounded-full bg-panel-2 px-2 py-0.5 text-[11px] text-muted">{b}</span>)}
-            </div>
-            <div className="num mt-2 text-[10.5px] text-faint">live questions: {m.questions_live} · budget 3–5 / 10 min · rest waits for debrief</div>
+            {(activity?.blocking ?? []).length > 0 && (
+              <div className="num mt-1.5 text-[10.5px] text-ink-3">waiting on: {(activity?.blocking ?? []).join(' · ')}</div>
+            )}
+            <div className="num mt-2 text-[10.5px] text-ink-3">{m.questions_live} asked live · budget 3–5 per 10 min · the rest waits for the debrief</div>
           </Section>
 
-          <Section title={mode === 'tutor' ? 'Tutor voice' : 'Interviewer voice'} right={
+          <Section title={mode === 'tutor' ? 'Tutor · conversation' : 'Interview · conversation'} right={
             <Btn tone={voiceOn ? 'danger' : 'primary'} onClick={() => (voiceOn ? voice.stop() : voice.start().catch((err) => alert(err.message)))}>
-              {voiceOn ? <><MicOff size={13} />Stop</> : <><Mic size={13} />Start voice</>}
+              {voiceOn ? 'Stop voice' : 'Start voice'}
             </Btn>
           }>
-            <div className="text-[11px] text-faint">{voiceOn ? (voice.conv.isSpeaking ? 'Shadow is speaking…' : 'listening') : voice.conv.status}</div>
-            <div className="scroll-thin mt-2 max-h-[300px] space-y-2 overflow-y-auto">
+            <div className="num text-[10.5px] text-ink-3">{voiceOn ? (voice.conv.isSpeaking ? 'Shadow is speaking' : 'listening') : voice.conv.status}</div>
+            <div className="scroll-thin mt-2 max-h-[280px] divide-y divide-rule overflow-y-auto">
               {lines.map((l, i) => (
-                <div key={i} className={`rounded-lg px-3 py-2 text-[12.5px] leading-snug ${l.who === 'agent' ? 'bg-ask/10 text-text' : 'bg-panel-2 text-muted'}`}>
-                  <span className={`mr-1.5 text-[10px] font-bold uppercase ${l.who === 'agent' ? 'text-ask' : 'text-faint'}`}>{l.who === 'agent' ? 'Shadow' : mode === 'tutor' ? snap.trainee : snap.expert}</span>{l.text}
+                <div key={i} className="grid grid-cols-[52px_1fr] gap-2 py-1.5 text-[12.5px] leading-snug">
+                  <span className={`num pt-px text-[10px] uppercase tracking-[.06em] ${l.who === 'agent' ? 'text-query' : 'text-ink-3'}`}>{l.who === 'agent' ? 'Shadow' : mode === 'tutor' ? snap.trainee : snap.expert}</span>
+                  <span className={l.who === 'agent' ? 'text-ink-1' : 'testimony text-[14px] text-ink-1'}>{l.who === 'agent' ? l.text : `“${l.text}”`}</span>
                 </div>
               ))}
             </div>
             <div className="mt-3 flex gap-2">
               <input value={typed} onChange={(e) => setTyped(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendTyped()}
-                placeholder="Type instead of speaking…" className="min-w-0 flex-1 rounded-lg border border-line-2 bg-ink px-3 py-1.5 text-[12.5px] outline-none focus:border-learn" />
-              <Btn onClick={sendTyped}><Send size={13} /></Btn>
+                placeholder="Type an answer instead of speaking…" className="min-w-0 flex-1 rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12.5px] outline-none placeholder:text-ink-3 focus:border-ink-2" />
+              <Btn onClick={sendTyped}>Send</Btn>
             </div>
             {!voiceOn && (asked || mode === 'debrief') && (
-              <button onClick={askNextTyped} className="mt-2 text-[11px] text-ask hover:underline">↳ show the pending question as text</button>
+              <button onClick={askNextTyped} className="mt-2 text-[11.5px] text-query hover:underline">show the pending question as text</button>
             )}
           </Section>
 
           {mode === 'tutor' && live.interventions.length > 0 && (
-            <Section title="Interventions">
-              {live.interventions.map((iv: Intervention) => (
-                <div key={iv.id} className="mb-2 rounded-lg border border-ask/40 bg-ask/5 p-3 text-[12.5px]">
-                  <div className="font-semibold text-ask">{iv.say}</div>
-                  <div className="mt-1 text-muted">{iv.violation.title} — expected <b className="text-text">{iv.violation.expected}</b>, trainee chose <b className="text-gap">{iv.violation.got}</b></div>
-                  {iv.screen_moment?.ts != null && <button onClick={() => setMoment({ ts: iv.screen_moment!.ts, quote: iv.violation.quote })} className="mt-1 text-[11px] text-predict hover:underline">▶ replay {snap.expert}’s moment {mmss(iv.screen_moment.ts)}</button>}
-                </div>
-              ))}
+            <Section title="Stops">
+              <div className="space-y-3">
+                {live.interventions.map((iv: Intervention) => (
+                  <div key={iv.id} className="border border-l-[3px] border-rule border-l-binding px-3 py-2 text-[12.5px]">
+                    <div className="font-medium text-ink-1">{iv.say}</div>
+                    <div className="mt-1 text-ink-2">{iv.violation.title}: expected <b className="font-medium text-ink-1">{iv.violation.expected}</b>, chose <span className="text-binding">{iv.violation.got}</span></div>
+                    {iv.screen_moment?.ts != null && <button onClick={() => setMoment({ ts: iv.screen_moment!.ts, quote: iv.violation.quote })} className="num mt-1 text-[10.5px] text-inferred hover:underline">▶ {snap.expert}’s moment {mmss(iv.screen_moment.ts)}</button>}
+                  </div>
+                ))}
+              </div>
             </Section>
           )}
         </div>
 
-        {/* MIDDLE: the mind */}
-        <div className="scroll-thin flex min-h-0 flex-col gap-4 overflow-y-auto">
+        {/* MIDDLE: what Shadow thinks, asks, and learned */}
+        <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
           <PredictionCard snap={snap} caseId={snap.current_case} />
-          <AnimatePresence mode="popLayout">
-            {question && <Question key={question.id} q={question} live={!!asked && asked.id === question.id} />}
-          </AnimatePresence>
+          {question && <div className="px-1"><Question key={question.id} q={question} live={!!asked && asked.id === question.id} /></div>}
           {mode !== 'tutor' && <Hypotheses snap={snap} set={latestHyp} />}
           {mode !== 'tutor' && (
-            <Section title="Learning receipts" right={<Link to={`/s/${sid}/proof`} className="text-[11px] text-predict hover:underline">sealed test →</Link>}>
+            <Section title="Learning receipts" right={<Link to={`/s/${sid}/proof`} className="text-[11.5px] text-inferred hover:underline">sealed test →</Link>}>
               <Receipts snap={snap} limit={4} />
             </Section>
           )}
-          <Section title="Learning log" right={<span className="num text-[10.5px] text-faint">{m.silent_decisions} silent · {m.gaps} gaps</span>}>
+          <Section title="Ledger" right={<span className="num text-[10.5px] text-ink-3">{m.silent_decisions} quiet · {m.gaps} surprises</span>}>
             <Feed snap={snap} feed={live.feed} />
           </Section>
         </div>
 
         {/* RIGHT: the model */}
-        <div className="scroll-thin flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              ['accuracy', acc == null ? '—' : `${Math.round(acc * 100)}%`, 'text-predict'],
-              ['asked', `${m.questions_live}+${m.questions_debrief}`, 'text-ask'],
-              ['silent', `${m.silent_decisions}`, 'text-muted'],
-              ['confirmed', `${m.rules_confirmed}/${m.rules_learned}`, 'text-learn'],
-            ].map(([k, v, c]) => (
-              <div key={k} className="panel px-3 py-2.5">
-                <div className="label !text-[9px]">{k}</div>
-                <motion.div key={v} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className={`num mt-1 text-[19px] font-semibold ${c}`}>{v}</motion.div>
+        <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
+          <div className="panel grid grid-cols-4 divide-x divide-rule">
+            {stats.map(([k, v]) => (
+              <div key={k} className="px-3 py-2.5">
+                <div className="num text-[18px] text-ink-1">{v}</div>
+                <div className="mt-0.5 text-[10.5px] leading-tight text-ink-3">{k}</div>
               </div>
             ))}
           </div>
@@ -253,9 +251,9 @@ function ConsoleInner({ sid }: { sid: string }) {
             <Section title="Has Shadow understood?"><Checklist u={snap.understood} /></Section>
           )}
           {posteriors.length > 0 && (
-            <Section title="Learned parameters">{posteriors.map((p) => <Threshold key={p.name} p={p} />)}</Section>
+            <Section title="Learned parameters"><div className="space-y-4">{posteriors.map((p) => <Threshold key={p.name} p={p} />)}</div></Section>
           )}
-          <Section title="Work Map" right={<span className="num text-[10.5px] text-faint">v{snap.map.version}</span>}>
+          <Section title="Work Map" right={<span className="num text-[10.5px] text-ink-3">v{snap.map.version}</span>}>
             <WorkMapView snap={snap} onMoment={openMoment} highlight={highlight} />
           </Section>
         </div>

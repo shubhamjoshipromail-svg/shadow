@@ -84,8 +84,11 @@ class Store:
         return row[0] if row else None
 
     def latest_map_row(self, expert: str, pack_id: str) -> dict[str, Any] | None:
+        """Newest saved map for this expert, never one taught by the simulator."""
+        rehearsal = [r["id"] for r in self.list_sessions() if (r["meta"] or {}).get("simulated")]
         q = (select(maps.c.map, maps.c.version, maps.c.session_id, maps.c.created)
-             .where(maps.c.expert == expert, maps.c.pack_id == pack_id).order_by(maps.c.id.desc()).limit(1))
+             .where(maps.c.expert == expert, maps.c.pack_id == pack_id, maps.c.session_id.not_in(rehearsal))
+             .order_by(maps.c.id.desc()).limit(1))
         with self.engine.connect() as c:
             row = c.execute(q).first()
         return dict(row._mapping) if row else None

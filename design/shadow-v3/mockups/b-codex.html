@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="capture">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>B — CODEX · Shadow v3 mockup</title>
+<style>
+/* ============================================================================
+   B — CODEX.  The knowledge document.
+   Warm paper, one measure, serif voice, Shadow as marginalia.
+   Four typographic voices = four provenance states.
+   Geometry: 96px left margin · 640px measure · 44px gutters · 320px outer margin.
+   Baseline grid 24px. No radius. No shadow. No gradient. No blur. No cards.
+   ========================================================================= */
+
+:root{
+  --paper:#FBF8F3;
+  --ink:#201E1B;
+  --margin-ink:#8A8378;
+  --rule:#C9C2B6;
+  --prohibit:#8C3B2E;
+
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Charter,Georgia,serif;
+  --sans:Inter,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* grid */
+  --lm:96px;       /* left margin  */
+  --mx:520px;      /* measure max  */
+  --gz:44px;       /* gutter gap   */
+  --om:320px;      /* outer margin = 44px gutter + 276px of writing */
+  --page:1124px;   /* 96 + 44 + 640 + 44 + 300 — the locked five-track box */
+
+  --ease:cubic-bezier(.16,1,.3,1);
+  --d90:90ms; --d120:120ms; --d140:140ms; --d180:180ms; --d240:240ms;
+}
+
+/* ---- mode geometry: the page width follows the content, nothing else moves ---- */
+html[data-mode="capture"]{ --page:1728px; }  /* plate + measure + outer margin, in one closed box */
+html[data-mode="tutor"]  { --page:1284px; }  /* two equal pages + the fold gutter */
+
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* ============================== header =================================== */
+.deck-head{
+  max-width:var(--page); margin:0 auto; padding:34px 0 0;
+}
+.deck-head .dh-row{display:flex; align-items:baseline; gap:22px}
+.deck-mark{
+  font-family:var(--sans); font-size:10px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--margin-ink);
+}
+.deck-title{
+  font-family:var(--serif); font-size:22px; letter-spacing:.01em;
+}
+.deck-sub{
+  font-family:var(--sans); font-size:11.5px; color:var(--margin-ink);
+  letter-spacing:.02em; margin-left:auto;
+}
+.dh-rule{height:1px; background:var(--rule); margin-top:16px}
+
+/* ============================== switcher ================================= */
+.switcher{
+  max-width:var(--page); margin:0 auto;
+  display:flex; align-items:baseline; gap:38px;
+  padding:18px 0 0;
+}
+.switcher button{
+  all:unset; cursor:pointer;
+  font-family:var(--sans); font-size:12px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--margin-ink);
+  padding-bottom:5px; border-bottom:1px solid transparent;
+  transition:color var(--d120) var(--ease), border-color var(--d120) var(--ease);
+}
+.switcher button:hover{color:var(--ink)}
+.switcher button[aria-selected="true"]{
+  color:var(--ink); border-bottom-color:var(--ink);
+}
+.switcher button:focus-visible{outline:1px dashed var(--margin-ink); outline-offset:3px}
+.switcher .sw-note{
+  margin-left:auto; font-family:var(--sans); font-size:11px;
+  color:var(--margin-ink); letter-spacing:.02em;
+}
+.sw-rule{max-width:var(--page); margin:0 auto; height:1px; background:var(--rule); margin-top:14px}
+
+/* ============================== the page ================================= */
+/* The page is one centred sheet; below the reference width it keeps its
+   proportions and shrinks as a whole, so the grid stays closed at any size. */
+.page{width:100%; margin:0 auto; display:block}
+.page > .sheet{
+  width:min(100%, var(--page)); margin:0 auto;
+  border-left:1px solid var(--rule);
+  border-right:1px solid var(--rule);
+  padding:0 0 92px;
+}
+
+/* ============================== folio ==================================== */
+.folio{
+  position:relative;
+  padding:14px 0 12px;
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:baseline;
+  column-gap:24px;
+}
+.folio-line{
+  font-family:var(--sans); font-size:11.5px; letter-spacing:.09em;
+  color:var(--margin-ink); text-transform:none;
+}
+.folio-line b{color:var(--ink); font-weight:500}
+.folio .rec{
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--sans); font-size:10px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--margin-ink);
+}
+/* the ONE looping animation in the whole document */
+.capture-hairline{
+  width:64px; height:1px; position:relative; overflow:hidden;
+  background:var(--rule); display:block;
+}
+.capture-hairline i{
+  position:absolute; top:0; left:0; width:24px; height:1px;
+  background:var(--ink); animation:hairline 3s linear infinite;
+}
+@keyframes hairline{from{transform:translateX(-24px)}to{transform:translateX(64px)}}
+
+/* ============================== grid ===================================== */
+/* Five locked tracks — 96 | gap | 640 | gap | 300 — so the measure is always
+   exactly 640px and the annotation field is always the outer 320px
+   (44px gutter + 276px of writing). Nothing here can be squeezed. */
+.grid{
+  --tracks:minmax(0,96fr) minmax(0,44fr) minmax(0,640fr) minmax(0,44fr) minmax(0,300fr);
+  display:grid;
+  grid-template-columns:var(--tracks);
+  column-gap:0;
+}
+.lm{grid-column:1; align-self:start}
+.col{grid-column:3; min-width:0; max-width:640px}
+.zone{grid-column:5; width:100%; min-width:0}
+.om{grid-column:5; width:100%}
+.full{grid-column:1 / 6; min-width:0}
+
+/* Exhibit A spans the fold margin and the measure — it is the work, and the
+   work is primary. The measure column keeps its 640px regardless. */
+.exhibit{grid-column:1 / 4}
+
+/* the spread: two equal pages with the print-like 44px fold gutter */
+.spread{grid-column:1 / 6; display:grid; grid-template-columns:1fr 1px 1fr; column-gap:44px; min-width:0}
+.spread .fold{background:var(--rule)}
+
+.foldmark{
+  display:block; font-family:var(--sans); font-size:9.5px; line-height:14px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--margin-ink);
+  padding-top:2px;
+}
+.foldmark .tick{display:block; width:14px; height:1px; background:var(--ink); margin-top:8px}
+
+/* ============================== voices =================================== */
+/* 1 · TESTIMONY — Observed. serif roman, quoted, hanging quote, small-caps attribution */
+.testimony{
+  font-family:var(--serif); font-size:19px; line-height:28px;
+  margin:24px 0 0; position:relative; padding-left:34px;
+  color:var(--ink);
+}
+.testimony::before{
+  content:"\201C"; position:absolute; left:0; top:-2px;
+  font-family:var(--serif); font-size:30px; color:var(--margin-ink);
+}
+.testimony.cq{font-size:17px; line-height:26px}
+.attrib{
+  font-family:var(--sans); font-size:10px; line-height:14px;
+  letter-spacing:.1em; font-variant-caps:small-caps;
+  text-transform:lowercase; color:var(--margin-ink);
+  display:block; margin-top:8px;
+}
+.attrib .ts{font-variant-numeric:tabular-nums; letter-spacing:.06em}
+
+/* 2 · CONJECTURE — Inferred. sans italic, 62% ink, open ring */
+.conjecture{
+  font-family:var(--sans); font-style:italic; font-size:14px; line-height:21px;
+  color:var(--ink); opacity:.62; margin:16px 0 0; padding-left:22px;
+  position:relative; max-width:560px;
+}
+.conjecture::before{
+  content:"\25CC"; position:absolute; left:0; top:0;
+  font-style:normal; opacity:1; font-size:13px;
+}
+.conjecture .pred{
+  font-family:var(--mono); font-style:normal; font-size:12.5px;
+  letter-spacing:.01em;
+}
+.conjecture.wide{max-width:640px}
+
+/* 3 · CLAUSE — Confirmed. serif roman solid, 1px full-measure rule above */
+.clause{
+  font-family:var(--serif); font-size:16px; line-height:26px;
+  margin:0; max-width:600px;
+}
+.clause-rule{
+  height:1px; background:var(--rule); width:100%; margin:30px 0 0;
+  transform-origin:left center;
+  animation:rule-draw var(--d120) var(--ease) both;
+}
+@keyframes rule-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.clause .pred{
+  font-family:var(--mono); font-size:13.5px; letter-spacing:.005em;
+}
+.clause .then{font-style:italic}
+
+/* 4 · STOP — Binding. serif small caps in a 3px-left-ruled plate */
+.plate{
+  border:1px solid var(--rule); border-left:3px solid var(--prohibit);
+  padding:14px 16px 15px; background:var(--paper);
+}
+.plate .plate-lab{
+  font-family:var(--sans); font-size:9.5px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--margin-ink);
+}
+.plate .stop{
+  font-family:var(--serif); font-variant-caps:small-caps;
+  text-transform:lowercase; letter-spacing:.14em;
+  font-size:13px; line-height:20px; color:var(--ink);
+  margin:7px 0 0;
+}
+.plate .stop .pred{
+  font-family:var(--mono); font-variant-caps:normal; text-transform:none;
+  letter-spacing:0; font-size:12.5px;
+}
+.plate .stop-quote{
+  font-family:var(--serif); font-size:14px; line-height:22px;
+  margin:11px 0 0; padding-left:28px; position:relative;
+}
+.plate .stop-quote::before{
+  content:"\201C"; position:absolute; left:0; top:-2px; font-size:22px; color:var(--margin-ink);
+}
+.plate .stop-attrib{
+  font-family:var(--sans); font-size:9.5px; letter-spacing:.1em;
+  font-variant-caps:small-caps; text-transform:lowercase;
+  color:var(--margin-ink); display:block; margin-top:7px;
+}
+.plate.raised{border-left-width:3px; border-color:var(--prohibit); border-top-color:var(--rule); border-right-color:var(--rule); border-bottom-color:var(--rule)}
+
+/* 5 · apparatus + measure — sans, quiet */
+.app{
+  font-family:var(--sans); font-size:12px; line-height:18px;
+  color:var(--margin-ink); letter-spacing:.01em;
+}
+.app strong{color:var(--ink); font-weight:500}
+.mz{
+  font-family:var(--sans); font-variant-numeric:tabular-nums;
+  font-size:12.5px; line-height:18px; letter-spacing:.02em;
+}
+.lbl{
+  font-family:var(--sans); font-size:9.5px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--margin-ink); display:block;
+}
+.rule{height:1px; background:var(--rule)}
+.rule.soft{background:var(--rule); opacity:.7}
+
+/* ============================== sigla ==================================== */
+.sig{
+  font-family:var(--sans); font-size:12px; line-height:18px;
+  color:var(--ink); letter-spacing:.02em; white-space:nowrap;
+}
+.sig .mz{color:var(--margin-ink)}
+.sig.binding{color:var(--prohibit)}
+.sig-box{
+  display:inline-block; border:1px solid var(--ink); width:13px; height:13px;
+  line-height:11px; text-align:center; font-size:9px; margin-right:7px;
+  vertical-align:0;
+}
+.sig.small{font-size:11px}
+.sig-stack{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
+.sig-stack .sig{animation:stamp var(--d120) var(--ease) both}
+.sig-stack .sig:nth-child(2){animation-delay:60ms}
+.sig-stack .sig:nth-child(3){animation-delay:120ms}
+.sig-stack .sig:nth-child(4){animation-delay:180ms}
+@keyframes stamp{from{transform:scale(1.06); opacity:0}to{transform:scale(1); opacity:1}}
+@keyframes ink-bleed{from{opacity:.7; filter:blur(.4px)}to{opacity:1; filter:blur(0)}}
+.bleed{animation:ink-bleed var(--d180) var(--ease) both}
+.bleed.d1{animation-delay:80ms}
+.bleed.d2{animation-delay:180ms}
+
+/* strike-wipe: 1px rule drawn left→right over a struck line (M1) */
+.struck{position:relative; display:inline-block}
+.struck::after{
+  content:""; position:absolute; left:-3px; right:-3px; top:50%;
+  height:1px; background:var(--ink); transform-origin:left center;
+  animation:strike var(--d140) var(--ease) .1s both;
+}
+@keyframes strike{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* contested */
+.contested{position:relative}
+.contested .clause{opacity:.72}
+.contested .clause::after{
+  content:""; position:absolute; left:0; right:16%; top:14px; height:1px;
+  background:var(--ink); transform-origin:left center;
+  animation:strike var(--d140) var(--ease) .1s both;
+}
+
+/* ============================== margin notes ============================= */
+.note{max-width:276px}
+.zone{padding-left:24px}
+.om{padding-left:24px}
+.note + .note{margin-top:26px}
+.note .note-hd{
+  display:flex; align-items:baseline; gap:8px;
+  font-family:var(--sans); font-size:11.5px; line-height:18px;
+  color:var(--ink); letter-spacing:.02em;
+}
+.note .note-hd .g{color:var(--ink)}
+.note .note-hd .t{font-variant-numeric:tabular-nums; color:var(--margin-ink); font-size:11px}
+.note .note-bd{margin-top:5px; padding-left:22px}
+.note.strike .note-hd .txt{position:relative}
+.note.strike .note-hd .txt::after{
+  content:""; position:absolute; left:-2px; right:-2px; top:52%; height:1px;
+  background:var(--ink); transform-origin:left center;
+  animation:strike var(--d140) var(--ease) both;
+}
+/* the query: ? with a 1px vertical rule drawn downward to the line it concerns */
+.query{position:relative; padding-left:22px}
+.query .qmark{
+  position:absolute; left:0; top:0; font-family:var(--serif);
+  font-size:17px; line-height:18px; color:var(--ink);
+}
+.query .qrule{
+  position:absolute; left:9px; top:20px; width:1px; background:var(--ink);
+  transform-origin:top center; animation:draw-down var(--d120) var(--ease) .12s both;
+  opacity:.55;
+}
+.query .qrule.h1{height:112px}
+.query .qrule.h2{height:168px}
+@keyframes draw-down{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.query .qtext{
+  font-family:var(--sans); font-size:13px; line-height:20px; color:var(--ink);
+  max-width:268px;
+}
+.query .qsub{font-family:var(--sans); font-size:11px; line-height:17px; color:var(--margin-ink); margin-top:7px}
+
+/* divergence, set into the text (M1): margin struck vs. text set */
+.set-act{
+  margin:22px 0 0; padding-left:34px; position:relative;
+  font-family:var(--serif); font-size:17px; line-height:26px;
+}
+.set-act .arrow{position:absolute; left:0; top:-1px; font-size:15px; color:var(--margin-ink)}
+.set-act .pred{font-family:var(--mono); font-size:13.5px}
+
+/* ============================== exhibit (ERP inset) ====================== */
+.exhibit figure{margin:24px 0 0}
+.exhibit .erp-caption{margin-top:10px; max-width:520px}
+
+/* Capture is the one mode with three surfaces on one baseline: the observed
+   work as an inset plate, the measure beside it, Shadow in the outer margin. */
+/* proportional tracks so the box closes exactly at the reference width and
+   compresses without ever squeezing the 640px measure or the outer margin */
+html[data-mode="capture"] .grid{--tracks:minmax(0,96fr) minmax(0,44fr) minmax(0,560fr) minmax(0,44fr) minmax(0,640fr) minmax(0,44fr) minmax(0,300fr)}
+html[data-mode="capture"] .exhibit{grid-column:1 / 4}
+html[data-mode="capture"] .col{grid-column:5}
+html[data-mode="capture"] .zone{grid-column:7}
+.capture-text .clause, .capture-text .rule{grid-column:1 / -1}
+
+/* the clause closing the capture page reads across the whole measure */
+html[data-mode="capture"] .grid > .full{grid-column:1 / 8}
+.exhibit .plate-lab{margin-bottom:9px}
+/* THE ONLY ROUNDED RECTANGLE IN THE DOCUMENT — the ERP's own 4px */
+.erp{
+  border:1px solid var(--rule); border-radius:4px; background:var(--paper);
+  overflow:hidden; max-width:520px;
+}
+.erp-bar{
+  display:flex; align-items:baseline; justify-content:space-between;
+  padding:9px 12px; border-bottom:1px solid var(--rule);
+  font-family:var(--sans); font-size:10.5px; letter-spacing:.05em; color:var(--margin-ink);
+}
+.erp-bar b{color:var(--ink); font-weight:500; letter-spacing:.02em}
+.erp-body{padding:12px 12px 14px}
+.erp-inv{
+  font-family:var(--sans); font-size:14px; font-weight:600; letter-spacing:.005em;
+}
+.erp-sup{font-family:var(--sans); font-size:11.5px; color:var(--margin-ink); margin-top:3px}
+.erp-rows{margin-top:12px}
+.erp-row{
+  display:grid; grid-template-columns:1fr 54px 92px;
+  column-gap:10px; font-family:var(--sans); font-size:12px; line-height:18px;
+  padding:4px 0;
+}
+.erp-row .n{font-variant-numeric:tabular-nums; text-align:right}
+.erp-row .cat{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--margin-ink); align-self:center}
+.erp-tot{
+  display:grid; grid-template-columns:1fr 92px; column-gap:10px;
+  margin-top:9px; padding-top:8px; border-top:1px solid var(--rule);
+  font-family:var(--sans); font-size:12px; line-height:18px;
+}
+.erp-tot .n{font-variant-numeric:tabular-nums; text-align:right}
+.erp-tot .k{color:var(--margin-ink)}
+.erp-tot .gross{font-weight:600}
+.erp-fields{margin-top:12px; padding-top:10px; border-top:1px solid var(--rule)}
+.erp-field{
+  display:grid; grid-template-columns:104px 1fr; column-gap:10px;
+  align-items:baseline; padding:4px 0;
+  font-family:var(--sans); font-size:12px;
+}
+.erp-field .k{color:var(--margin-ink); font-size:11px; letter-spacing:.05em}
+.erp-field .v{font-variant-numeric:tabular-nums}
+.erp-field .v.set{border-bottom:1px solid var(--rule); padding-bottom:2px}
+.erp-field .v.empty{color:var(--margin-ink)}
+.erp-field .v.err{color:var(--prohibit)}
+.erp-field .v .who{
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--margin-ink); margin-left:8px;
+}
+.erp-hist{margin-top:11px; padding-top:9px; border-top:1px solid var(--rule)}
+.erp-hist .lbl{margin-bottom:5px}
+.erp-hist-row{
+  display:grid; grid-template-columns:1fr 84px 54px;
+  font-family:var(--mono); font-size:10.5px; line-height:17px;
+  color:var(--margin-ink); font-variant-numeric:tabular-nums;
+}
+.erp-hist-row .n{text-align:right}
+.erp-actions{
+  display:flex; gap:8px; margin-top:13px; padding-top:11px; border-top:1px solid var(--rule);
+}
+.erp-btn{
+  font-family:var(--sans); font-size:11px; letter-spacing:.06em;
+  border:1px solid var(--rule); padding:5px 12px; color:var(--margin-ink);
+}
+.erp-btn.primary{color:var(--ink); border-color:var(--ink)}
+.erp-caption{
+  font-family:var(--sans); font-size:11px; line-height:17px;
+  color:var(--margin-ink); margin-top:10px; max-width:520px;
+}
+
+/* ============================== work map ================================= */
+.clause-head{display:grid; grid-template-columns:1fr auto; column-gap:20px; align-items:baseline}
+.clause-no{
+  font-family:var(--serif); font-size:15px; color:var(--ink);
+  white-space:nowrap;
+}
+.clause-head .hd{
+  font-family:var(--sans); font-size:10px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--margin-ink);
+}
+.clause-block{padding-bottom:34px}
+.clause-block .mat{display:grid; grid-template-columns:minmax(0,1fr) 276px; column-gap:24px; align-items:start}
+.clause-block .mat .body{min-width:0}
+.clause-block .mat .rail{padding-top:30px}
+.exceptions{margin-top:16px; padding-left:0; border-left:1px solid var(--rule); padding-left:22px}
+.exceptions .exc-lab{
+  font-family:var(--sans); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--margin-ink); display:block; margin-bottom:4px;
+}
+.exceptions p{font-family:var(--serif); font-size:15px; line-height:24px; margin:0}
+.exceptions .why{
+  font-family:var(--sans); font-style:italic; font-size:13px; line-height:20px;
+  color:var(--ink); opacity:.62; margin:7px 0 0;
+}
+.contested-note{
+  margin-top:14px; padding-left:22px; position:relative;
+}
+.contested-note::before{content:"\2717"; position:absolute; left:0; top:1px; font-size:12px}
+.contested-note p{font-family:var(--sans); font-size:12.5px; line-height:20px; margin:0; color:var(--ink)}
+.contested-note .app{margin-top:4px}
+
+/* evidence ledger */
+.ledger{margin-top:22px; border-top:1px solid var(--ink)}
+.ledger .lrow{
+  display:grid; grid-template-columns:34px 118px 1fr 118px;
+  column-gap:14px; align-items:baseline;
+  border-bottom:1px solid var(--rule); padding:9px 0;
+  font-family:var(--sans); font-size:12.5px; line-height:18px;
+}
+.ledger .lrow.head{
+  border-bottom-color:var(--ink); padding:7px 0;
+}
+.ledger .lrow.head span{
+  font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--margin-ink);
+}
+.ledger .lrow .n{font-variant-numeric:tabular-nums; color:var(--margin-ink); font-size:11px}
+.ledger .lrow .sig{font-size:11.5px}
+.ledger .lrow .ref{font-family:var(--mono); font-size:11px; color:var(--margin-ink); text-align:right}
+.ledger .lrow.observed .sig{color:var(--ink)}
+.ledger .lrow.inferred .ob{color:var(--margin-ink)}
+.ledger .lrow.binding .sig{color:var(--prohibit)}
+.ledger-total{
+  display:flex; justify-content:space-between; margin-top:12px;
+}
+
+/* ============================== debrief ================================== */
+.debrief{display:grid; grid-template-columns:var(--lm) 1fr; column-gap:0}
+.qcol{border-right:1px solid var(--rule); padding-right:6px}
+.qcol .lbl{position:sticky; top:0}
+.q-item{padding:22px 0 0}
+.q-item .qn{
+  font-family:var(--serif); font-size:15px; line-height:20px; color:var(--ink);
+}
+.q-item .qt{
+  font-family:var(--sans); font-size:12.5px; line-height:19px; color:var(--ink);
+  margin-top:4px; max-width:74px;
+}
+.q-item .qe{
+  font-family:var(--sans); font-size:10px; line-height:15px; color:var(--margin-ink);
+  margin-top:6px; font-variant-numeric:tabular-nums; letter-spacing:.04em;
+}
+.ms{display:grid; grid-template-columns:minmax(0,1fr) 276px; column-gap:24px; align-items:start}
+.ms .rail{padding-top:22px}
+.qa{margin-top:18px; border-left:1px solid var(--rule); padding-left:22px}
+.qa .qa-q{font-family:var(--serif); font-size:15px; line-height:24px}
+.qa .app{margin-top:6px}
+.qa .testimony{font-size:17px; line-height:26px; margin-top:10px}
+
+/* probe plate — small bordered figure */
+.probe{
+  border:1px solid var(--rule); padding:12px 14px 13px; margin-top:18px; max-width:600px;
+}
+.probe .ph{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+}
+.probe .ph .lbl{letter-spacing:.18em}
+.probe .ph .mz{color:var(--margin-ink); font-size:11px}
+.probe .case{
+  font-family:var(--serif); font-size:16px; line-height:24px; margin-top:8px;
+}
+.probe .case .mz{font-size:13px}
+.probe .pair{
+  display:grid; grid-template-columns:1fr auto; column-gap:20px; row-gap:6px;
+  margin-top:11px; padding-top:9px; border-top:1px solid var(--rule);
+  align-items:baseline;
+}
+.probe .pair .k{font-family:var(--sans); font-size:11px; letter-spacing:.04em; color:var(--margin-ink)}
+.probe .pair .v{font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
+.probe .verdict{
+  margin-top:11px; padding-top:9px; border-top:1px solid var(--rule);
+  font-family:var(--sans); font-size:11px; letter-spacing:.06em; color:var(--ink);
+}
+
+/* ruler interval */
+.ruler{margin-top:26px; max-width:640px}
+.ruler svg{display:block; width:100%; height:auto}
+.ruler-meta{
+  display:grid; grid-template-columns:1fr 1fr; column-gap:24px; margin-top:12px;
+}
+.basis{display:grid; grid-template-columns:1fr auto; column-gap:14px; align-items:baseline; margin-top:6px}
+.basis .track{
+  height:8px; border:1px solid var(--rule); position:relative; margin-top:5px;
+}
+.basis .track i{
+  position:absolute; top:0; bottom:0; background:var(--ink); display:block;
+}
+.basis .track i.hollow{background:transparent; border-right:1px solid var(--margin-ink); border-left:1px solid var(--margin-ink)}
+.basis .val{font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums}
+
+/* teach-back */
+.teach{margin-top:26px; border-top:1px solid var(--ink)}
+.teach .trow{
+  display:grid; grid-template-columns:22px 1fr auto; column-gap:16px; align-items:baseline;
+  border-bottom:1px solid var(--rule); padding:13px 0;
+}
+.teach .trow .tn{font-family:var(--mono); font-size:11.5px; color:var(--margin-ink); font-variant-numeric:tabular-nums}
+.teach .trow .tc{font-family:var(--serif); font-size:15px; line-height:24px}
+.teach .trow .tc .pred{font-family:var(--mono); font-size:12.5px}
+.teach .acts{display:flex; gap:16px; white-space:nowrap}
+.teach .acts button{
+  all:unset; cursor:pointer; font-family:var(--sans); font-size:10.5px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--margin-ink);
+  border-bottom:1px solid var(--rule); padding-bottom:3px;
+  transition:color var(--d120) var(--ease), border-color var(--d120) var(--ease);
+}
+.teach .acts button:hover{color:var(--ink); border-bottom-color:var(--ink)}
+.teach .teach-foot{display:flex; justify-content:space-between; margin-top:13px}
+
+/* ============================== tutor ==================================== */
+.tutor .pane-title{
+  font-family:var(--serif); font-size:17px; line-height:26px; margin:26px 0 0;
+}
+.tutor .left-page{padding-right:44px}
+.tutor .right-page{padding-left:0}
+.pull{
+  font-family:var(--serif); font-size:26px; line-height:36px;
+  margin:20px 0 0; padding-left:40px; position:relative; max-width:600px;
+}
+.pull::before{
+  content:"\201C"; position:absolute; left:0; top:-6px; font-size:44px; color:var(--margin-ink);
+}
+.clip{
+  display:inline-flex; align-items:center; gap:7px; margin-top:14px;
+  font-family:var(--sans); font-size:11px; letter-spacing:.12em;
+  color:var(--ink); border-bottom:1px solid var(--rule); padding-bottom:3px;
+}
+.clip .tri{font-size:9px}
+.objection{margin-top:26px}
+.objection .obj-hd{
+  font-family:var(--sans); font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--margin-ink);
+}
+.objection .obj-body{
+  font-family:var(--serif); font-size:16px; line-height:26px; margin-top:9px; max-width:580px;
+}
+.held{
+  border-top:1px solid var(--ink); border-bottom:1px solid var(--ink);
+  margin-top:28px; max-width:600px; padding:13px 0 14px;
+}
+.held .held-ctl{
+  display:grid; grid-template-columns:1fr auto; column-gap:20px; align-items:baseline;
+}
+.held .held-ctl .k{font-family:var(--serif); font-size:17px; line-height:26px}
+.held .held-ctl .v{font-family:var(--sans); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--prohibit)}
+.held .reason{
+  margin-top:12px; font-family:var(--sans); font-size:12px; line-height:18px; color:var(--margin-ink);
+}
+.held .reason .field{
+  border-bottom:1px solid var(--rule); height:26px; margin-top:8px;
+}
+.held .held-foot{
+  display:flex; justify-content:space-between; margin-top:13px;
+}
+.tally{margin-top:26px}
+.tally .t-row{display:grid; grid-template-columns:1fr auto; column-gap:16px; align-items:baseline; margin-top:12px}
+.tally .t-name{font-family:var(--sans); font-size:12.5px; line-height:18px}
+.tally .t-val{font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums}
+.marks{display:flex; gap:5px; margin-top:9px; flex-wrap:wrap}
+.marks .m{
+  width:9px; height:9px; border:1px solid var(--ink); display:block;
+}
+.marks .m.f{background:var(--ink)}
+.marks .m.d{border-color:var(--margin-ink); border-style:dashed}
+.tally .foot{margin-top:12px}
+.sub-rule{height:1px; background:var(--rule); margin-top:34px}
+
+/* ============================== legend ================================== */
+.legend{
+  border-top:1px solid var(--ink); margin-top:0; padding:22px 0 0;
+  display:grid; grid-template-columns:repeat(4,1fr); column-gap:44px;
+}
+.legend .lg{min-width:0}
+.legend .lg .lg-state{
+  font-family:var(--sans); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--margin-ink);
+}
+.legend .lg .lg-demo{margin-top:11px; min-height:44px}
+.legend .lg .lg-demo .testimony{margin-top:0; font-size:15px; line-height:22px; padding-left:24px}
+.legend .lg .lg-demo .testimony::before{font-size:22px; top:-3px}
+.legend .lg .lg-demo .conjecture{margin-top:0; font-size:12.5px; line-height:19px; max-width:none}
+.legend .lg .lg-demo .clause{font-size:14px; line-height:22px}
+.legend .lg .lg-demo .plate{padding:10px 12px 11px}
+.legend .lg .lg-demo .plate .stop{font-size:12px; line-height:18px; margin-top:5px}
+.legend .lg .lg-demo .stop-attrib{margin-top:5px}
+.legend .lg .lg-demo .contested .clause{font-size:14px; line-height:22px}
+.legend .lg .lg-demo .contested .clause::after{top:11px}
+.legend .lg .lg-note{margin-top:12px; font-size:11px; line-height:17px; color:var(--margin-ink)}
+.legend .lg .lg-note .sig{font-size:11px}
+.legend .lg .lg-note b{color:var(--ink); font-weight:500}
+.legend-foot{
+  display:grid; grid-template-columns:repeat(4,1fr); column-gap:44px;
+  margin-top:26px; padding-top:14px; border-top:1px solid var(--rule);
+}
+.legend-foot p{margin:0; font-family:var(--sans); font-size:11px; line-height:17px; color:var(--margin-ink)}
+.legend-foot p b{color:var(--ink); font-weight:500}
+.sigkey{
+  display:flex; gap:18px; flex-wrap:wrap; margin-top:12px;
+}
+
+/* ============================== mode switching =========================== */
+section.mode{display:none}
+html[data-mode="capture"] #m-capture,
+html[data-mode="workmap"] #m-workmap,
+html[data-mode="debrief"] #m-debrief,
+html[data-mode="tutor"]   #m-tutor{display:block}
+
+/* Below the reference width the five tracks compress proportionally and the
+   320px margin folds under the measure as inline sidenotes, as §4.11 requires. */
+@media (max-width:1360px){
+  :root{--page:100%}
+  html[data-mode]{--page:100%}
+  .page{padding:0 12px}
+  .grid{--tracks:minmax(0,1fr) 14px minmax(0,640fr) 14px minmax(0,300fr)}
+  html[data-mode="capture"] .grid{--tracks:minmax(0,1fr) 14px minmax(0,320fr) 14px minmax(0,560fr) 14px minmax(0,1fr)}
+  html[data-mode="capture"] .exhibit{grid-column:1 / 4}
+  html[data-mode="capture"] .col{grid-column:5}
+  html[data-mode="capture"] .zone{grid-column:7}
+  .spread{grid-column:1 / 6}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+}
+</style>
+</head>
+<body>
+
+<header class="deck-head">
+  <div class="dh-row">
+    <span class="deck-mark">Direction</span>
+    <h1 class="deck-title">B — CODEX</h1>
+    <span class="deck-sub">Shadow v3 · knowledge document · warm paper, one measure, serif voice · four voices = four provenance states</span>
+  </div>
+  <div class="dh-rule"></div>
+</header>
+
+<nav class="switcher" role="tablist" aria-label="Shadow modes">
+  <button role="tab" data-mode="capture" aria-selected="true">Capture</button>
+  <button role="tab" data-mode="workmap" aria-selected="false">Work Map</button>
+  <button role="tab" data-mode="debrief" aria-selected="false">Debrief</button>
+  <button role="tab" data-mode="tutor"   aria-selected="false">Tutor</button>
+  <span class="sw-note">one continuous sheet · no internal scrollers · nothing ever removed</span>
+</nav>
+<div class="sw-rule"></div>
+
+<div class="page">
+<div class="sheet">
+
+<!-- ======================================================================
+     M O D E   1  —  C A P T U R E
+     ====================================================================== -->
+<section class="mode" id="m-capture" role="tabpanel" aria-label="Capture">
+
+  <div class="folio">
+    <span class="folio-line">Shadow · Capture · <b>Sabine Albrecht</b> · 18 Sep 2026 · v0 · <span class="mz">03:12</span></span>
+    <span class="rec">on record <span class="capture-hairline" aria-hidden="true"><i></i></span></span>
+  </div>
+
+  <div class="grid">
+
+    <!-- Exhibit A: the live ERP. The only rounded rectangle in the document. -->
+    <div class="exhibit">
+      <figure>
+        <span class="lbl">Exhibit A — the observed work</span>
+        <div class="erp">
+          <div class="erp-bar">
+            <span>Nordwerk ERP · Accounts Payable</span>
+            <b>HM-2026-0412</b>
+          </div>
+          <div class="erp-body">
+            <div class="erp-inv">HM-2026-0412</div>
+            <div class="erp-sup">Hessler Maschinentechnik GmbH · DE · known · VAT DE 284 551 903</div>
+
+            <div class="erp-rows">
+              <div class="erp-row">
+                <span>Säulenbohrmaschine SB 32 inkl. Kühlmitteleinrichtung</span>
+                <span class="cat">equip</span>
+                <span class="n">5.980,00</span>
+              </div>
+              <div class="erp-row">
+                <span>Lieferung und Aufstellung</span>
+                <span class="cat">freight</span>
+                <span class="n">420,00</span>
+              </div>
+            </div>
+
+            <div class="erp-tot">
+              <span class="k">net</span><span class="n">6.400,00</span>
+              <span class="k">19% USt</span><span class="n">1.216,00</span>
+              <span class="k gross">gross</span><span class="n gross">7.616,00</span>
+            </div>
+
+            <div class="erp-fields">
+              <div class="erp-field">
+                <span class="k">PO 4500018231</span>
+                <span class="v">matched · Δ price 0,0% · qty 1/1</span>
+              </div>
+              <div class="erp-field">
+                <span class="k">asset_number</span>
+                <span class="v empty">— not on PO</span>
+              </div>
+              <div class="erp-field">
+                <span class="k">cost_center</span>
+                <span class="v set bleed">0400 · Capex — Machinery &amp; Equipment<span class="who">set 03:12:09</span></span>
+              </div>
+              <div class="erp-field">
+                <span class="k">gl_account</span>
+                <span class="v">0440 · Machinery</span>
+              </div>
+              <div class="erp-field">
+                <span class="k">tax_code</span>
+                <span class="v">V19 · 19% domestic</span>
+              </div>
+              <div class="erp-field">
+                <span class="k">payment_date</span>
+                <span class="v">2026-09-28 · inside 2% / 14d</span>
+              </div>
+            </div>
+
+            <div class="erp-hist">
+              <span class="lbl">Supplier history</span>
+              <div class="erp-hist-row"><span>HM-2026-0411</span><span class="n">9.622,86</span><span class="n">13 Sep</span></div>
+              <div class="erp-hist-row"><span>HM-2026-0410</span><span class="n">8.039,86</span><span class="n">15 Aug</span></div>
+              <div class="erp-hist-row"><span>HM-2026-0409</span><span class="n">8.947,98</span><span class="n">05 Jul</span></div>
+            </div>
+
+            <div class="erp-actions">
+              <span class="erp-btn primary">Post</span>
+              <span class="erp-btn">Hold</span>
+              <span class="erp-btn">Send for 2nd approval</span>
+            </div>
+          </div>
+        </div>
+        <p class="erp-caption">The expert's work, untouched by Shadow except for the locator line under <span class="mz">cost_center</span>. Shadow never restyles the work; it cites it.</p>
+      </figure>
+    </div>
+
+    <!-- the measure: the document being written. It shares the left field with
+         the exhibit (the exhibit is an inset plate, not a column) and flows
+         directly beneath it when the page grows. -->
+    <div class="col capture-text">
+
+      <p class="testimony bleed">Equipment over five thousand net is always capex.
+        <span class="attrib">Sabine Albrecht · <span class="ts">03:12</span> · audio <span class="ts">ap-0412-03:12:41</span> · answer to q_17</span>
+      </p>
+
+      <p class="conjecture wide bleed d1"><span class="pred">cost_center = '0400'</span> when <span class="pred">line.category = 'equipment'</span> and <span class="pred">invoice.net &gt; 5000</span></p>
+
+      <p class="app bleed d2" style="margin-top:12px; max-width:600px">
+        compiled from q_17 · 1 clause · probes pending · net basis, threshold 5000 —
+        the 2019 process doc used gross. <strong>uncertainty: interval overlaps net and gross.</strong>
+      </p>
+
+      <p class="set-act bleed d2"><span class="arrow">→</span> cost_center <span class="pred">0400</span> · capex-machinery · <span class="app" style="display:inline">set 03:12:09</span>
+      </p>
+
+      <div class="rule" style="margin-top:30px"></div>
+
+      <p class="clause" style="margin-top:26px; max-width:600px">
+        Freight on a capex invoice follows the equipment and does not change the
+        <span class="pred">net &gt; 5000</span> test — the test reads the <span class="pred">net</span> total, not the line.
+      </p>
+      <p class="app" style="margin-top:10px; max-width:600px">derived from her wording, not from the 2019 doc. held as Conjecture until Probe P-04 answers.</p>
+    </div>
+
+    <!-- the 320px outer margin: Shadow's entire presence -->
+    <div class="zone" aria-label="Margin">
+
+      <div class="note strike bleed" style="margin-top:30px">
+        <div class="note-hd"><span class="g">◌</span><span class="txt">03:11:47 — per 2019 doc: opex <span class="mz">4711</span></span></div>
+        <div class="note-bd app">committed before the act · p .41 · struck by the act at 03:12:09, not deleted</div>
+      </div>
+
+      <div class="note query" style="margin-top:30px">
+        <span class="qmark">?</span>
+        <span class="qrule h1" aria-hidden="true"></span>
+        <div class="qtext">You moved <span class="mz">4471</span> to capex. What made you do that?</div>
+        <div class="qsub">asked at pause 03:12 · waited 4.2s for a pause · e .73 · q_17</div>
+      </div>
+
+      <div class="note" style="margin-top:112px">
+        <span class="lbl">Evidence</span>
+        <div class="sig-stack" style="margin-top:9px">
+          <span class="sig">▮ <span class="mz">03:12</span> act · cost_center → 0400</span>
+          <span class="sig">◌ cf-04 · equipment ∧ net&gt;5000 → 0400</span>
+          <span class="sig">◌ cf-05 · freight inherits the booking</span>
+          <span class="sig">▮ <span class="mz">03:12</span> q_17 answered — her exact words</span>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:34px">
+        <div class="rule"></div>
+        <p class="app" style="margin-top:12px"><strong>Silence.</strong> 3 decisions passed without a question this session: the <span class="mz">V19</span> tax code, the supplier match, the payment date.</p>
+      </div>
+
+      <div class="note" style="margin-top:30px">
+        <div class="rule"></div>
+        <p class="app" style="margin-top:12px">folio continues in <strong>Work Map</strong> at <span class="mz">03:14</span> when this page is signed.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ======================================================================
+     M O D E   2  —  W O R K   M A P
+     ====================================================================== -->
+<section class="mode" id="m-workmap" role="tabpanel" aria-label="Work Map">
+
+  <div class="folio">
+    <span class="folio-line">Shadow · Work Map · <b>Accounts Payable — invoice posting</b> · Sabine Albrecht · 18 Sep 2026 · v3 · <span class="mz">7 clauses · 5 guardrails · 48 evidence</span></span>
+    <span class="rec">capture closed <span class="capture-hairline" aria-hidden="true"><i></i></span></span>
+  </div>
+
+  <div class="grid">
+    <div class="lm" style="padding-top:26px">
+      <div class="om" style="position:sticky; top:12px">
+        <span class="lbl" style="writing-mode:vertical-rl; letter-spacing:.22em">Work Map · AP</span>
+      </div>
+    </div>
+
+    <div class="full" style="padding-top:26px">
+      <p class="testimony cq" style="margin-top:0; max-width:600px">I do the same seven things in the same order every morning. If one of them is not true I stop and I do not post.
+        <span class="attrib">Sabine Albrecht · 03:04 · session open · <span class="ts">ap-s03-opening</span></span>
+      </p>
+
+      <!-- §1 -->
+      <article class="clause-block" style="margin-top:34px">
+        <div class="clause-head">
+          <span class="clause-no">§1</span>
+          <span class="hd">Open · match PO · 3 observations</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">First I open it and I match it against the purchase order. Price, quantity, nothing else yet.
+              <span class="attrib">Sabine · <span class="ts">03:04</span> · <span class="ts">ap-0412-03:04:12</span></span>
+            </p>
+            <div class="clause-rule"></div>
+            <p class="clause" style="margin-top:20px">Open the invoice and match it to the purchase order on <span class="pred">price</span> and <span class="pred">received qty</span> before touching any booking field.</p>
+            <div class="exceptions">
+              <span class="exc-lab">Exception</span>
+              <p>No PO on file (service invoices under <span class="mz">€1,000</span>): match against the contract and note the contract number in the invoice note.</p>
+              <p class="why">◌ observed twice in this session; not yet probed.</p>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 3 observations</span>
+              <span class="sig">▮ <span class="mz">03:04</span> · <span class="mz">03:06</span> · <span class="mz">03:07</span></span>
+              <span class="sig">✓ 2 counterfactuals agree</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §2 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§2</span>
+          <span class="hd">Supplier standing · 1 guardrail</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">Then the supplier. New supplier and the bank details just changed? <span style="color:var(--prohibit)">That's the classic fraud pattern.</span>
+              <span class="attrib">Sabine · <span class="ts">03:07</span> · <span class="ts">ap-5121-03:07:55</span> · on case 5121</span>
+            </p>
+
+            <div class="plate" style="margin-top:20px; max-width:600px">
+              <span class="plate-lab">Stop plate · guardrail G3 · binding</span>
+              <p class="stop">■ Stop and ask — supplier.status = 'unknown' <span class="pred">→</span> controller
+                <span style="display:block; margin-top:6px">second condition — supplier.bank_changed_recently = true → controller</span>
+              </p>
+              <p class="stop-quote">That's the classic fraud pattern.
+                <span class="stop-attrib">Sabine Albrecht · <span class="ts">03:07</span> · audio <span class="ts">ap-5121-03:07:55</span></span>
+              </p>
+              <p class="stop-attrib" style="letter-spacing:.14em">action · escalate to controller T. Brandt · post is forbidden, not warned</p>
+            </div>
+
+            <div class="clause-rule" style="margin-top:24px"></div>
+            <p class="clause" style="margin-top:20px">Check supplier standing before coding: known, new, or unknown. Unknown, or a supplier whose bank details changed recently, never posts — it escalates.</p>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig binding">■ binding · G3</span>
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 4 observations</span>
+              <span class="sig">▮ <span class="mz">03:07</span> · <span class="mz">03:41</span></span>
+              <span class="sig">▮ replay 5121 · <span class="mz">03:07</span></span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §3 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§3</span>
+          <span class="hd">Cost center · capex threshold · 11 observations</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">Equipment over five thousand net is always capex.
+              <span class="attrib">Sabine · <span class="ts">03:12</span> · <span class="ts">ap-0412-03:12:41</span> · answer to q_17</span>
+            </p>
+            <div class="clause-rule"></div>
+            <p class="clause" style="margin-top:20px">
+              Equipment lines with a <span class="pred">net</span> invoice total above <span class="mz">€5,000</span> book to
+              <span class="pred">0400</span> (Capex — Machinery &amp; Equipment); IT hardware books to <span class="pred">0410</span>.
+              Everything else follows <span class="pred">4711</span> (Opex — Maintenance) unless a later clause applies.
+            </p>
+            <div class="exceptions">
+              <span class="exc-lab">Exception · leased equipment</span>
+              <p>Leased equipment stays opex on <span class="mz">4711</span>, whatever the amount — the asset is on the lessor's books, we do not capitalise it.</p>
+              <p class="why">◌ her words at 03:19, one observation. not probed.</p>
+            </div>
+            <div class="exceptions">
+              <span class="exc-lab">Exception · freight</span>
+              <p>Freight on a capex invoice follows the equipment and does not change the <span class="pred">net &gt; 5000</span> test.</p>
+              <p class="why">◌ inferred, not stated.</p>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 11 observations</span>
+              <span class="sig">probes ✓ P-01 · ✗ P-02 · ◌ P-04</span>
+              <span class="sig">▮ <span class="mz">03:12</span> · ◌ cf-04</span>
+            </div>
+            <div class="note" style="margin-top:26px">
+              <div class="rule"></div>
+              <p class="app" style="margin-top:12px">basis is <strong>net</strong> here; the 2019 doc says gross. only her words separate them.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §4 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§4</span>
+          <span class="hd">Asset number · 1 guardrail</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">No asset number, no capex booking.
+              <span class="attrib">Sabine · <span class="ts">03:13</span> · <span class="ts">ap-0412-03:13:02</span></span>
+            </p>
+            <div class="plate" style="margin-top:20px; max-width:600px">
+              <span class="plate-lab">Stop plate · guardrail G2 · binding</span>
+              <p class="stop">■ Hold — cost_center = '0400' and asset_number is empty
+                <span style="display:block; margin-top:6px">action · hold on <span class="pred">g2</span> · post forbidden until an asset number exists</span>
+              </p>
+              <p class="stop-quote">No asset number, no capex booking.
+                <span class="stop-attrib">Sabine Albrecht · <span class="ts">03:13</span> · audio <span class="ts">ap-0412-03:13:02</span></span>
+              </p>
+            </div>
+            <div class="clause-rule" style="margin-top:24px"></div>
+            <p class="clause" style="margin-top:20px">A capex booking requires an asset number on the purchase order. Without one the invoice is held, never posted and never downgraded to opex to make it post.</p>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig binding">■ binding · G2</span>
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 5 observations</span>
+              <span class="sig">▮ <span class="mz">03:13</span> hold on HM-2026-0412</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §5 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§5</span>
+          <span class="hd">Duplicate bill · contested</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">Krämer double-bills, especially in December.
+              <span class="attrib">Sabine · <span class="ts">03:22</span> · <span class="ts">ap-4472-03:22:18</span></span>
+            </p>
+            <div class="clause-rule"></div>
+            <div class="contested" style="margin-top:20px">
+              <p class="clause" style="position:relative">The same amount billed again within a month holds on <span class="pred">G4</span>, and Krämer invoices hold indefinitely in December.</p>
+            </div>
+            <div class="contested-note">
+              <p>Contradicted at <span class="mz">03:41</span>: on HM-2026-0427 she posted a repeated <span class="mz">€2,180</span> Krämer amount in March without a hold.</p>
+              <p class="app">→ the "within a month" scope is wrong, or "December" is a season and not the rule. suspended authority until re-probed.</p>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig">✗ contested · <span class="mz">03:41</span></span>
+              <span class="sig">▮ <span class="mz">03:22</span> · ✗ <span class="mz">03:41</span></span>
+              <span class="sig">✗ points to observation obs-118</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §6 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§6</span>
+          <span class="hd">Intercompany · 1 guardrail</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">Intercompany always needs Keller's approval.
+              <span class="attrib">Sabine · <span class="ts">03:31</span> · <span class="ts">ap-4473-03:31:44</span></span>
+            </p>
+            <div class="clause-rule"></div>
+            <p class="clause" style="margin-top:20px">Intercompany invoices book to <span class="pred">9100</span> (Intercompany Clearing) and always go to M. Keller for second approval, whatever the amount.</p>
+            <div class="plate" style="margin-top:20px; max-width:600px">
+              <span class="plate-lab">Stop plate · guardrail G5 · binding</span>
+              <p class="stop">■ Second approval — supplier.intercompany = true <span class="pred">→</span> M. Keller</p>
+              <p class="stop-attrib" style="letter-spacing:.14em">action · send for 2nd approval · post forbidden until approved</p>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig binding">■ binding · G5</span>
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 3 observations</span>
+              <span class="sig">▮ <span class="mz">03:31</span> · replay 4473</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- §7 -->
+      <article class="clause-block">
+        <div class="clause-head">
+          <span class="clause-no">§7</span>
+          <span class="hd">Terms, tax, deviation · 1 guardrail</span>
+        </div>
+        <div class="mat">
+          <div class="body">
+            <p class="testimony cq" style="margin-top:18px">Two percent is real money at year end. … EU supplier outside Germany, so reverse charge.
+              <span class="attrib">Sabine · <span class="ts">03:44</span> · <span class="ts">ap-4474-03:44:09</span></span>
+            </p>
+            <div class="clause-rule"></div>
+            <p class="clause" style="margin-top:20px">
+              A <span class="mz">2%</span> Skonto sets the payment date inside its discount window.
+              An EU supplier outside Germany takes tax code <span class="pred">RC</span> (reverse charge).
+              Domestic invoices take <span class="pred">V19</span>.
+            </p>
+            <div class="plate" style="margin-top:20px; max-width:600px">
+              <span class="plate-lab">Stop plate · guardrail G6 · binding</span>
+              <p class="stop">■ Hold — po.price_variance_pct &gt; 2.0 <span class="pred">→</span> purchasing</p>
+              <p class="stop-quote">Over two percent I ask purchasing.
+                <span class="stop-attrib">Sabine Albrecht · <span class="ts">03:47</span></span>
+              </p>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="sig-stack">
+              <span class="sig binding">■ binding · G6</span>
+              <span class="sig"><span class="sig-box">✓</span>confirmed · 7 observations</span>
+              <span class="sig">▮ <span class="mz">03:44</span> · ▮ <span class="mz">03:47</span></span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Evidence Ledger -->
+      <div class="clause-head" style="margin-top:10px">
+        <span class="clause-no" style="font-size:19px">Evidence Ledger</span>
+        <span class="hd">5 observed · 4 probes · 3 replays · 1 contested</span>
+      </div>
+      <div class="ledger" style="max-width:760px">
+        <div class="lrow head">
+          <span>n°</span><span>siglum</span><span>observation</span><span>ref</span>
+        </div>
+        <div class="lrow observed"><span class="n">01</span><span class="sig">▮ <span class="mz">03:04</span></span><span class="ob">Invoice HM-2026-0412 opened; PO 4500018231 matched, price variance 0.0%.</span><span class="ref">ap-0412-03:04</span></div>
+        <div class="lrow observed"><span class="n">02</span><span class="sig">▮ <span class="mz">03:06</span></span><span class="ob">Received qty 1/1 confirmed against delivery note; PO row released.</span><span class="ref">ap-0412-03:06</span></div>
+        <div class="lrow observed"><span class="n">03</span><span class="sig">▮ <span class="mz">03:07</span></span><span class="ob">Supplier standing checked; Hessler known, no bank change. Guardrail G3 not raised.</span><span class="ref">ap-0412-03:07</span></div>
+        <div class="lrow inferred"><span class="n">04</span><span class="sig">◌ <span class="mz">03:11:47</span></span><span class="ob">Pre-commit prediction p .41: cost_center = 4711 per the 2019 process doc. Struck at 03:12:09.</span><span class="ref">pred-0412-a</span></div>
+        <div class="lrow observed"><span class="n">05</span><span class="sig">▮ <span class="mz">03:12</span></span><span class="ob">Expert sets cost_center 0400 on HM-2026-0412 — diverges from prediction and from the 2019 doc.</span><span class="ref">act-0412-8c</span></div>
+        <div class="lrow observed"><span class="n">06</span><span class="sig">▮ <span class="mz">03:12</span></span><span class="ob">Verbatim answer to q_17: "Equipment over five thousand net is always capex."</span><span class="ref">ap-0412-03:12:41</span></div>
+        <div class="lrow inferred"><span class="n">07</span><span class="sig">◌ cf-04</span><span class="ob">Counterfactual: an equipment line €4,900 net is not covered by the compiled rule.</span><span class="ref">cf-04</span></div>
+        <div class="lrow inferred"><span class="n">08</span><span class="sig">◌ cf-05</span><span class="ob">Counterfactual: freight line alone does not trip the net &gt; 5000 test.</span><span class="ref">cf-05</span></div>
+        <div class="lrow observed"><span class="n">09</span><span class="sig">✓ P-01</span><span class="ob">Probe: same laptop, €4,900 net → expert answer opex 4711. Rule agrees.</span><span class="ref">map_P-01</span></div>
+        <div class="lrow observed"><span class="n">10</span><span class="sig">✗ P-02</span><span class="ob">Probe: Krämer double-biller in March → expert posts. §5 disagrees; clause suspended.</span><span class="ref">map_P-02</span></div>
+        <div class="lrow observed"><span class="n">11</span><span class="sig">▮ <span class="mz">03:13</span></span><span class="ob">Hold on G2: HM-2026-0412 carries no asset number on the PO. Post refused.</span><span class="ref">hold-0412-g2</span></div>
+        <div class="lrow binding"><span class="n">12</span><span class="sig">■ G3</span><span class="ob">Guardrail fires on 5121: new supplier, IBAN changed 6 days ago → controller.</span><span class="ref">g3-5121</span></div>
+        <div class="lrow observed"><span class="n">13</span><span class="sig">▮ <span class="mz">03:41</span></span><span class="ob">Replay of trace 118 contradicts §5 scope. Strike rule drawn, ✗ siglum set.</span><span class="ref">obs-118</span></div>
+        <div class="lrow inferred"><span class="n">14</span><span class="sig">◌ P-04</span><span class="ob">Probe queued, BALD: freight-inclusive net test at €5,050 net / €5,470 gross.</span><span class="ref">map_P-04</span></div>
+      </div>
+      <div class="ledger-total" style="max-width:760px">
+        <span class="app">ledger closed at <span class="mz">03:52</span> · 48 evidence items total, 14 shown · nothing removed, everything timestamped</span>
+        <span class="sig"><span class="sig-box">✓</span>7 clauses · 5 binding</span>
+      </div>
+      <div class="sub-rule" style="max-width:760px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     M O D E   3  —  D E B R I E F
+     ====================================================================== -->
+<section class="mode" id="m-debrief" role="tabpanel" aria-label="Debrief">
+
+  <div class="folio">
+    <span class="folio-line">Shadow · Debrief · <b>Sabine Albrecht</b> · 18 Sep 2026 · v1 (being written) · <span class="mz">03:16 → 03:52</span></span>
+    <span class="rec">writing <span class="capture-hairline" aria-hidden="true"><i></i></span></span>
+  </div>
+
+  <div class="debrief" style="padding-top:26px">
+
+    <!-- left 96px: standing numbered questions -->
+    <div class="qcol">
+      <span class="lbl" style="writing-mode:horizontal-tb">Q</span>
+      <div class="q-item">
+        <div class="qn">Q1</div>
+        <div class="qt">Deferred live question</div>
+        <div class="qe">EVOI 0.31<br>waited 4.2s</div>
+      </div>
+      <div class="q-item">
+        <div class="qn">Q2</div>
+        <div class="qt">Stated-rule check</div>
+        <div class="qe">EVOI 0.24<br>net vs gross</div>
+      </div>
+      <div class="q-item">
+        <div class="qn">Q3</div>
+        <div class="qt">BALD probe</div>
+        <div class="qe">EVOI 0.19<br>boundary</div>
+      </div>
+      <div class="q-item">
+        <div class="qn">Q4</div>
+        <div class="qt">Guardrail gap</div>
+        <div class="qe">EVOI 0.12<br>no quote yet</div>
+      </div>
+    </div>
+
+    <!-- the manuscript -->
+    <div style="padding-left:44px">
+      <div class="ms">
+        <div>
+          <span class="lbl">The manuscript · growing downward only</span>
+
+          <p class="set-act" style="margin-top:18px"><span class="arrow">§3.1</span> <span class="clause" style="display:inline">Equipment above <span class="mz">€5,000</span> net books to <span class="pred">0400</span>.</span></p>
+
+          <div class="qa">
+            <span class="lbl">Q1 · the deferred live question</span>
+            <p class="qa-q">At <span class="mz">03:12</span> you moved <span class="mz">4471</span> from opex <span class="mz">4711</span> to capex <span class="mz">0400</span>. We waited 4.2 s for a pause and never asked you directly. What made you do that?</p>
+            <p class="app">asked at <span class="mz">03:16</span> · answered at <span class="mz">03:18</span></p>
+            <p class="testimony bleed">Equipment over five thousand net is always capex.
+              <span class="attrib">Sabine · <span class="ts">03:18</span> · <span class="ts">ap-debrief-03:18:07</span></span>
+            </p>
+            <p class="conjecture bleed d1" style="margin-top:12px"><span class="pred">cost_center = '0400'</span> when <span class="pred">line.category = 'equipment'</span> and <span class="pred">invoice.net &gt; 5000</span></p>
+          </div>
+
+          <div class="qa">
+            <span class="lbl">Q2 · stated-rule verification — the basis</span>
+            <p class="qa-q">You said <em>net</em>. The 2019 process doc says the test is on the gross total. Which one is the rule?</p>
+            <p class="testimony bleed">Net. Gross moves with the VAT rate and the VAT rate is not my problem.
+              <span class="attrib">Sabine · <span class="ts">03:24</span> · <span class="ts">ap-debrief-03:24:52</span></span>
+            </p>
+            <p class="app" style="margin-top:12px">the doc is wrong, and the difference is invisible on every invoice between <span class="mz">€4,202</span> and <span class="mz">€5,000</span> net. that is exactly the band the ruler below resolves.</p>
+
+            <!-- RulerInterval -->
+            <div class="ruler">
+              <span class="lbl">Measure · capex threshold, basis probability</span>
+              <svg viewBox="0 0 640 104" role="img" aria-label="Ruler from 4600 to 5400 euro with a bracket over the posterior interval and a tick at 5000 and a tick at 6400 net.">
+                <line x1="0.5" y1="70.5" x2="639.5" y2="70.5" stroke="#C9C2B6" stroke-width="1"/>
+                <!-- ticks -->
+                <g stroke="#8A8378" stroke-width="1">
+                  <line x1="20.5"  y1="70.5" x2="20.5"  y2="62"/><line x1="80.5"  y1="70.5" x2="80.5"  y2="58"/>
+                  <line x1="140.5" y1="70.5" x2="140.5" y2="62"/><line x1="200.5" y1="70.5" x2="200.5" y2="58"/>
+                  <line x1="260.5" y1="70.5" x2="260.5" y2="62"/><line x1="320.5" y1="70.5" x2="320.5" y2="58"/>
+                  <line x1="380.5" y1="70.5" x2="380.5" y2="62"/><line x1="440.5" y1="70.5" x2="440.5" y2="58"/>
+                  <line x1="500.5" y1="70.5" x2="500.5" y2="62"/><line x1="560.5" y1="70.5" x2="560.5" y2="58"/>
+                  <line x1="620.5" y1="70.5" x2="620.5" y2="62"/>
+                </g>
+                <!-- numerals -->
+                <g fill="#8A8378" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="10" text-anchor="middle">
+                  <text x="20"  y="88">4600</text><text x="140" y="88">4800</text>
+                  <text x="260" y="88">5000</text><text x="380" y="88">5200</text>
+                  <text x="500" y="88">5400</text><text x="620" y="88">5600</text>
+                </g>
+                <!-- the threshold, the one strong tick -->
+                <line x1="260.5" y1="8" x2="260.5" y2="70.5" stroke="#201E1B" stroke-width="1"/>
+                <text x="266" y="20" fill="#201E1B" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11">5000 net</text>
+                <text x="266" y="34" fill="#8A8378" font-family="Inter,sans-serif" font-size="9.5" letter-spacing="1.6">CAPEX THRESHOLD</text>
+                <!-- gauge: basis spread from net to gross of the demo invoice -->
+                <line x1="260.5" y1="52.5" x2="404.5" y2="52.5" stroke="#8A8378" stroke-width="1" stroke-dasharray="1 4"/>
+                <text x="410" y="56" fill="#8A8378" font-family="Inter,sans-serif" font-size="9.5">6400 net = 7616 gross · the band where the basis decides</text>
+                <!-- posterior bracket over the belief about the threshold value -->
+                <path d="M226 96 L226 100 L296 100 L296 96" fill="none" stroke="#201E1B" stroke-width="1"/>
+                <line x1="226.5" y1="96" x2="226.5" y2="70.5" stroke="#201E1B" stroke-width="1"/>
+                <line x1="296.5" y1="96" x2="296.5" y2="70.5" stroke="#201E1B" stroke-width="1"/>
+                <text x="261" y="112" fill="#201E1B" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="10" text-anchor="middle" dominant-baseline="hanging">4900 to 5180 · p .89</text>
+              </svg>
+
+              <div class="ruler-meta">
+                <div>
+                  <span class="lbl">Basis</span>
+                  <div class="basis">
+                    <div>
+                      <span class="app">net · per her words</span>
+                      <div class="track"><i style="left:0; width:62%"></i></div>
+                    </div>
+                    <span class="val">p .62</span>
+                  </div>
+                  <div class="basis">
+                    <div>
+                      <span class="app">gross · per the 2019 doc</span>
+                      <div class="track"><i class="hollow" style="left:0; width:38%"></i></div>
+                    </div>
+                    <span class="val">p .38</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="lbl">Threshold posterior</span>
+                  <p class="app" style="margin-top:8px"><span class="mz">n</span> = 11 observations · <span class="mz">mean 5,040</span> · <span class="mz">sd 71</span> · basis <span class="mz">net</span> at p .62</p>
+                  <p class="app" style="margin-top:8px">interval drawn as a bracket, not a fill bar. the disagreement is 1 interval wide and no observation separates it yet.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- PROBE PLATE 1 -->
+            <div class="probe">
+              <div class="ph"><span class="lbl">Probe Plate · P-01</span><span class="mz">run 03:29 · answered 03:31</span></div>
+              <p class="case">Same laptop, <span class="mz">€4,900</span> net → capex or opex?</p>
+              <div class="pair">
+                <span class="k">map prediction (§3.1)</span><span class="v">opex 4711</span>
+                <span class="k">Sabine's answer</span><span class="v">opex 4711</span>
+              </div>
+              <div class="verdict sig"><span class="sig-box">✓</span>agreed · rule survives below the threshold</div>
+            </div>
+          </div>
+
+          <div class="qa">
+            <span class="lbl">Q3 · BALD probe — the boundary</span>
+            <p class="qa-q">The most informative case left is the one that sits on the boundary of the rule. We chose it, not you.</p>
+            <p class="app">BALD picks the case with the highest expected reduction in posterior entropy over the rule's own parameters. <span class="mz">EVOI 0.19</span>.</p>
+
+            <!-- PROBE PLATE 2 -->
+            <div class="probe">
+              <div class="ph"><span class="lbl">Probe Plate · P-02</span><span class="mz">run 03:33 · answered 03:41</span></div>
+              <p class="case">Krämer double-biller, but in March.</p>
+              <div class="pair">
+                <span class="k">map prediction (§5)</span><span class="v">hold — G4</span>
+                <span class="k">Sabine's answer</span><span class="v">post · V19</span>
+              </div>
+              <div class="verdict sig" style="color:var(--prohibit)">✗ disagreed · §5 suspended · ✗ siglum set in the margin, pointing at obs-118</div>
+            </div>
+          </div>
+
+          <div class="qa">
+            <span class="lbl">Q4 · guardrail gap</span>
+            <p class="qa-q">Six guardrails fired this session and one of them (<span class="mz">G6</span>, price variance) has your words but no observed refusal yet. There is a hole in the coverage.</p>
+            <p class="app">no trace in 48 observations shows a hold caused by <span class="mz">po.price_variance_pct &gt; 2.0</span>. it is compiled, quoted, and <strong>unpractised</strong>.</p>
+            <p class="conjecture bleed" style="margin-top:12px">G6 has a quote and zero enforcing traces — treat as Confirmed-by-words, not Confirmed-by-behaviour.</p>
+          </div>
+
+          <!-- teach-back read-back -->
+          <div class="teach">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:14px 0 4px">
+              <span class="lbl">Teach-back · read the document back to her</span>
+              <span class="app">confirm writes an initial and a date into the margin</span>
+            </div>
+            <div class="trow">
+              <span class="tn">1</span>
+              <span class="tc">Equipment above <span class="pred">net €5,000</span> → cost center <span class="pred">0400</span>; IT hardware → <span class="pred">0410</span>.</span>
+              <span class="acts"><button type="button">Confirm</button><button type="button">Correct</button></span>
+            </div>
+            <div class="trow">
+              <span class="tn">2</span>
+              <span class="tc">Capex needs an <span class="pred">asset_number</span> on the PO. Without it, hold — never downgrade to opex.</span>
+              <span class="acts"><button type="button">Confirm</button><button type="button">Correct</button></span>
+            </div>
+            <div class="trow">
+              <span class="tn">3</span>
+              <span class="tc">Intercompany → <span class="pred">9100</span> and M. Keller's second approval, any amount.</span>
+              <span class="acts"><button type="button">Confirm</button><button type="button">Correct</button></span>
+            </div>
+            <div class="trow">
+              <span class="tn">4</span>
+              <span class="tc">EU supplier outside Germany → <span class="pred">RC</span>. <span class="pred">2%</span> Skonto → pay inside the window.</span>
+              <span class="acts"><button type="button">Confirm</button><button type="button">Correct</button></span>
+            </div>
+            <div class="trow">
+              <span class="tn">5</span>
+              <span class="tc">New supplier with changed bank details, or &gt;<span class="pred">2%</span> over PO → stop and ask.</span>
+              <span class="acts"><button type="button">Confirm</button><button type="button">Correct</button></span>
+            </div>
+            <div class="teach-foot">
+              <span class="app">§3.1 read back <span class="mz">03:48</span> · confirmed, initial S.A. · date 18 Sep 2026</span>
+              <span class="sig"><span class="sig-box">✓</span>5 of 5 read back</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- right rail of the manuscript: probe answers + inline ruler notes -->
+        <div class="rail">
+          <span class="lbl">Probe answers</span>
+          <div class="note" style="margin-top:12px">
+            <div class="note-hd"><span class="g">▮</span><span class="txt">03:31 · P-01 answered</span></div>
+            <div class="note-bd app">same laptop €4,900 net → opex 4711. map agreed. ✓</div>
+          </div>
+          <div class="note">
+            <div class="note-hd"><span class="g">▮</span><span class="txt">03:41 · P-02 answered</span></div>
+            <div class="note-bd app">Krämer in March → posted. map was wrong. strike rule drawn over §5 at 03:41. nothing deleted.</div>
+          </div>
+          <div class="note">
+            <div class="note-hd"><span class="g">◌</span><span class="txt">P-04 · queued</span></div>
+            <div class="note-bd app">freight-inclusive net test, €5,050 net. chosen by BALD at 0.19.</div>
+          </div>
+
+          <div class="rule" style="margin-top:30px"></div>
+          <div class="note" style="margin-top:22px">
+            <span class="lbl">Coverage</span>
+            <p class="app" style="margin-top:10px">7 clauses · 5 binding · 6 guardrails · 1 contested · 1 unpractised (G6).</p>
+          </div>
+          <div class="note">
+            <span class="lbl">Silence log</span>
+            <p class="app" style="margin-top:10px">4 decisions passed unasked. reason each: above the ask budget, or resolved by an adjacent question. none discarded.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     M O D E   4  —  T U T O R
+     ====================================================================== -->
+<section class="mode" id="m-tutor" role="tabpanel" aria-label="Tutor">
+
+  <div class="folio">
+    <span class="folio-line">Shadow · Tutor · <b>Lena Vogt</b> · invoice 5120 · run against <b>Work Map v3</b> · 18 Sep 2026 · <span class="mz">09:41</span></span>
+    <span class="rec">session open <span class="capture-hairline" aria-hidden="true"><i></i></span></span>
+  </div>
+
+  <div class="grid">
+    <div class="spread" style="padding-top:26px">
+
+      <!-- LEFT PAGE — Exhibit B -->
+      <div class="left-page">
+        <span class="lbl">Exhibit B — the trainee's run</span>
+        <figure style="margin:20px 0 0">
+          <div class="erp" style="max-width:100%">
+            <div class="erp-bar"><span>Nordwerk ERP · Accounts Payable</span><b>5120</b></div>
+            <div class="erp-body">
+              <div class="erp-inv">5120</div>
+              <div class="erp-sup">Kranich Anlagenbau GmbH · DE · known · VAT DE 512 884 021</div>
+
+              <div class="erp-rows">
+                <div class="erp-row">
+                  <span>Vertikalfräsmaschine VF-6 inkl. Steuerung</span>
+                  <span class="cat">equip</span>
+                  <span class="n">7.200,00</span>
+                </div>
+                <div class="erp-row">
+                  <span>Transport und Inbetriebnahme</span>
+                  <span class="cat">freight</span>
+                  <span class="n">380,00</span>
+                </div>
+              </div>
+
+              <div class="erp-tot">
+                <span class="k">net</span><span class="n">7.580,00</span>
+                <span class="k">19% USt</span><span class="n">1.440,20</span>
+                <span class="k gross">gross</span><span class="n gross">9.020,20</span>
+              </div>
+
+              <div class="erp-fields">
+                <div class="erp-field">
+                  <span class="k">PO 4500019017</span>
+                  <span class="v">matched · Δ price 0,0% · qty 1/1</span>
+                </div>
+                <div class="erp-field">
+                  <span class="k">asset_number</span>
+                  <span class="v empty">— empty, not on PO</span>
+                </div>
+                <div class="erp-field">
+                  <span class="k">cost_center</span>
+                  <span class="v err set">4711 · Opex — Maintenance<span class="who">set by L. Vogt 09:39</span></span>
+                </div>
+                <div class="erp-field">
+                  <span class="k">gl_account</span>
+                  <span class="v">4805 · Repairs &amp; maintenance</span>
+                </div>
+                <div class="erp-field">
+                  <span class="k">tax_code</span>
+                  <span class="v">V19 · 19% domestic</span>
+                </div>
+              </div>
+
+              <div class="erp-actions">
+                <span class="erp-btn">Post</span>
+                <span class="erp-btn">Hold</span>
+              </div>
+            </div>
+          </div>
+          <p class="erp-caption">Two deviations from the map on one screen: the machine is capex by amount, and there is no asset number — which is the binding stop, not a warning.</p>
+        </figure>
+
+        <div class="rule" style="margin-top:34px"></div>
+        <p class="app" style="margin-top:16px">run diff vs <span class="mz">run_map(5120)</span></p>
+        <div class="ledger" style="max-width:100%">
+          <div class="lrow" style="grid-template-columns:1fr auto">
+            <span class="app">expected <span class="mz">cost_center = 0400</span></span>
+            <span class="sig">◌ not reached</span>
+          </div>
+          <div class="lrow" style="grid-template-columns:1fr auto">
+            <span class="app">trainee set <span class="mz">cost_center = 4711</span></span>
+            <span class="sig">▮ <span class="mz">09:39</span></span>
+          </div>
+          <div class="lrow" style="grid-template-columns:1fr auto">
+            <span class="app">expected <span class="mz">asset_number</span> present</span>
+            <span class="sig">◌ empty on PO</span>
+          </div>
+          <div class="lrow" style="grid-template-columns:1fr auto">
+            <span class="app">deviation</span>
+            <span class="sig binding">■ 2 · one binding</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- the fold -->
+      <div class="fold" aria-hidden="true"></div>
+
+      <!-- RIGHT PAGE — the raised objection -->
+      <div class="right-page">
+        <span class="lbl">Clause under work · §3.1</span>
+
+        <div class="plate raised" style="margin-top:20px">
+          <span class="plate-lab">Stop plate · guardrail G2 · raised as an objection</span>
+          <p class="stop">■ Stop and hold — cost_center = '0400' and asset_number is empty
+            <span style="display:block; margin-top:6px">action · hold on <span class="pred">g2</span> · the post is forbidden, not warned</span>
+          </p>
+        </div>
+
+        <blockquote class="pull">No asset number, no capex booking.
+          <span class="attrib" style="font-size:10px; margin-top:12px">Sabine Albrecht · AP, 24 years · <span class="ts">03:13</span> · and in her words at 03:12: “Equipment over five thousand net is always capex.”</span>
+        </blockquote>
+
+        <p><span class="clip"><span class="tri">▶</span> 03:12 · play the clip inline</span></p>
+        <p class="app" style="margin-top:10px">the clip plays in the margin's frame in place — the folio's lower rule area; no new window, no modal.</p>
+
+        <div class="objection">
+          <span class="obj-hd">Objection · raised 09:41 · attributed</span>
+          <p class="obj-body">Lena Vogt books <span class="mz">5120</span> to <span class="mz">4711</span> opex. Sabine Albrecht did not do this once in the session that produced this clause. The machine is <span class="mz">€7,580</span> net — above her threshold — and its booking carries no asset number, which she refuses outright. The correct act is <span class="mz">cost_center = 0400</span> <em>and</em> a hold until the asset number exists.</p>
+          <p class="app" style="margin-top:12px">this is not a validation error. it is her authority, replayed from a timestamped trace, set in the document's own voice.</p>
+        </div>
+
+        <div class="held">
+          <div class="held-ctl">
+            <span class="k">Post — held</span>
+            <span class="v">■ blocked by G2</span>
+          </div>
+          <div class="reason">
+            state why to override
+            <div class="field"></div>
+            <span class="app" style="display:block; margin-top:7px">required · a reason makes a trace, and the trace is attributed to you, dated, and kept</span>
+          </div>
+          <div class="held-foot">
+            <span class="sig"><span class="sig-box">✓</span>the clause is available under §3.1</span>
+            <span class="sig">▮ <span class="mz">03:12</span> · ▮ <span class="mz">03:13</span></span>
+          </div>
+        </div>
+
+        <div class="tally">
+          <span class="lbl">Mastery · this rule</span>
+          <div class="t-row">
+            <span class="t-name">Lena Vogt</span>
+            <span class="t-val">0.42 → 0.61</span>
+          </div>
+          <div class="marks">
+            <span class="m f"></span><span class="m f"></span><span class="m f"></span><span class="m"></span>
+            <span class="m"></span><span class="m"></span><span class="m"></span><span class="m"></span>
+          </div>
+          <p class="app foot">4 of 8 decisive probes correct · posterior moved once, no overshoot · mastery is a count, not a fill bar.</p>
+
+          <div class="rule" style="margin-top:26px"></div>
+          <div class="t-row" style="margin-top:18px">
+            <span class="t-name">Rule §3.1 · capex threshold</span>
+            <span class="t-val">0.71 → 0.84</span>
+          </div>
+          <div class="marks">
+            <span class="m f"></span><span class="m f"></span><span class="m f"></span><span class="m f"></span>
+            <span class="m f"></span><span class="m f"></span><span class="m d"></span><span class="m"></span>
+          </div>
+          <p class="app foot">6 of 8 · the dashed mark is the case she has not met yet — the boundary at <span class="mz">€5,000</span> net.</p>
+        </div>
+
+        <div class="rule" style="margin-top:34px"></div>
+        <p class="app" style="margin-top:14px">next case: <strong>5121</strong> — new supplier, bank details changed. guardrail G3 fires. nothing is removed from this page when she passes it; the tally grows downward.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     L E G E N D  —  the four voices, on every mode
+     ====================================================================== -->
+<div class="legend" style="margin-top:56px">
+  <div class="lg">
+    <span class="lg-state">Observed · Testimony</span>
+    <div class="lg-demo">
+      <p class="testimony">Equipment over five thousand net is always capex.
+        <span class="attrib">Sabine · <span class="ts">03:12</span></span>
+      </p>
+    </div>
+    <p class="app lg-note">serif roman, hanging quote, small-caps attribution, <span class="sig">▮</span> siglum. a human did this.</p>
+  </div>
+
+  <div class="lg">
+    <span class="lg-state">Inferred · Conjecture</span>
+    <div class="lg-demo">
+      <p class="conjecture"><span class="pred">cost_center = '0400'</span> when <span class="pred">net &gt; 5000</span></p>
+      <div class="sig-stack" style="margin-top:10px"><span class="sig small">◌ <span class="mz">p .41</span></span></div>
+    </div>
+    <p class="app lg-note">sans italic at 62% ink, open ring. the machine thinks this; it is revocable and cheap.</p>
+  </div>
+
+  <div class="lg">
+    <span class="lg-state">Confirmed · Clause</span>
+    <div class="lg-demo">
+      <div class="clause-rule"></div>
+      <p class="clause" style="margin-top:14px">Equipment above <span class="mz">€5,000</span> net books to <span class="pred">0400</span>.</p>
+      <div class="sig-stack" style="margin-top:10px"><span class="sig small"><span class="sig-box">✓</span>11 observations · 2 probes</span></div>
+    </div>
+    <p class="app lg-note">serif roman at full ink, a 1px full-measure rule drawn above, <span class="sig">✓</span> in a small square. earned, and revocable.</p>
+  </div>
+
+  <div class="lg">
+    <span class="lg-state">Binding · Stop</span>
+    <div class="lg-demo">
+      <div class="plate">
+        <span class="plate-lab">Stop plate · G2</span>
+        <p class="stop">■ Hold — cost_center = '0400' and asset_number is empty</p>
+        <span class="stop-attrib">Sabine · <span class="ts">03:13</span></span>
+      </div>
+      <div class="contested" style="margin-top:18px">
+        <p class="clause" style="position:relative; font-size:14px; line-height:22px">§5 duplicate bill, within a month.</p>
+      </div>
+      <div class="sig-stack" style="margin-top:10px"><span class="sig small">✗ contested · <span class="mz">03:41</span></span></div>
+    </div>
+    <p class="app lg-note">serif small caps at +0.14em inside a bordered plate with a 3px prohibition rule — the only box, because it is the only state that forbids. <span class="sig">✗</span> contested is the same voice with a strike rule.</p>
+  </div>
+</div>
+
+<div class="legend-foot">
+  <p><b>Sigla</b> — the fixed primitive set, always in the margin at the line's baseline.</p>
+  <div class="sigkey" style="grid-column:2 / -1">
+    <span class="sig">▮ observed</span>
+    <span class="sig">◌ inferred · p .41</span>
+    <span class="sig"><span class="sig-box">✓</span>confirmed · n evidence</span>
+    <span class="sig binding">■ binding</span>
+    <span class="sig">✗ contested</span>
+    <span class="sig">§ clause</span>
+    <span class="sig">? margin query</span>
+    <span class="sig">▶ clip</span>
+  </div>
+</div>
+
+<div class="rule" style="margin-top:26px"></div>
+<p class="app" style="margin-top:14px; max-width:760px">
+  The crystallization moment is a type change in place: the same words re-set from sans italic at 62% to serif roman at 100% with a 1px rule drawn above it.
+  No colour is involved. Nothing moves horizontally, nothing is ever removed, and the page only ever grows downward.
+  The only looping motion is the 1px capture hairline in the folio's right corner. The only rounded rectangle is the ERP exhibit, which keeps its own 4px —
+  it is a window into another system, and the contrast with Shadow's crisp edges is deliberate.
+</p>
+
+</div><!-- /sheet -->
+</div><!-- /page -->
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.switcher button[data-mode]'));
+
+  function setMode(mode) {
+    if (!mode) return;
+    root.setAttribute('data-mode', mode);
+    tabs.forEach(function (b) {
+      b.setAttribute('aria-selected', String(b.getAttribute('data-mode') === mode));
+    });
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+
+  tabs.forEach(function (b, i) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+    b.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
+      e.preventDefault();
+      var n = (i + (k === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+      tabs[n].focus();
+      setMode(tabs[n].getAttribute('data-mode'));
+    });
+  });
+
+  setMode(root.getAttribute('data-mode') || 'capture');
+})();
+</script>
+</body>
+</html>

@@ -1,100 +1,132 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, Shield } from 'lucide-react'
 import { API, api, mmss } from '../lib/api'
 import type { MapNode, Snapshot } from '../lib/types'
-import { BeliefBadge, Btn } from '../components/ui'
-import { nodeTitle } from '../components/WorkMapView'
+import { BeliefBadge, Btn, Mark, Testimony, Wordmark, statusProv } from '../components/ui'
+import { nodeTitle, whenText } from '../components/WorkMapView'
 
-/** The deliverable: a clickable timeline where every step shows the screen moment, decision, reason and guardrails. */
+const EVIDENCE_WORD: Record<string, string> = {
+  live: 'later decision', retro: 'earlier case', counterfactual: 'what-if answer', teachback: 'teach-back',
+  contradiction: 'contradiction', origin: 'the case she explained',
+}
+
+/** The deliverable: a document the expert could sign. Numbered clauses, her words, guardrails as stop plates, evidence at the foot. */
 export default function MapPage() {
   const { sid } = useParams()
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [sel, setSel] = useState<string | null>(null)
   useEffect(() => { api<Snapshot>(`/api/sessions/${sid}`).then(setSnap) }, [sid])
-  if (!snap) return <div className="p-10 text-muted">Loading…</div>
+  if (!snap) return <div className="p-10 text-[13px] text-ink-2">Opening the Work Map…</div>
   const wm = snap.map
   const nodes = new Map([...wm.rules, ...wm.guardrails].map((n) => [n.id, n]))
   const steps = [...wm.steps].sort((a, b) => a.order - b.order)
   const learnedAll = [...wm.rules, ...wm.guardrails].filter((n) => n.origin !== 'doc')
   const judgment = learnedAll.filter((n) => !n.type).length
   const guards = learnedAll.filter((n) => n.type).length
+  const confirmed = learnedAll.filter((n) => n.belief.status === 'confirmed').length
   const selected = sel ? nodes.get(sel) : null
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <div className="flex items-center gap-3">
-        <Link to={`/s/${sid}`} className="text-muted hover:text-text"><ArrowLeft size={18} /></Link>
-        <div>
-          <div className="label">Work Map · v{wm.version}</div>
-          <h1 className="font-serif text-4xl">How {wm.expert} processes a supplier invoice</h1>
+    <div className="min-h-full bg-paper">
+      <header className="flex items-center gap-4 border-b border-rule-strong bg-sheet px-6 py-2.5">
+        <Link to={`/s/${sid}`} className="text-[12px] text-ink-2 hover:text-ink-1">← session</Link>
+        <Wordmark />
+        <div className="ml-auto flex gap-1.5">
+          <a href={`${API}/api/sessions/${sid}/export/md`} target="_blank"><Btn>SOP ↗</Btn></a>
+          <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn>Agent skill ↗</Btn></a>
+          <a href={`${API}/api/sessions/${sid}/export/json`} target="_blank"><Btn tone="ghost">JSON ↗</Btn></a>
         </div>
-        <div className="ml-auto flex gap-2">
-          <a href={`${API}/api/sessions/${sid}/export/md`} target="_blank"><Btn><Download size={14} />SOP</Btn></a>
-          <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn><Download size={14} />Agent skill</Btn></a>
-          <a href={`${API}/api/sessions/${sid}/export/json`} target="_blank"><Btn tone="ghost">JSON</Btn></a>
-        </div>
-      </div>
-      <div className="num mt-3 text-sm text-muted">{steps.length} steps · {judgment} judgment calls · {guards} guardrails · each linked to its screen moment and {wm.expert}’s own words</div>
+      </header>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)_380px] gap-6">
-        <ol className="space-y-3">
-          {steps.map((s) => {
-            const ns = [...s.rule_ids, ...s.guardrail_ids].map((id) => nodes.get(id)).filter(Boolean) as MapNode[]
-            const learned = ns.filter((n) => n.origin !== 'doc' && n.belief.status !== 'contested')
-            const doc = ns.filter((n) => n.origin === 'doc')
-            return (
-              <li key={s.id} className="panel p-5">
-                <div className="flex items-baseline justify-between">
-                  <div className="text-[15px] font-semibold">Step {s.order} of {steps.length}: {s.name}</div>
-                  <div className="num text-xs text-predict">{s.screen_moment?.ts != null ? `screen moment ${mmss(s.screen_moment.ts)}${s.screen_moment.entity ? ` · ${s.screen_moment.entity}` : ''}` : ''}</div>
-                </div>
-                {learned.length === 0 && <div className="mt-2 text-sm text-doc">As documented: {doc.map((d) => d.title.replace('Doc: ', '')).join(' · ') || s.description}</div>}
-                <div className="mt-3 grid gap-2">
-                  {learned.map((n) => (
-                    <button key={n.id} onClick={() => setSel(n.id)} className={`rounded-xl border p-3 text-left transition ${sel === n.id ? 'border-learn bg-learn/5' : 'border-line bg-panel-2 hover:border-line-2'}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2 text-[13.5px] font-medium">
-                          {n.type ? <Shield size={14} className="mt-0.5 text-ask" /> : <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-learn" />}
-                          <span><span className="text-faint">{n.type ? 'Guardrail' : 'Decision'} · </span>{nodeTitle(n, wm.params)}</span>
-                        </div>
-                        <BeliefBadge status={n.belief.status} p={n.belief.p} />
-                      </div>
-                      {n.quote && <div className="mt-2 font-serif text-[16px] italic text-muted">Reason: “{n.quote.translation ?? n.quote.text}” <span className="num text-[11px] not-italic text-faint">— {n.quote.speaker}, {snap.inquiries.find((q) => q.id === n.quote?.inquiry_id)?.phase === 'debrief' ? 'debrief' : 'live question'} at {mmss(n.quote.ts)}</span></div>}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            )
-          })}
-        </ol>
-        <aside className="panel sticky top-6 h-fit p-5">
+      <div className="mx-auto grid max-w-[1180px] grid-cols-[minmax(0,700px)_1fr] gap-12 px-6 py-12">
+        <article className="panel px-12 py-10">
+          <div className="num flex justify-between border-b border-rule pb-3 text-[10.5px] text-ink-3">
+            <span>WORK MAP · v{wm.version}</span><span>{wm.task.replace(/_/g, ' ')}</span>
+          </div>
+          <h1 className="testimony mb-0 mt-8 text-[40px] leading-[1.08] tracking-[-0.015em]">How {wm.expert} processes a supplier invoice</h1>
+          <p className="mt-3 text-[13.5px] text-ink-2">
+            {steps.length} steps · {judgment} judgment calls · {guards} guardrails · {confirmed} confirmed by her behavior.
+            Each line links to the moment on screen and to her own words.
+          </p>
+
+          <ol className="m-0 mt-10 list-none space-y-9 p-0">
+            {steps.map((s) => {
+              const ns = [...s.rule_ids, ...s.guardrail_ids].map((id) => nodes.get(id)).filter(Boolean) as MapNode[]
+              const learned = ns.filter((n) => n.origin !== 'doc' && n.belief.status !== 'contested')
+              const doc = ns.filter((n) => n.origin === 'doc')
+              return (
+                <li key={s.id} className="grid grid-cols-[40px_1fr]">
+                  <span className="num pt-1 text-[12px] text-ink-3">§{s.order}</span>
+                  <div>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <h2 className="m-0 text-[17px] font-medium">{s.name}</h2>
+                      {s.screen_moment?.ts != null && <span className="num text-[10.5px] text-inferred">▶ {mmss(s.screen_moment.ts)}{s.screen_moment.entity ? ` · ${s.screen_moment.entity}` : ''}</span>}
+                    </div>
+                    {learned.length === 0 && (
+                      <p className="mb-0 mt-1.5 text-[13.5px] text-written">As written in the 2019 process: {doc.map((d) => d.title.replace('Doc: ', '')).join(' · ') || s.description}</p>
+                    )}
+                    <div className="mt-3 space-y-4">
+                      {learned.map((n) => (
+                        <button key={n.id} onClick={() => setSel(n.id)}
+                          className={`block w-full text-left ${n.type ? `border border-l-[3px] border-l-binding px-4 py-3 ${sel === n.id ? 'border-ink-2' : 'border-rule'}` : `border-t pt-3 ${n.belief.status === 'confirmed' ? 'border-ink-1' : 'border-rule'}`} ${sel === n.id && !n.type ? 'bg-wash' : ''}`}>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className={`text-[14.5px] ${n.belief.status === 'inferred' ? 'italic text-inferred' : 'text-ink-1'}`}>
+                              {n.type && <span className="mb-1 block text-[11px] font-medium uppercase tracking-[.08em] text-binding">■ {n.action === 'escalate' ? 'stop and ask' : n.action?.replace('_', ' ')}{n.ask ? ` · ${n.ask}` : ''}</span>}
+                              {nodeTitle(n, wm.params)}
+                            </span>
+                            <BeliefBadge status={n.belief.status} guardrail={!!n.type} />
+                          </div>
+                          {n.quote && <div className="mt-2"><Testimony quote={n.quote} size="sm" /></div>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+
+          <div className="mt-14 border-t border-ink-1 pt-4">
+            <div className="label">Signature</div>
+            <div className="mt-6 grid grid-cols-2 gap-10 text-[11.5px] text-ink-3">
+              <div className="border-t border-rule-strong pt-1.5">{wm.expert}, expert</div>
+              <div className="border-t border-rule-strong pt-1.5">date</div>
+            </div>
+          </div>
+        </article>
+
+        <aside className="sticky top-6 h-fit">
           {selected ? (
-            <>
+            <div className="ink-in">
               <div className="label">{selected.type ? 'Guardrail' : 'Judgment rule'} {selected.id}</div>
-              <div className="mt-2 text-lg font-semibold">{nodeTitle(selected, wm.params)}</div>
-              <div className="num mt-3 rounded-lg bg-ink p-3 text-[11.5px] text-learn">if {selected.when}<br />→ {selected.then ? JSON.stringify(selected.then) : selected.action}</div>
-              {selected.quote && (
-                <div className="mt-4">
-                  <div className="label">In {wm.expert}’s words</div>
-                  <div className="mt-1 font-serif text-xl italic">“{selected.quote.translation ?? selected.quote.text}”</div>
-                  {selected.quote.translation && <div className="mt-1 text-xs italic text-faint">original ({selected.quote.lang}): “{selected.quote.text}”</div>}
-                </div>
-              )}
-              <div className="mt-4">
-                <div className="label">Evidence (behavior, not just words)</div>
-                <div className="mt-2 space-y-1">
+              <div className="testimony mt-2 text-[22px] leading-snug">{nodeTitle(selected, wm.params)}</div>
+              <div className="num mt-4 border-l border-rule-strong pl-3 text-[11px] leading-relaxed text-ink-1">{whenText(selected)}</div>
+              {selected.quote && <div className="mt-6"><div className="label mb-2">In {wm.expert}’s words</div><Testimony quote={selected.quote} /></div>}
+              <div className="mt-6">
+                <div className="label border-b border-rule pb-2">Evidence · behavior, not just words</div>
+                <div className="divide-y divide-rule">
+                  {selected.evidence.length === 0 && <div className="py-2 text-[12px] text-ink-3">Stated, not yet tested.</div>}
                   {selected.evidence.map((e, i) => (
-                    <div key={i} className="num flex justify-between text-[11.5px]">
-                      <span className="text-muted">{e.kind} · {e.episode_id}</span>
-                      <span className={e.agrees ? 'text-learn' : 'text-gap'}>{e.agrees ? 'agrees' : 'contradicts'}</span>
+                    <div key={i} className="num flex justify-between py-1.5 text-[11px]">
+                      <span className="text-ink-2">{EVIDENCE_WORD[e.kind] ?? e.kind} · {e.episode_id}</span>
+                      <span className={e.agrees ? 'text-confirmed' : 'text-binding'}>{e.agrees ? '✓ agrees' : '✗ contradicts'}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </>
+              <div className="num mt-4 text-[10.5px] text-ink-3"><Mark state={statusProv(selected.belief.status, !!selected.type)} />{selected.belief.status} · belief {selected.belief.p.toFixed(2)} (a score, not a calibrated accuracy)</div>
+            </div>
           ) : (
-            <div className="text-sm text-muted">Select a decision or guardrail to see its rule, the expert’s words and the behavioral evidence behind it.</div>
+            <div className="border-l border-rule-strong pl-4 text-[13px] leading-relaxed text-ink-2">
+              Select a clause or a guardrail to see the rule Shadow runs, her words, and the behavior that confirmed or contradicted it.
+              <div className="num mt-4 space-y-1 text-[11px] text-ink-3">
+                <div><Mark state="observed" />stated by her</div>
+                <div><Mark state="inferred" />inferred by Shadow</div>
+                <div><Mark state="confirmed" />confirmed by later behavior</div>
+                <div><Mark state="binding" />guardrail: stops the work</div>
+                <div><Mark state="written" />2019 written process</div>
+              </div>
+            </div>
           )}
         </aside>
       </div>

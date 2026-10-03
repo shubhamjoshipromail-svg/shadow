@@ -354,7 +354,11 @@ class Session:
                 self._quick_question(case, gap)  # ask now; don't wait for the LLM's explanations
                 self.spawn(self.analyze_gap(ep, case, gap))
         self._maybe_guardrail_question(case, ep)
-        if self.store:
+        self._save_map()
+
+    def _save_map(self) -> None:
+        """Persist the map for 'continue from saved map'. Rehearsal maps were taught by the simulator: never saved."""
+        if self.store and not self.simulated:
             self.store.save_map(self.expert, self.pack.id, self.id, self.wm.version, self.wm.model_dump())
 
     # ------------------------------------------------------------ receipts
@@ -885,8 +889,7 @@ class Session:
             "posteriors": {k: p.summary() for k, p in self.posteriors.items()}, "metrics": self.metrics(),
             "understood": self.understood(), "receipt": {k: rc.get(k) for k in ("id", "before", "after", "status")},
         })
-        if self.store:
-            self.store.save_map(self.expert, self.pack.id, self.id, self.wm.version, self.wm.model_dump())
+        self._save_map()
         if compiled.needs_followup and not new_nodes:
             fq = Inquiry(id=self.planner.new_id(), type="confirm", case_id=q.case_id, field=q.field,
                          text=compiled.needs_followup, evoi=0.5, impact=q.impact, phase="debrief",

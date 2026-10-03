@@ -1,54 +1,111 @@
 @import "tailwindcss";
 
+/*
+ * Shadow design system — "the knowledge document".
+ * Warm paper, ink, one sage accent. Serif is reserved for the expert's words and page titles;
+ * sans for interface; mono for codes, amounts and evidence. See design/DESIGN.md.
+ *
+ * Provenance is the one non-negotiable token set: observed (a human did it), inferred (Shadow thinks it),
+ * confirmed (behavior agreed), binding (a guardrail), contested (contradicted). Each is also carried by a
+ * glyph (see <Mark/>), never by hue alone.
+ */
 @theme {
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "Newsreader", "Iowan Old Style", Georgia, serif;
 
-  --color-ink: #070a0e;
-  --color-panel: #0e141b;
-  --color-panel-2: #131b24;
-  --color-line: #1d2834;
-  --color-line-2: #2a3846;
-  --color-text: #e6edf3;
-  --color-muted: #8496a8;
-  --color-faint: #56677a;
+  /* surfaces + ink */
+  --color-paper: #f4f1ea;
+  --color-sheet: #fbf9f4;
+  --color-wash: #efebe2;
+  --color-rule: #e2ddd2;
+  --color-rule-strong: #cbc4b5;
+  --color-ink-1: #22201c;
+  --color-ink-2: #6b665d;
+  --color-ink-3: #9a9488;
 
-  --color-predict: #5cc8ff;
-  --color-ask: #f5b544;
-  --color-learn: #3ddc97;
-  --color-hyp: #a78bfa;
-  --color-gap: #ff6b7a;
-  --color-doc: #6b7c8f;
+  /* provenance */
+  --color-observed: #22201c;
+  --color-inferred: #56677c;
+  --color-confirmed: #4e6b44;
+  --color-binding: #a2412e;
+  --color-contested: #a2412e;
+  --color-query: #8f6420;
+  --color-candidate: #6f5a7e;
+  --color-written: #8a8378;
+
+  /* legacy names, mapped onto the system (kept so every screen stays consistent while it is rebuilt) */
+  --color-ink: #f4f1ea;
+  --color-panel: #fbf9f4;
+  --color-panel-2: #efebe2;
+  --color-line: #e2ddd2;
+  --color-line-2: #cbc4b5;
+  --color-text: #22201c;
+  --color-muted: #6b665d;
+  --color-faint: #9a9488;
+  --color-predict: #56677c;
+  --color-ask: #8f6420;
+  --color-learn: #4e6b44;
+  --color-hyp: #6f5a7e;
+  --color-gap: #a2412e;
+  --color-doc: #8a8378;
+
+  --ease-settle: cubic-bezier(.16, 1, .3, 1);
 }
 
 html, body, #root { height: 100%; }
 body {
   margin: 0;
-  background: var(--color-ink);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink-1);
   font-family: var(--font-sans);
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+::selection { background: #dfe6d6; }
 
-.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.serif { font-family: var(--font-serif); }
 
+/* A sheet: separated by a rule, never by a shadow. */
 .panel {
-  background: var(--color-panel);
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
+  background: var(--color-sheet);
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
 }
 
+/* Section labels: small caps apparatus, never shouting. */
 .label {
-  font-size: 10.5px;
-  letter-spacing: .12em;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--color-faint);
-  font-weight: 600;
+  color: var(--color-ink-3);
+  font-weight: 500;
+}
+
+/* The expert's words: the only serif body text in the product. */
+.testimony {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  color: var(--color-ink-1);
+  letter-spacing: -0.005em;
 }
 
 .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-line-2); border-radius: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-rule-strong); border-radius: 3px; }
 
-@keyframes breathe { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
-.breathe { animation: breathe 2.4s ease-in-out infinite; }
+/* Signature motions (all terminate): ink settles in, a rule draws, a stamp lands. */
+@keyframes ink-in { from { opacity: .55; filter: blur(.4px); } to { opacity: 1; filter: none; } }
+.ink-in { animation: ink-in 180ms var(--ease-settle); }
+@keyframes rule-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.rule-draw { transform-origin: left; animation: rule-draw 140ms var(--ease-settle); }
+
+/* The single looping element: a 1px capture indicator. */
+@keyframes capture-tick { 0%, 100% { opacity: .35 } 50% { opacity: 1 } }
+.capture-tick { animation: capture-tick 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

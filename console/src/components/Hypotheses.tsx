@@ -1,45 +1,32 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { Eye } from 'lucide-react'
 import type { HypSet, Snapshot } from '../lib/types'
-import { fieldLabel, valueLabel } from './ui'
+import { Bar, Section, fieldLabel, valueLabel } from './ui'
 
+/** Competing explanations for one surprise. Conjectures: sans italic, inferred ink, each with its weight. */
 export default function Hypotheses({ snap, set }: { snap: Snapshot; set: HypSet | null }) {
   if (!set) return null
   const items = [...set.items].sort((a, b) => b.posterior - a.posterior)
-  const rows = [...items.map((h) => ({ id: h.id, title: h.title, p: h.posterior, h })), { id: 'h0', title: 'Something not on screen', p: set.p_unknown, h: null }]
+  const rows = [...items.map((h) => ({ id: h.id, title: h.title, p: h.posterior, h })), { id: 'h0', title: 'something not on screen', p: set.p_unknown, h: null }]
   return (
-    <div className="panel p-4">
-      <div className="flex items-baseline justify-between">
-        <div className="label text-hyp">Knowledge gap · competing explanations</div>
-        <div className="num text-[11px] text-muted">uncertainty {set.entropy.toFixed(2)} bits</div>
-      </div>
-      <div className="mt-1 text-[13px] text-muted">
-        Expert chose <b className="text-text">{valueLabel(snap, set.field, set.expert_value)}</b> for {fieldLabel(snap, set.field).toLowerCase()}
-        {' '}— written process said <span className="text-doc">{valueLabel(snap, set.field, set.predicted_value)}</span>
+    <Section title="Why did she do that?" right={<span className="num text-[10.5px] text-ink-3">{set.entropy.toFixed(2)} bits unsure</span>}>
+      <div className="text-[13px] text-ink-2">
+        She chose <b className="font-medium text-ink-1">{valueLabel(snap, set.field, set.expert_value)}</b> for {fieldLabel(snap, set.field).toLowerCase()};
+        the written process says <span className="text-written">{valueLabel(snap, set.field, set.predicted_value)}</span>.
       </div>
       <div className="mt-3 space-y-2.5">
-        <AnimatePresence initial={false}>
-          {rows.map((r) => (
-            <motion.div key={r.id} layout initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}>
-              <div className="flex items-center justify-between gap-3 text-[12.5px]">
-                <span className={r.h ? 'text-text' : 'italic text-muted'}>{r.title}</span>
-                <span className="flex items-center gap-2">
-                  {r.h && r.h.attention_boost > 1 && (
-                    <span title="The expert looked at these fields before deciding" className="flex items-center gap-0.5 text-[10px] text-predict"><Eye size={11} />looked</span>
-                  )}
-                  {r.h && (r.h.consistent > 0 || r.h.inconsistent > 0) && (
-                    <span className="num text-[10px] text-faint">{r.h.consistent}✓ {r.h.inconsistent}✗ history</span>
-                  )}
-                  <span className="num w-10 text-right text-[11px] text-muted">{Math.round(r.p * 100)}%</span>
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
-                <motion.div className={`h-full rounded-full ${r.h ? 'bg-hyp' : 'bg-faint'}`} animate={{ width: `${Math.max(2, r.p * 100)}%` }} transition={{ type: 'spring', stiffness: 80, damping: 18 }} />
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {rows.map((r) => (
+          <div key={r.id}>
+            <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
+              <span className={`italic ${r.h ? 'text-inferred' : 'text-ink-3'}`}><span className="num not-italic">◌ </span>{r.title}</span>
+              <span className="num flex shrink-0 items-baseline gap-3 text-[10.5px] text-ink-3">
+                {r.h && r.h.attention_boost > 1 && <span title="She looked at these fields before deciding">looked at</span>}
+                {r.h && (r.h.consistent > 0 || r.h.inconsistent > 0) && <span>{r.h.consistent}✓ {r.h.inconsistent}✗</span>}
+                <span className="w-9 text-right text-ink-1">{r.p.toFixed(2)}</span>
+              </span>
+            </div>
+            <Bar value={r.p} color={r.h ? 'bg-inferred' : 'bg-ink-3'} className="mt-1" />
+          </div>
+        ))}
       </div>
-    </div>
+    </Section>
   )
 }
