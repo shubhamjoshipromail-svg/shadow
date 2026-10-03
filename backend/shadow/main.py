@@ -424,6 +424,14 @@ async def health() -> dict[str, Any]:
     return {"ok": True, "llm": llm.available(), "sessions": len(sessions), "spend": llm.meter.summary()}
 
 
+@app.get("/api/config")
+async def public_config() -> dict[str, Any]:
+    """Non-secret settings the console needs: the ElevenLabs agent ids created by setup_elevenlabs.py."""
+    ids_file = config.ROOT / ".elevenlabs_agents.json"
+    agents = json.loads(ids_file.read_text()) if ids_file.exists() else {}
+    return {"agents": agents, "public_url": config.PUBLIC_URL}
+
+
 @app.post("/api/llm/check")
 async def llm_check() -> dict[str, Any]:
     """Tiny live call per provider, so 'key present' is never mistaken for 'works'."""

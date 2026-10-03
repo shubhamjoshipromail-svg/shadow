@@ -23,6 +23,12 @@ export default function Home() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => {
+      if (c.agents.interviewer && !localStorage.getItem('shadow.agent.interviewer')) setInterviewer(c.agents.interviewer)
+      if (c.agents.tutor && !localStorage.getItem('shadow.agent.tutor')) setTutor(c.agents.tutor)
+      if (c.agents.interviewer) localStorage.setItem('shadow.agent.interviewer', c.agents.interviewer)
+      if (c.agents.tutor) localStorage.setItem('shadow.agent.tutor', c.agents.tutor)
+    }).catch(() => {})
     api('/health').then((h) => { setHealth(h); if (!h.llm) setRehearsal(true) }).catch(() => setHealth({ ok: false, llm: false }))
     api('/api/sessions').then(setSessions).catch(() => {})
   }, [])
