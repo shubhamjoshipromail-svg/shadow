@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import logging
 import time
 import uuid
@@ -566,7 +567,8 @@ async def health() -> dict[str, Any]:
 async def public_config() -> dict[str, Any]:
     """Non-secret settings the console needs: the ElevenLabs agent ids created by setup_elevenlabs.py."""
     ids_file = config.ROOT / ".elevenlabs_agents.json"
-    agents = json.loads(ids_file.read_text()) if ids_file.exists() else {}
+    agents = json.loads(ids_file.read_text()) if ids_file.exists() else json.loads(
+        os.getenv("SHADOW_ELEVENLABS_AGENTS") or "{}")  # deployed: agent ids come from the environment
     return {"agents": agents, "public_url": config.PUBLIC_URL, "console_url": config.CONSOLE_URL,
             "erp_url": config.ERP_URL}
 
