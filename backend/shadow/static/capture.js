@@ -17,12 +17,22 @@
   var script = document.currentScript;
   var API = (window.SHADOW_API && window.SHADOW_API.indexOf("%") < 0 && window.SHADOW_API) ||
             (script ? new URL(script.src).origin : "http://localhost:8000");
-  var CONSOLE = window.SHADOW_CONSOLE || "http://localhost:5173";
+  var NAME = window.SHADOW_NAME || "Shadow";  // the product name lives here and nowhere else
+  var CONSOLE = window.SHADOW_CONSOLE || "";   // notebook origin: /api/config console_url, else the API origin
+  var CONFIG = null;
   var EXPERT = window.SHADOW_EXPERT || "Sabine";
   var NOVICE = window.SHADOW_NOVICE || "Lena";
+  var SESSION_KEY = "shadow.session";
+  function storeGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function storeSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+  function storeDel(k) { try { sessionStorage.removeItem(k); } catch (e) {} }
   var qs = new URLSearchParams(location.search);
-  var PINNED = qs.get("shadow") || null;  // ?shadow=<id> pins a session; otherwise follow the latest
+  // a pinned session survives navigation and reloads, in this order: ?shadow=<sid>, sessionStorage, else
+  // unpinned (follows the latest session). Storage is best-effort: private modes may refuse it.
+  var urlPin = qs.get("shadow") || null;
+  var PINNED = urlPin || storeGet(SESSION_KEY) || null;
   var SID = PINNED;
+  if (urlPin) storeSet(SESSION_KEY, urlPin);
   var MODE = null;
   var ws = null, outbox = [], lastCase = null;
 
@@ -45,6 +55,7 @@
       var m;
       try { m = JSON.parse(e.data); } catch (err) { return; }
       try { onServer(m); } catch (err) { /* never let UI break capture */ }
+      try { afterServer(m); } catch (err) { /* never let persistence break capture */ }
     };
     ws.onclose = function () { F.offline = true; render(); setTimeout(connect, 1500); };
   }
@@ -212,6 +223,139 @@
     later("think", 3000, function () { F.thinking = false; render(); });
   }
 
+  // ------------------------------------------------------------- session controls
+  // The companion runs the session: the expert starts and ends it from her own work app.
+  var CONFIRM_END = false;
+  var MAX_REPLAY_FRAMES = 120;
+  var REPLAYS = { on: false, stream: null, video: null, canvas: null, timer: null, frames: [] };
+
+  function pinSession(sid, mode) {
+    if (!sid) return;
+    PINNED = SID = sid;
+    if (mode) MODE = mode;
+    storeSet(SESSION_KEY, sid);
+  }
+  function unpinSession() {
+    PINNED = null; SID = null; MODE = null;
+    storeDel(SESSION_KEY);
+    if (ws) reconnect();
+  }
+  function reconnect() {
+    var old = ws;
+    ws = null;
+    if (old) { old.onopen = old.onmessage = old.onclose = null; try { old.close(); } catch (e) {} }
+    connect();
+  }
+  // a server message can pin an unpinned observer, and can end the session from the other side
+  function afterServer(m) {
+    if (!m || typeof m !== "object") return;
+    if (m.type === "ended") {
+      if (SID && (!m.session || m.session === SID)) { stopReplays(); unpinSession(); render(); }
+      return;
+    }
+    if (!PINNED && SID) pinSession(SID, MODE);
+    if (m.type === "session") renderSession();
+  }
+  // /api/config is fetched once: console_url may be "" meaning "same origin as the API"
+  function loadConfig() {
+    return fetch(API + "/api/config").then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
+      CONFIG = c || {};
+      if (!CONSOLE && CONFIG.console_url) CONSOLE = CONFIG.console_url;
+      renderSession();
+      return CONFIG;
+    }).catch(function () { renderSession(); return null; });
+  }
+  function notebookURL() {
+    var base = CONSOLE || (CONFIG && CONFIG.console_url) || API;
+    return String(base).replace(/\/$/, "") + "/s/" + SID;
+  }
+  function startSession() {
+    if (SID) return;
+    var b = $("b-start");
+    if (b) b.disabled = true;
+    ensureSession().then(function () { render(); }).catch(function () {
+      toast(["Couldn\u2019t start a session \u2014 the notebook may be offline."]);
+    }).then(function () { if (b) b.disabled = false; });
+  }
+  function askEndSession() { CONFIRM_END = true; renderSession(); }
+  function cancelEndSession() { CONFIRM_END = false; renderSession(); }
+  function endSession() {
+    var sid = SID;
+    if (!sid) return;
+    CONFIRM_END = false;
+    stopReplays();
+    try {
+      fetch(API + "/api/sessions/" + sid + "/end", { method: "POST", headers: { "Content-Type": "application/json" } })
+        .catch(function () {});
+    } catch (e) {}
+    unpinSession();  // forget the pin at once; the server confirms with {"type":"ended"}
+    render();
+  }
+  function renderSession() {
+    var line = $("sess-t");
+    if (!line) return;
+    var nb = $("nb"), start = $("b-start"), end = $("b-end"), yes = $("b-end-yes"), no = $("b-end-no");
+    line.textContent = SID ? ("Session " + SID.slice(0, 6) + " \u00b7 " + (MODE || "capture")) : "Not recording";
+    start.hidden = !!SID;
+    nb.href = notebookURL();
+    nb.style.display = (SID && !CONFIRM_END) ? "" : "none";
+    end.hidden = !SID || CONFIRM_END;
+    yes.hidden = !CONFIRM_END;
+    no.hidden = !CONFIRM_END;
+    var rp = $("rp-t"), sw = $("b-replays");
+    if (rp) rp.textContent = REPLAYS.on
+      ? ("Replays: on \u00b7 " + REPLAYS.frames.length + " frames kept on this device")
+      : "Replays: off";
+    if (sw) sw.setAttribute("aria-checked", REPLAYS.on ? "true" : "false");
+  }
+  // optional local replays: frames never leave the device and are dropped when the replay stops
+  function startReplays() {
+    if (REPLAYS.on) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return;  // off, silently
+    navigator.mediaDevices.getDisplayMedia({ video: true, preferCurrentTab: true }).then(function (stream) {
+      REPLAYS.stream = stream;
+      var v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.setAttribute("playsinline", "");
+      v.srcObject = stream;
+      REPLAYS.video = v;
+      var p = v.play(); if (p && p.catch) p.catch(function () {});
+      REPLAYS.canvas = document.createElement("canvas");
+      var track = stream.getVideoTracks()[0];
+      if (track) track.addEventListener("ended", function () { stopReplays(); });
+      REPLAYS.on = true;
+      REPLAYS.timer = setInterval(grabReplayFrame, 1000);
+      renderSession();
+    }).catch(function () { /* picker cancelled or denied: stay off, silently */ });
+  }
+  function grabReplayFrame() {
+    var v = REPLAYS.video, c = REPLAYS.canvas;
+    if (!v || !c || !v.videoWidth) return;
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    try { c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); } catch (e) { return; }
+    if (!c.toBlob) return;
+    c.toBlob(function (blob) {
+      if (!blob) return;
+      REPLAYS.frames.push(blob);
+      while (REPLAYS.frames.length > MAX_REPLAY_FRAMES) REPLAYS.frames.shift();
+      renderSession();
+    }, "image/jpeg", 0.55);
+  }
+  function stopReplays() {
+    if (REPLAYS.timer) { clearInterval(REPLAYS.timer); REPLAYS.timer = null; }
+    REPLAYS.on = false;
+    REPLAYS.frames = [];
+    if (REPLAYS.video) { try { REPLAYS.video.pause(); } catch (e) {} REPLAYS.video.srcObject = null; }
+    if (REPLAYS.stream) { try { REPLAYS.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} }
+    REPLAYS.stream = null; REPLAYS.video = null; REPLAYS.canvas = null;
+    renderSession();
+  }
+  function setReplayMode(on, n) {  // harness only: no capture device in a screenshot
+    stopReplays();
+    REPLAYS.on = !!on;
+    if (REPLAYS.on) for (var i = 0; i < (n || 8); i++) REPLAYS.frames.push("frame");
+    renderSession();
+  }
+
   // ------------------------------------------------------------- UI (shadow DOM, never clashes with the app)
   // Visual layer ported from advisory/companion-design-2026-10-03: the pixel intern,
   // a warm paper panel, sage accent, one soft blink and a rare curl shift.
@@ -283,6 +427,14 @@
     '.btn[hidden]{display:none}' +
     '.vst{margin-top:9px;font-size:11px;color:var(--muted)}.vst[hidden]{display:none}' +
     '.nb{display:block;margin-top:10px;color:var(--accent);text-decoration:none;font-size:11.5px}.nb:hover{text-decoration:underline}' +
+    '.sess{margin:12px 0 0}' +
+    '.sess-line{font:600 11px ui-monospace,SFMono-Regular,monospace;color:var(--muted);letter-spacing:.02em}' +
+    '.sess-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px}' +
+    '.sess-acts .nb{margin:0}' +
+    '.switch{all:unset;cursor:pointer;display:inline-block;position:relative;width:30px;height:16px;border-radius:8px;background:#e7e5da;border:1px solid var(--line);transition:background .2s,border-color .2s}' +
+    '.switch i{position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid var(--line);transition:transform .18s}' +
+    '.switch[aria-checked="true"]{background:var(--accent);border-color:#556b49}' +
+    '.switch[aria-checked="true"] i{transform:translateX(14px)}' +
     '.caption{width:min(268px,calc(100vw - 56px));background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 26px #26321d12;padding:12px 13px}' +
     '.caption .q{font-size:13px;line-height:1.45;color:var(--ink)}' +
     '.caption .hintline{margin-top:6px;font-size:11px;color:var(--muted)}' +
@@ -305,24 +457,35 @@
     '<div id="w" class="state-idle">' +
       '<div class="stack">' +
         '<div id="cards"></div>' +
-        '<div class="panel pop" id="hc" role="dialog" aria-label="Shadow">' +
+        '<div class="panel pop" id="hc" role="dialog" aria-label="' + NAME + '">' +
           '<div class="heading">' +
             '<div><span class="brand" id="hc-t"></span>' +
               '<div class="status"><i></i><span id="hc-s"></span></div></div>' +
             '<button class="close" id="b-close" type="button" aria-label="Close companion">\u00d7</button>' +
           '</div>' +
+          '<div class="sess">' +
+            '<div class="sess-line" id="sess-t">Not recording</div>' +
+            '<div class="sess-acts">' +
+              '<button class="btn accent" id="b-start" type="button">Start session</button>' +
+              '<a class="nb" id="nb" target="_blank" rel="noopener">Open notebook \u2197</a>' +
+              '<button class="btn" id="b-end" type="button">End session</button>' +
+              '<button class="btn accent" id="b-end-yes" type="button" hidden>End? yes</button>' +
+              '<button class="btn" id="b-end-no" type="button" hidden>no</button>' +
+            '</div>' +
+          '</div>' +
           '<div class="rows">' +
             '<div class="row"><span>Rules learned</span><b id="m-rl">\u2014</b></div>' +
             '<div class="row"><span>Rules confirmed</span><b id="m-rc">\u2014</b></div>' +
             '<div class="row"><span>Questions asked</span><b id="m-q">\u2014</b></div>' +
+            '<div class="row"><span id="rp-t">Replays: off</span>' +
+              '<button class="switch" id="b-replays" type="button" role="switch" aria-checked="false" aria-label="Replays"><i></i></button></div>' +
           '</div>' +
-          '<div class="acts"><button class="btn accent" id="b-voice" type="button">Start Shadow</button>' +
+          '<div class="acts"><button class="btn" id="b-voice" type="button">Talk</button>' +
             '<button class="btn accent" id="b-ask" type="button" hidden>Ask me now</button>' +
             '<button class="btn" id="b-debrief" type="button" hidden>Debrief me</button>' +
-            '<button class="btn" id="b-teach" type="button" hidden>Teach Lena</button>' +
+            '<button class="btn" id="b-teach" type="button" hidden>Teach ' + NOVICE + '</button>' +
             '<button class="btn" id="b-off" type="button"></button></div>' +
           '<div class="vst" id="v-st" hidden><span id="v-t"></span></div>' +
-          '<a class="nb" id="nb" target="_blank" rel="noopener">Open Shadow\u2019s notebook \u2197</a>' +
         '</div>' +
         '<div class="caption pop" id="cap">' +
           '<div class="q" id="cap-t"></div>' +
@@ -331,7 +494,7 @@
         '</div>' +
         '<div class="toast pop" id="toast"></div>' +
       '</div>' +
-      '<button class="portrait" id="kid" type="button" aria-label="Shadow companion">' + SVG +
+      '<button class="portrait" id="kid" type="button" aria-label="' + NAME + ' companion">' + SVG +
         '<span class="badge" id="badge" aria-hidden="true"></span></button>' +
       '<span class="hint" id="hint" aria-hidden="true">Here when you need me</span>' +
       '<button class="later" id="later" type="button" title="Ask at the end instead">later</button>' +
@@ -345,6 +508,11 @@
   $("b-close").addEventListener("click", function (e) {
     e.stopPropagation(); clearTimeout(T.open); F.open = false; render();
   });
+  $("b-start").addEventListener("click", startSession);
+  $("b-end").addEventListener("click", askEndSession);
+  $("b-end-yes").addEventListener("click", endSession);
+  $("b-end-no").addEventListener("click", cancelEndSession);
+  $("b-replays").addEventListener("click", function () { if (REPLAYS.on) stopReplays(); else startReplays(); });
 
   // headless-harness hook: force one of the seven design states without a server
   var TEST = { state: null, hint: false, motion: true };
@@ -367,6 +535,15 @@
     setPanel: function (open) { F.open = !!open; render(); },
     setHint: function (show) { TEST.hint = !!show; W.classList.toggle("showhint", TEST.hint); },
     setMotion: function (on) { TEST.motion = !!on; W.classList.toggle("still", !TEST.motion); },
+    setSession: function (sid, mode) {
+      if (sid) pinSession(sid, mode || "capture");
+      else { storeDel(SESSION_KEY); PINNED = null; SID = null; MODE = null; }
+      render();
+      return true;
+    },
+    setConfirmEnd: function (on) { CONFIRM_END = !!on; renderSession(); return true; },
+    setReplays: function (on, n) { setReplayMode(on, n); return true; },
+    notebook: function () { return SID ? notebookURL() : null; },
     showToast: function (lines) {
       toast(lines || ["Noted: Equipment over 3,600 net is capex", "I'd have said 4711, now 0400"]);
     },
@@ -386,7 +563,7 @@
 
   function renderVoice() {
     var bv = $("b-voice"); if (!bv) return;
-    bv.textContent = V.conv ? "Stop voice" : (MODE === "tutor" ? "Start tutor" : "Start Shadow");
+    bv.textContent = V.conv ? "Stop talking" : (MODE === "tutor" ? "Talk to the tutor" : "Talk");
     $("b-debrief").hidden = !(V.conv && MODE === "capture");
     $("b-teach").hidden = !(SID && MODE !== "tutor");
   }
@@ -399,7 +576,7 @@
     W.className = cls.join(" ");
     if (TEST.hint) W.classList.add("showhint");
     if (!TEST.motion) W.classList.add("still");
-    $("hc-t").textContent = MODE === "tutor" ? "Shadow tutor \u00b7 watching " + NOVICE : "Shadow \u00b7 learning from " + EXPERT;
+    $("hc-t").textContent = MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + EXPERT;
     $("hc-s").textContent = meta.status;
     $("m-rl").textContent = M.rules_learned != null ? M.rules_learned : "\u2014";
     $("m-rc").textContent = M.rules_confirmed != null ? M.rules_confirmed : "\u2014";
@@ -407,17 +584,16 @@
     $("b-ask").hidden = !F.hand;
     $("b-off").textContent = F.off ? "Back on the record" : "Off the record";
     $("b-off").title = "Alt+Shift+S";
-    var nb = $("nb");
     renderVoice();
-    if (SID) { nb.href = CONSOLE.replace(/\/$/, "") + "/s/" + SID; nb.style.display = ""; } else nb.style.display = "none";
+    renderSession();
     $("hc").classList.toggle("show", F.open);
     $("hint").textContent = meta.hint;
     $("badge").textContent = meta.badge;
     $("cap-t").textContent = F.askText;
-    $("cap-h").textContent = V.conv ? "Shadow is listening \u2014 just answer out loud" : "Answer here \u2014 or start Shadow to talk";
+    $("cap-h").textContent = V.conv ? NAME + " is listening \u2014 just answer out loud" : "Answer here \u2014 or start " + NAME + " to talk";
     $("cap").title = F.askText;
     $("cap").classList.toggle("show", F.asking && !!F.askText);
-    $("kid").setAttribute("aria-label", "Shadow \u2014 " + meta.status + (F.off ? " (off the record)" : ""));
+    $("kid").setAttribute("aria-label", NAME + " \u2014 " + meta.status + (F.off ? " (off the record)" : ""));
     $("kid").title = F.off ? "off the record" : "";
   }
 
@@ -472,7 +648,9 @@
   function ensureSession() {
     if (SID) return Promise.resolve(SID);
     return api("/api/sessions", { mode: "capture" }).then(function (snap) {
-      SID = snap.id; MODE = snap.mode; send({ type: "hello" }); return SID;
+      pinSession(snap.id, snap.mode);  // remember it across navigation and reloads
+      send({ type: "hello" });
+      return SID;
     });
   }
 
@@ -619,5 +797,6 @@
   }
 
   render();
+  loadConfig();  // fetched once: resolves the notebook URL (console_url, else the API origin)
   connect();
 })();

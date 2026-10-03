@@ -21,6 +21,11 @@ REASON_MODEL = os.getenv("SHADOW_REASON_MODEL", "claude-sonnet-5-5")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'shadow.db'}")
 PUBLIC_URL = os.getenv("SHADOW_PUBLIC_URL", "http://localhost:8000")
 DEFAULT_PACK = os.getenv("SHADOW_PACK", "ap_invoices")
+DEFAULT_WORKSPACE = os.getenv("SHADOW_WORKSPACE", "nordwerk")
+# The notebook (console) is served by this backend once built (console/dist): one origin, one link.
+CONSOLE_DIST = ROOT.parent / "console" / "dist"
+CONSOLE_URL = os.getenv("SHADOW_CONSOLE_URL", "" if CONSOLE_DIST.exists() else "http://localhost:5173")
+ERP_URL = os.getenv("SHADOW_ERP_URL", "http://localhost:8080")  # the demo workplace
 
 # Inquiry planner knobs
 LIVE_QUESTION_BUDGET_PER_10MIN = int(os.getenv("SHADOW_LIVE_BUDGET", "5"))

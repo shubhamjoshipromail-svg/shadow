@@ -71,6 +71,9 @@ function reduce(state: Live, e: ShadowEvent): Live {
       next.receipts = e.update ? s.receipts.map((x) => (x.id === r.id ? r : x)) : [...s.receipts.filter((x) => x.id !== r.id), r]
       break
     }
+    case 'ended':
+      next.ended = true
+      break
     case 'proof':
       next.proofs = { ...s.proofs, [e.proof.id]: e.proof }
       break

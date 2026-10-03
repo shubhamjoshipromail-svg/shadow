@@ -55,6 +55,12 @@
       <button id="toast" type="button">Toast after learning</button>
       <button id="reduced" type="button">Toggle reduced motion</button>
     </div>
+    <div class="row">
+      <button id="sess-none" type="button">Panel: no session</button>
+      <button id="sess-live" type="button">Panel: live session</button>
+      <button id="sess-confirm" type="button">End confirm</button>
+      <button id="sess-replays" type="button">Replays on</button>
+    </div>
     <div class="err" id="err"></div>
   </section>
 
@@ -105,6 +111,7 @@
     });
 
     var panel = false;
+    function showPanel() { panel = true; if (hook) hook.setPanel(true); }
     document.getElementById("open").addEventListener("click", function () {
       panel = !panel; if (hook) hook.setPanel(panel);
     });
@@ -118,11 +125,33 @@
     document.getElementById("reduced").addEventListener("click", function () {
       still = !still; if (hook) hook.setMotion(!still);
     });
+    // session controls: the companion runs the session, so the panel has session states
+    var DEMO_SID = "4f2a9c8b1e";
+    function withPanel(name) {
+      showPanel();
+      if (hook) { hook.setState("idle"); hook.setSession(name); hook.setConfirmEnd(false); hook.setReplays(false); }
+    }
+    document.getElementById("sess-none").addEventListener("click", function () {
+      showPanel();
+      if (hook) { hook.setState("idle"); hook.setSession(null); hook.setReplays(false); }
+    });
+    document.getElementById("sess-live").addEventListener("click", function () { withPanel(DEMO_SID); });
+    document.getElementById("sess-confirm").addEventListener("click", function () {
+      withPanel(DEMO_SID);
+      if (hook) hook.setConfirmEnd(true);
+    });
+    document.getElementById("sess-replays").addEventListener("click", function () {
+      withPanel(DEMO_SID);
+      if (hook) hook.setReplays(true, 24);
+    });
 
     // query overrides make each state screenshot-able from a headless run
     var q = new URLSearchParams(location.search);
     if (q.get("state")) select(q.get("state"));
+    if (q.get("session")) { if (hook) { hook.setSession(q.get("session"), q.get("mode") || "capture"); hook.setConfirmEnd(false); } }
     if (q.get("panel") === "1" && hook) hook.setPanel(true);
+    if (q.get("confirm") === "1" && hook) hook.setConfirmEnd(true);
+    if (q.get("replays")) { if (hook) hook.setReplays(true, parseInt(q.get("replays"), 10) || 24); }
     if (q.get("hint") === "1" && hook) hook.setHint(true);
     if (q.get("toast") === "1" && hook) hook.showToast();
     if (q.get("motion") === "off" && hook) hook.setMotion(false);

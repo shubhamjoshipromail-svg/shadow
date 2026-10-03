@@ -38,6 +38,8 @@ function ConsoleInner({ sid }: { sid: string }) {
   const [localLines, setLocalLines] = useState<{ who: 'agent' | 'user'; text: string; at: number }[]>([])
   const [highlight, setHighlight] = useState<Set<string>>(new Set())
   const [autoplay, setAutoplay] = useState(false)
+  const [erpUrl, setErpUrl] = useState('http://localhost:8080')
+  useEffect(() => { api<{ erp_url?: string }>('/api/config').then((c) => c.erp_url && setErpUrl(c.erp_url)).catch(() => {}) }, [])
 
   const simStep = async () => {
     const r = await api<{ did: string; said?: string; reply?: string }>(`/api/sessions/${sid}/sim/step`, { method: 'POST' })
@@ -136,6 +138,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           <span className="flex items-center gap-1.5"><Dot on={connected && !snap.off_record} />{snap.off_record ? 'off the record' : connected ? 'on record' : 'reconnecting'}</span>
           <span>map v{snap.map.version}{snap.map_source.kind === 'saved' ? ` · continued from saved v${snap.map_source.version}` : ''}</span>
           {snap.pending.compiling && <span className="text-query">compiling an answer…</span>}
+          {snap.ended && <span className="text-binding">session ended</span>}
           {snap.simulated && <span className="text-candidate">rehearsal · simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
@@ -148,6 +151,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           {mode !== 'tutor' && <Btn onClick={startTutor}>Teach a new hire</Btn>}
           {mode !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases">Test it</Btn></Link>}
           <Link to={`/s/${sid}/map`}><Btn tone="primary">Work Map</Btn></Link>
+          <Link to={`/s/${sid}/data`}><Btn tone="ghost" title="What was collected, where it lives">Data</Btn></Link>
           <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn tone="ghost" title="Agent-ready guardrails">Agent skill ↗</Btn></a>
         </div>
       </header>
@@ -155,20 +159,13 @@ function ConsoleInner({ sid }: { sid: string }) {
       <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)_400px] gap-5 px-5 py-5">
         {/* LEFT: the exhibit + the conversation */}
         <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
-          <Section title="Exhibit · the expert's screen" right={screen.stream ? <span className="num text-[10px] text-ink-3">{screen.frameCount} frames, kept locally</span> : null}>
-            {screen.stream ? (
-              <video ref={screen.videoRef} muted className="aspect-video w-full border border-rule bg-wash object-contain" />
-            ) : (
-              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-rule-strong text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink-1">
-                Share the expert’s screen
-                <span className="text-[11px] text-ink-3">frames stay in this browser</span>
-              </button>
-            )}
-            <label className="mt-3 flex items-start gap-2 text-[12px] text-ink-2">
-              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="mt-0.5 accent-[#4e6b44]" />
-              Read changed frames with a vision model (personal data blurred first)
-            </label>
-            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
+          <Section title="The workplace">
+            <p className="m-0 text-[13px] leading-relaxed text-ink-2">
+              {mode === 'tutor' ? snap.trainee : snap.expert} works in the ERP. Shadow sits in its corner, asks at pauses and
+              learns from what is saved. This notebook is for reviewing; nobody has to work in it.
+            </p>
+            <a href={`${erpUrl}/?shadow=${sid}`} target="nordwerk-erp" className="mt-3 inline-block"><Btn tone="primary">Open Nordwerk ERP ↗</Btn></a>
+            <div className="num mt-2 text-[10.5px] text-ink-3">opens pinned to session {sid}</div>
           </Section>
 
           <Section title="When to ask">
@@ -204,6 +201,27 @@ function ConsoleInner({ sid }: { sid: string }) {
               <button onClick={askNextTyped} className="mt-2 text-[11.5px] text-query hover:underline">show the pending question as text</button>
             )}
           </Section>
+
+          <details className="panel px-4 py-3">
+            <summary className="label cursor-pointer">Optional · replay clips of this screen</summary>
+            <div className="mt-3">
+              {screen.stream && <div className="num mb-2 text-[10px] text-ink-3">{screen.frameCount} frames, kept in this browser</div>}
+            {screen.stream ? (
+              <video ref={screen.videoRef} muted className="aspect-video w-full border border-rule bg-wash object-contain" />
+            ) : (
+              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-rule-strong text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink-1">
+                Share the expert’s screen
+                <span className="text-[11px] text-ink-3">frames stay in this browser</span>
+              </button>
+            )}
+            <label className="mt-3 flex items-start gap-2 text-[12px] text-ink-2">
+              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="mt-0.5 accent-[#4e6b44]" />
+              Read changed frames with a vision model (personal data blurred first)
+            </label>
+            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
+            </div>
+          </details>
+
 
           {mode === 'tutor' && live.interventions.length > 0 && (
             <Section title="Stops">

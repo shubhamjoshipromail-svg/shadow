@@ -1,0 +1,10 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/.env
+**/*.db
+backend/eval_out
+console/dist
+design
+advisory
+.git

@@ -71,16 +71,14 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-20">
-        <section className="grid grid-cols-[1fr_300px] items-end gap-10 border-b border-rule pb-12 pt-16">
-          <div>
-            <div className="label">An apprentice for retiring expertise</div>
-            <h1 className="testimony mt-4 text-[54px] leading-[1.02] tracking-[-0.02em]">
-              It learns what the AI <i>doesn’t</i> already know.
-            </h1>
-          </div>
-          <p className="text-[14px] leading-relaxed text-ink-2">
-            Shadow writes down its guess before the expert acts. When she does something it can’t explain, it waits for a pause,
-            asks one question, and turns her answer into a rule it then tests, and teaches to the next hire.
+        <section className="border-b border-rule pb-10 pt-14">
+          <div className="label">Expert knowledge capture · Nordwerk</div>
+          <h1 className="testimony mb-0 mt-3 max-w-[22ch] text-[40px] leading-[1.1] tracking-[-0.015em]">
+            Learns the part of the job nobody wrote down.
+          </h1>
+          <p className="mb-0 mt-4 max-w-[60ch] text-[14px] leading-relaxed text-ink-2">
+            It writes down its guess before the expert acts. When she does something it can’t explain, it waits for a
+            pause, asks one question, turns the answer into a tested rule, and teaches it to the next hire.
           </p>
         </section>
 
@@ -89,10 +87,10 @@ export default function Home() {
             ['capture', 'Capture an expert', 'Work real cases while Shadow watches. A few questions at natural pauses, then a short debrief and teach-back.', 'observed'],
             ['tutor', 'Teach a new hire', 'The trainee works cases the expert never showed. Shadow stops a wrong save before it happens, in the expert’s words.', 'binding'],
           ] as const).map(([mode, title, text, prov]) => (
-            <button key={mode} disabled={busy} onClick={() => start(mode)} className="group grid w-full grid-cols-[28px_1fr_auto] items-baseline gap-3 py-6 text-left disabled:opacity-50">
+            <button key={mode} disabled={busy} onClick={() => start(mode)} className="group grid w-full grid-cols-[28px_1fr_auto] items-baseline gap-3 py-5 text-left disabled:opacity-50">
               <Mark state={prov} className="text-[15px]" />
               <span>
-                <span className="testimony block text-[26px] leading-tight group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{title}</span>
+                <span className="testimony block text-[22px] leading-tight group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{title}</span>
                 <span className="mt-1.5 block max-w-xl text-[13.5px] text-ink-2">{text}</span>
               </span>
               <span className="num text-[12px] text-ink-2 group-hover:text-ink-1">{mode === 'capture' ? 'start session' : 'start tutoring'} →</span>

@@ -19,11 +19,13 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
 from shadow import config, converse, exports, llm, perception, sim
 from shadow import proof as proof_mod
+from shadow import engine as engine_mod
 from shadow.engine import Session
 from shadow.packs import get_pack
 from shadow.store import Store
@@ -71,6 +73,7 @@ def _session(sid: str | None) -> Session:
 # ---------------------------------------------------------------- sessions
 class NewSession(BaseModel):
     mode: str = "capture"
+    workspace: str = config.DEFAULT_WORKSPACE
     expert: str | None = None
     trainee: str | None = None
     lang: str = "en"
@@ -108,10 +111,13 @@ async def create_session(body: NewSession) -> dict[str, Any]:
                 use_llm=not body.simulate, **sim_kwargs)
     s.simulated = bool(sim_kwargs)
     s.map_source = source
+    s.workspace = body.workspace
     sessions[sid] = s
     latest.append(sid)
     store.create_session(sid, body.mode, pack.id, expert, {"lang": body.lang, "trainee": body.trainee,
-                                                            "simulated": s.simulated, "map_source": source})
+                                                            "simulated": s.simulated, "map_source": source,
+                                                            "workspace": body.workspace, "workflow": pack.id,
+                                                            "source": s.source})
     if body.mode == "debrief":
         await s.start_debrief()
     return s.snapshot()
@@ -126,6 +132,20 @@ async def list_sessions() -> list[dict[str, Any]]:
 @app.get("/api/sessions/{sid}")
 async def get_session(sid: str) -> dict[str, Any]:
     return _session(sid).snapshot()
+
+
+@app.post("/api/sessions/{sid}/end")
+async def end_session(sid: str) -> dict[str, Any]:
+    """The expert is done: stop observing. The session stays readable in the notebook; its map is saved."""
+    s = _session(sid)
+    s.ended = True
+    s.awaiting = None
+    s.planner.queue.clear()
+    if sid in latest:
+        latest.remove(sid)  # unpinned observers stop following it
+    s._save_map()
+    await s.emit("ended", {"session": sid})
+    return {"ended": True}
 
 
 @app.post("/api/sessions/{sid}/debrief")
@@ -392,7 +412,7 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     return {"allow": True}
 
 
-COMPANION_EVENTS = {"intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
+COMPANION_EVENTS = {"ended", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
                     "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
 
 
@@ -547,10 +567,49 @@ async def public_config() -> dict[str, Any]:
     """Non-secret settings the console needs: the ElevenLabs agent ids created by setup_elevenlabs.py."""
     ids_file = config.ROOT / ".elevenlabs_agents.json"
     agents = json.loads(ids_file.read_text()) if ids_file.exists() else {}
-    return {"agents": agents, "public_url": config.PUBLIC_URL}
+    return {"agents": agents, "public_url": config.PUBLIC_URL, "console_url": config.CONSOLE_URL,
+            "erp_url": config.ERP_URL}
+
+
+@app.get("/api/data/inventory")
+async def data_inventory(session: str | None = None) -> dict[str, Any]:
+    """What the product has collected, where it lives, and who else sees it. Shown to users, not just admins."""
+    db = "PostgreSQL" if store.engine.dialect.name.startswith("postgres") else f"SQLite file ({Path(store.engine.url.database or 'shadow.db').name})"
+    return {
+        "database": db, "counts": store.ledger_counts(session),
+        "samples": {t: store.ledger_rows(t, session, limit=5) for t in ("decisions", "explanations", "learner_attempts")},
+        "locations": [
+            {"where": f"Shadow server · {db}", "what": "Decisions (case facts, the guess written down before, the expert's "
+             "choice), questions and scrubbed answers, rules and every Work Map version, receipts, sealed tests, "
+             "new-hire attempts. Tagged live or rehearsal, with workspace, workflow and expert."},
+            {"where": "This browser only", "what": "Screen frames for replays (in memory, at most a few minutes, gone on "
+             "reload). Never uploaded unless vision reading is switched on."},
+            {"where": "ElevenLabs", "what": "Voice audio and its transcript for voice sessions (their retention settings "
+             "apply; zero-retention is available)."},
+            {"where": "Anthropic / OpenAI APIs", "what": "Case facts and scrubbed answers per request, to compile rules "
+             "and phrase questions. API data is not used for training by default."},
+        ],
+        "never": ["keystroke contents", "anything said or done while off the record", "screens of other applications",
+                  "IBANs, emails, phone and card numbers, tax ids in answers (replaced with placeholders)"],
+        "redaction": "on" if engine_mod._redact else "not installed",
+    }
 
 
 @app.post("/api/llm/check")
 async def llm_check() -> dict[str, Any]:
     """Tiny live call per provider, so 'key present' is never mistaken for 'works'."""
     return {"providers": await llm.check(), "spend": llm.meter.summary()}
+
+
+# ---------------------------------------------------------------- the notebook (console), same origin
+if config.CONSOLE_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=config.CONSOLE_DIST / "assets"), name="console-assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def console_app(path: str):
+        if path.split("/", 1)[0] in ("api", "ws", "v1"):
+            raise HTTPException(404, "not found")
+        f = config.CONSOLE_DIST / path
+        if path and f.is_file() and config.CONSOLE_DIST in f.resolve().parents:
+            return FileResponse(f)
+        return FileResponse(config.CONSOLE_DIST / "index.html", headers={"Cache-Control": "no-cache"})

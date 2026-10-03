@@ -78,6 +78,7 @@ export interface Snapshot {
   metrics: Metrics; activity: { paused: boolean; blocking: string[] }; simulated: boolean
   map_source: MapSource; receipts: Receipt[]; proofs: Record<string, Proof>
   pending: { awaiting: string | null; compiling: boolean; background_tasks: number }
+  ended: boolean; workspace: string; source: 'live' | 'rehearsal'
 }
 
 export interface MapSource { kind: 'seed' | 'given' | 'session' | 'saved'; session?: string; version?: number; saved_at?: number }

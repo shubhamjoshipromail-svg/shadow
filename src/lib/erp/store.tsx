@@ -6,6 +6,23 @@ import { date } from "./format";
 export const SHADOW_API: string =
   (import.meta.env.VITE_SHADOW_API as string | undefined) || "http://localhost:8000";
 
+/** The Shadow session this tab is pinned to (?shadow=<id>, remembered for the tab); empty = follow the latest. */
+export function shadowSession(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("shadow");
+    if (fromUrl) window.sessionStorage.setItem("shadow.session", fromUrl);
+    return fromUrl || window.sessionStorage.getItem("shadow.session") || "";
+  } catch {
+    return "";
+  }
+}
+
+const sessionQuery = () => {
+  const sid = shadowSession();
+  return sid ? `?session=${encodeURIComponent(sid)}` : "";
+};
+
 type Ctx = {
   cases: Case[];
   source: "api" | "local";
@@ -57,7 +74,7 @@ export function ErpProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 3000);
-    fetch(`${SHADOW_API}/api/erp/cases`, { signal: ctrl.signal })
+    fetch(`${SHADOW_API}/api/erp/cases${sessionQuery()}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data: Case[]) => {
         if (Array.isArray(data) && data.length) {
@@ -82,7 +99,7 @@ export function ErpProvider({ children }: { children: ReactNode }) {
       const ctrl = new AbortController();
       const timeout = setTimeout(() => ctrl.abort(), 3000);
       try {
-        const response = await fetch(`${SHADOW_API}/api/erp/cases`, { signal: ctrl.signal });
+        const response = await fetch(`${SHADOW_API}/api/erp/cases${sessionQuery()}`, { signal: ctrl.signal });
         if (!response.ok) return;
         const data: unknown = await response.json();
         if (!active || !Array.isArray(data)) return;
@@ -139,7 +156,7 @@ export function ErpProvider({ children }: { children: ReactNode }) {
           },
         ],
       }));
-      fetch(`${SHADOW_API}/api/erp/cases/${id}/action`, {
+      fetch(`${SHADOW_API}/api/erp/cases/${id}/action${sessionQuery()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, booking: b, reason, approver }),

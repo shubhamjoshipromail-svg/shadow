@@ -33,6 +33,22 @@ from shadow.workmap import (TRUSTED, Evidence, Guardrail, MapPrediction, Quote, 
 
 log = logging.getLogger("shadow.engine")
 
+try:  # personal/payment data scrubbed from what experts say, before it is stored or sent to a model
+    from shadow.redact import redact as _redact
+except ImportError:  # pragma: no cover - module lands separately
+    _redact = None
+
+
+def scrub(text: str) -> tuple[str, list[dict[str, Any]]]:
+    if _redact is None:
+        return text, []
+    try:
+        return _redact(text)
+    except Exception:  # noqa: BLE001 - never lose an answer to a scrubber bug
+        log.exception("redaction failed")
+        return text, []
+
+
 OFF_RECORD = re.compile(r"\b(off the record|nicht aufnehmen|inoffiziell)\b", re.I)
 ON_RECORD = re.compile(r"\b(back on the record|on the record again|wieder aufnehmen)\b", re.I)
 
@@ -126,6 +142,8 @@ class Session:
         self.receipts: list[dict[str, Any]] = []
         self.proofs: dict[str, dict[str, Any]] = {}
         self.proof_round = 0
+        self.workspace = "default"
+        self.ended = False
         for node in [*self.wm.rules, *self.wm.guardrails]:
             if node.origin != "doc":
                 node.refresh_belief()
@@ -180,7 +198,7 @@ class Session:
             "activity": self.activity.state(), "simulated": self.simulated, "map_source": self.map_source,
             "receipts": [{**r, "summary": receipts.summarize(r)} for r in self.receipts],
             "proofs": {k: proof_mod.view(p) for k, p in self.proofs.items()},
-            "pending": self.pending(),
+            "pending": self.pending(), "ended": self.ended, "workspace": self.workspace, "source": self.source,
         }
 
     def pending(self) -> dict[str, Any]:
@@ -325,6 +343,10 @@ class Session:
                      predicted=predicted, scored=scored)
         self.episodes.append(ep)
         self.activity.boundary()
+        self._ledger("decisions", {"episode_id": ep.id, "case_id": case_id, "via": via,
+                                   "case_facts": self.pack.derive(case), "predicted": predicted,
+                                   "predicted_map_version": dp.map_version, "prospective": scored, "actual": expert,
+                                   "surprises": [f for f, v in expert.items() if v is not None and predicted.get(f) != v]})
         proof = proof_mod.record_label(self, case_id, expert, via)
         if proof:
             await self.emit("proof", {"proof": proof_mod.view(proof)})
@@ -356,6 +378,20 @@ class Session:
         self._maybe_guardrail_question(case, ep)
         self._save_map()
 
+    @property
+    def source(self) -> str:
+        return "rehearsal" if self.simulated else "live"
+
+    def _ledger(self, table: str, row: dict[str, Any]) -> None:
+        """Typed, labelled row in the decision ledger; never allowed to break the live loop."""
+        if not self.store:
+            return
+        try:
+            self.store.ledger(table, {"session_id": self.id, "workspace": self.workspace, "workflow": self.pack.id,
+                                      "expert": self.expert, "source": self.source, **row})
+        except Exception:  # noqa: BLE001
+            log.exception("ledger write failed")
+
     def _save_map(self) -> None:
         """Persist the map for 'continue from saved map'. Rehearsal maps were taught by the simulator: never saved."""
         if self.store and not self.simulated:
@@ -372,6 +408,16 @@ class Session:
     async def _publish_receipt(self, receipt: dict[str, Any], update: bool = False) -> None:
         if not update:
             self.receipts.append(receipt)
+            if receipt["trigger"] == "answer":
+                d = receipt.get("diff") or {}
+                self._ledger("explanations", {
+                    "inquiry_id": receipt.get("inquiry_id"), "receipt_id": receipt["id"],
+                    "question_type": (receipt.get("question") or {}).get("type"),
+                    "question": (receipt.get("question") or {}).get("text"), "case_id": receipt.get("case_id"),
+                    "field": receipt.get("field"), "transcript": receipt["teaching"].get("transcript"),
+                    "quote": receipt["teaching"].get("quote"), "redactions": receipt["teaching"].get("redactions"),
+                    "status": receipt["status"], "map_version_before": (d.get("version") or {}).get("before"),
+                    "map_version_after": (d.get("version") or {}).get("after"), "diff": d or None})
         await self.emit("receipt", {"receipt": {**receipt, "summary": receipts.summarize(receipt)}, "update": update})
 
     def _new_receipt(self, trigger: str, **kw: Any) -> dict[str, Any]:
@@ -731,6 +777,8 @@ class Session:
     # ------------------------------------------------------------ answers
     async def on_utterance(self, text: str, who: str = "user") -> str | None:
         """Expert/trainee speech. Returns an immediate short reply for the voice agent, if any."""
+        text, found = scrub(text)
+        self.last_redactions = sorted({f["kind"] for f in found}) or None
         self.transcript.append({"t": self.now(), "who": who, "text": text})
         if ON_RECORD.search(text) and self.off_record:
             self.off_record = False
@@ -785,7 +833,8 @@ class Session:
             "answer", inquiry_id=q.id, case_id=q.case_id,
             probe_case_id=q.probe_case["id"] if q.probe_case is not None else None, field=f,
             question={"type": q.type, "text": q.text, "probe_delta": q.probe_delta},
-            teaching={"transcript": transcript}, expert_value=q.expert_value,
+            teaching={"transcript": transcript, "redactions": getattr(self, "last_redactions", None)},
+            expert_value=q.expert_value,
             before={**(receipts.predict_field(before, self.pack, case_for_compile, f) or {}),
                     "committed": q.predicted_value},
             evaluation=q.type == "exam")
@@ -1475,6 +1524,9 @@ class Session:
         # only the first attempt on a case is independent evidence; a fix after Shadow stepped in is assisted
         first_attempt = case_id not in self.tutor_attempted
         self.tutor_attempted.add(case_id)
+        self._ledger("learner_attempts", {"learner": self.trainee, "case_id": case_id, "booking": booking,
+                                          "action": action, "allowed": not violations, "independent": first_attempt,
+                                          "violations": [v.model_dump() for v in violations]})
         if not violations:
             for nid in relevant:
                 if first_attempt:

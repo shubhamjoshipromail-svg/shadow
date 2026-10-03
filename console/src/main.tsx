@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Console from './pages/Console'
 import MapPage from './pages/MapPage'
 import ProofPage from './pages/ProofPage'
+import DataPage from './pages/DataPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/s/:sid" element={<Console />} />
         <Route path="/s/:sid/map" element={<MapPage />} />
         <Route path="/s/:sid/proof" element={<ProofPage />} />
+        <Route path="/s/:sid/data" element={<DataPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

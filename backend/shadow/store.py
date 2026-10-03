@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from sqlalchemy import JSON, Column, Float, Integer, MetaData, String, Table, create_engine, insert, select
+from sqlalchemy import JSON, Boolean, Column, Float, Integer, MetaData, String, Table, Text, create_engine, func, insert, select
 
 from shadow import config
 
@@ -40,6 +40,38 @@ maps = Table(
     Column("created", Float),
     Column("map", JSON),
 )
+
+
+# ---------------------------------------------------------------- the decision ledger
+# Typed, labelled rows derived from the event log. Every row says whose knowledge it is (workspace, workflow,
+# expert) and whether it came from a real person ("live") or the simulator ("rehearsal").
+_owner = lambda: [Column("session_id", String(64), index=True), Column("workspace", String(64), index=True),  # noqa: E731
+                  Column("workflow", String(64), index=True), Column("expert", String(64), index=True),
+                  Column("source", String(16), index=True), Column("created", Float)]
+
+decisions = Table(  # one expert decision on one case, scored against a guess written down beforehand
+    "decisions", metadata, Column("id", Integer, primary_key=True, autoincrement=True), *_owner(),
+    Column("episode_id", String(32)), Column("case_id", String(64)), Column("via", String(16)),
+    Column("case_facts", JSON), Column("predicted", JSON), Column("predicted_map_version", Integer),
+    Column("prospective", Boolean), Column("actual", JSON), Column("surprises", JSON),
+)
+
+explanations = Table(  # one question and the expert's answer, with what it changed
+    "explanations", metadata, Column("id", Integer, primary_key=True, autoincrement=True), *_owner(),
+    Column("inquiry_id", String(32)), Column("receipt_id", String(32)), Column("question_type", String(32)),
+    Column("question", Text), Column("case_id", String(64)), Column("field", String(64)),
+    Column("transcript", Text), Column("quote", Text), Column("redactions", JSON), Column("status", String(32)),
+    Column("map_version_before", Integer), Column("map_version_after", Integer), Column("diff", JSON),
+)
+
+learner_attempts = Table(  # one new-hire save attempt on an unseen case
+    "learner_attempts", metadata, Column("id", Integer, primary_key=True, autoincrement=True), *_owner(),
+    Column("learner", String(64), index=True), Column("case_id", String(64)), Column("booking", JSON),
+    Column("action", String(32)), Column("allowed", Boolean), Column("independent", Boolean),
+    Column("violations", JSON),
+)
+
+LEDGER = {"decisions": decisions, "explanations": explanations, "learner_attempts": learner_attempts}
 
 
 class Store:
@@ -98,6 +130,34 @@ class Store:
              .order_by(events.c.id))
         with self.engine.connect() as c:
             return [dict(r._mapping) for r in c.execute(q)]
+
+    def ledger(self, table: str, row: dict[str, Any]) -> None:
+        with self.engine.begin() as c:
+            c.execute(insert(LEDGER[table]).values(created=time.time(), **row))
+
+    def ledger_rows(self, table: str, session_id: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        t = LEDGER[table]
+        q = select(t).order_by(t.c.id.desc()).limit(limit)
+        if session_id:
+            q = q.where(t.c.session_id == session_id)
+        with self.engine.connect() as c:
+            return [dict(r._mapping) for r in c.execute(q)]
+
+    def ledger_counts(self, session_id: str | None = None) -> dict[str, dict[str, int]]:
+        """Rows per ledger table, split by source (live / rehearsal)."""
+        out: dict[str, dict[str, int]] = {}
+        with self.engine.connect() as c:
+            for name, t in LEDGER.items():
+                q = select(t.c.source, func.count()).group_by(t.c.source)
+                if session_id:
+                    q = q.where(t.c.session_id == session_id)
+                out[name] = {str(src): n for src, n in c.execute(q)}
+            q = select(events.c.type, func.count()).group_by(events.c.type)
+            if session_id:
+                q = q.where(events.c.session_id == session_id)
+            out["events"] = {str(k): n for k, n in c.execute(q)}
+            out["maps"] = {"versions": c.execute(select(func.count()).select_from(maps)).scalar() or 0}
+        return out
 
     def map_versions(self, expert: str, pack_id: str) -> list[dict[str, Any]]:
         q = (select(maps.c.version, maps.c.session_id, maps.c.created, maps.c.map)

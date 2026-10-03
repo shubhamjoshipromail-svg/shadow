@@ -192,3 +192,44 @@ def test_live_session_refuses_simulated_steps_and_rehearsal_refuses_proofs():
     finally:
         main.sessions.pop("live1", None)
         main.sessions.pop("reh1", None)
+
+
+def test_ledger_rows_are_typed_and_tagged(tmp_path):
+    async def run():
+        store = Store(f"sqlite:///{tmp_path}/shadow.db")
+        s = Session("led", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=SpokenCompiler(),
+                    store=store)
+        s.workspace = "nordwerk"
+        await teach(s)
+        d = store.ledger_rows("decisions", "led")
+        assert d and d[0]["case_id"] == "inv-4471" and d[0]["source"] == "live" and d[0]["workspace"] == "nordwerk"
+        assert d[0]["prospective"] and "cost_center" in d[0]["surprises"]
+        assert d[0]["predicted"]["cost_center"] == "4711" and d[0]["actual"]["cost_center"] == "0400"
+        e = store.ledger_rows("explanations", "led")
+        assert e and e[0]["status"] == "learned" and e[0]["quote"].startswith("Equipment over")
+        assert e[0]["map_version_after"] == e[0]["map_version_before"] + 1
+        t = Session("tut", PACK, mode="tutor", use_llm=False, wm=s.wm, store=store, trainee="Lena")
+        await t.open_case("inv-5120")
+        await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        a = store.ledger_rows("learner_attempts", "tut")
+        assert a and a[0]["learner"] == "Lena" and a[0]["independent"] and not a[0]["allowed"]
+        counts = store.ledger_counts()
+        assert counts["decisions"]["live"] >= 1 and counts["learner_attempts"]["live"] == 1
+
+    asyncio.run(run())
+
+
+def test_end_session_and_inventory():
+    s = Session("end1", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=SpokenCompiler())
+    main.sessions["end1"] = s
+    main.latest.append("end1")
+    try:
+        client = TestClient(main.app)
+        assert client.post("/api/sessions/end1/end").json() == {"ended": True}
+        assert s.ended and "end1" not in main.latest
+        inv = client.get("/api/data/inventory?session=end1").json()
+        assert {"database", "counts", "samples", "locations", "never", "redaction"} <= set(inv)
+        cfg = client.get("/api/config").json()
+        assert "erp_url" in cfg and "console_url" in cfg
+    finally:
+        main.sessions.pop("end1", None)
