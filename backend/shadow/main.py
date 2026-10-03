@@ -271,8 +271,8 @@ async def erp_action(case_id: str, body: ErpAction, session: str | None = None) 
     case = s.cases.get(case_id)
     if case:
         case["booking"] = {**case.get("booking", {}), **body.booking}
-        case["status"] = {"post": "posted", "hold": "on_hold", "second_approval": "awaiting_approval",
-                          "escalate": "escalated", "reject": "rejected"}.get(body.action, body.action)
+        case["status"] = {"post": "Posted", "hold": "On hold", "second_approval": "Awaiting 2nd approval",
+                          "escalate": "Escalated", "reject": "Rejected"}.get(body.action, body.action)
     return {"ok": True}
 
 

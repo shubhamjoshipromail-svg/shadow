@@ -131,7 +131,7 @@ class APInvoicesPack:
             history=history,
             booking=dict(cost_center=None, gl_account=None, asset_number=None, tax_code=None,
                          payment_date=None, note=""),
-            status="open",
+            status="Open",  # ERP status vocabulary: Open / On hold / Awaiting 2nd approval / Posted / ...
         )
 
     def demo_cases(self) -> dict[str, list[dict[str, Any]]]:

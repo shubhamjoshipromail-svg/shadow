@@ -492,6 +492,7 @@ function ContextPanels({ c }: { c: Case }) {
               <Row k="Ordered total"><span className="amount">{money(po.ordered_total, c.currency)}</span></Row>
               <Row k="Invoiced net"><span className="amount">{money(c.net, c.currency)}</span></Row>
               <Row k="Received qty">{Math.round(po.received_qty_ratio * 100)}% of ordered</Row>
+              <Row k="Asset no.">{po.asset_number ? <span className="font-mono">{po.asset_number}</span> : <span className="text-muted-foreground">— no asset number</span>}</Row>
               <Row k="Match"><span className={cn("font-semibold", match!.tone)}>{match!.label}</span></Row>
             </>
           ) : (

@@ -32,7 +32,7 @@ export type Case = {
   vat: number;
   gross: number;
   payment_terms: { skonto_pct: number; skonto_days: number; net_days: number };
-  po?: { po_no: string; ordered_total: number; received_qty_ratio: number; price_variance_pct: number };
+  po?: { po_no: string; ordered_total: number; received_qty_ratio: number; price_variance_pct: number; asset_number?: string };
   history: { invoice_no: string; date: string; amount: number; status: string }[];
   booking: Booking;
   status: string;
