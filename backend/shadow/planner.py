@@ -156,8 +156,9 @@ class Planner:
                 moved.append(q)
         return moved
 
-    def release(self, paused: bool, current_case_id: str | None, now: float | None = None) -> Inquiry | None:
-        if not paused or self.live_budget_left(now) <= 0:
+    def release(self, paused: bool, current_case_id: str | None, now: float | None = None,
+                ignore_budget: bool = False) -> Inquiry | None:
+        if not paused or (self.live_budget_left(now) <= 0 and not ignore_budget):
             return None
         live = [self.price(q, now) for q in self.queue if q.phase == "live" and q.status == "queued"]
         live = [q for q in live if q.value > 0]

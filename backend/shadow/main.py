@@ -299,6 +299,26 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     return {"allow": True}
 
 
+COMPANION_EVENTS = {"intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
+                    "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
+
+
+def _companion_view(m: dict[str, Any]) -> dict[str, Any]:
+    """Trim heavy payloads (full map, posteriors) before they reach the observed app."""
+    t = m["type"]
+    if t == "learned":
+        added = [c for c in m.get("changes", []) if c.get("kind") == "node_added"]
+        return {"type": t, "t": m["t"], "added": added, "quote": m.get("quote"), "metrics": m.get("metrics"),
+                "retro": [r for r in m.get("retro", []) if r.get("now_explains")]}
+    if t == "hypotheses":
+        s = m["set"]
+        return {"type": t, "t": m["t"], "field": s["field"], "entropy": s["entropy"], "resolved": m.get("resolved"),
+                "top": max(s["items"], key=lambda h: h["posterior"], default=None)}
+    if t == "episode":
+        return {"type": t, "t": m["t"], "gaps": m["episode"]["gaps"], "metrics": m.get("metrics")}
+    return m
+
+
 # ---------------------------------------------------------------- websockets
 @app.websocket("/ws/capture")
 async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
@@ -316,8 +336,9 @@ async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
                 await ws.send_text(json.dumps({"type": "session", "session": s.id, "mode": s.mode}))
 
                 async def push(m: dict[str, Any], _ws=ws) -> None:
-                    if m["type"] in ("intervene", "highlight", "record", "mode"):
-                        await _ws.send_text(json.dumps(m))
+                    # the in-app companion only needs a light stream of what Shadow is doing
+                    if m["type"] in COMPANION_EVENTS:
+                        await _ws.send_text(json.dumps(_companion_view(m), default=str))
                 s.listeners.add(push)
             await s.on_event(msg)
     except WebSocketDisconnect:

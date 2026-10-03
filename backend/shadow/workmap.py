@@ -23,7 +23,11 @@ Status = Literal["inferred", "stated", "confirmed", "contested"]
 ACTIVE: tuple[Status, ...] = ("inferred", "stated", "confirmed")
 TRUSTED: tuple[Status, ...] = ("stated", "confirmed")
 
-EVIDENCE_WEIGHT = {"live": 1.0, "retro": 1.0, "counterfactual": 0.6, "teachback": 1.5, "contradiction": 1.0}
+# origin   = the case that prompted the explanation (it explains it by construction, so it's weak evidence)
+# teachback = the expert endorsing the whole map: testimony, not behavior
+EVIDENCE_WEIGHT = {"live": 1.0, "retro": 1.0, "counterfactual": 0.6, "teachback": 1.0, "contradiction": 1.0,
+                   "origin": 0.5}
+BEHAVIORAL = ("live", "retro", "counterfactual")
 
 
 class Quote(BaseModel):
@@ -46,7 +50,7 @@ class ScreenMoment(BaseModel):
 
 class Evidence(BaseModel):
     episode_id: str
-    kind: Literal["live", "retro", "counterfactual", "teachback", "contradiction"]
+    kind: Literal["live", "retro", "counterfactual", "teachback", "contradiction", "origin"]
     agrees: bool
     note: str | None = None
 
@@ -74,11 +78,19 @@ class _Node(BaseModel):
         return v
 
     def refresh_belief(self) -> None:
-        agree = sum(EVIDENCE_WEIGHT[e.kind] for e in self.evidence if e.agrees)
-        disagree = sum(EVIDENCE_WEIGHT[e.kind] for e in self.evidence if not e.agrees)
+        seen: set[tuple[str, str]] = set()
+        unique = []
+        for e in self.evidence:  # one vote per (episode, kind)
+            if (e.episode_id, e.kind) not in seen:
+                seen.add((e.episode_id, e.kind))
+                unique.append(e)
+        self.evidence = unique
+        agree = sum(EVIDENCE_WEIGHT[e.kind] for e in unique if e.agrees)
+        disagree = sum(EVIDENCE_WEIGHT[e.kind] for e in unique if not e.agrees)
         prior_a = 3.0 if self.quote else 1.0  # testimony is a prior, not proof
         p = (prior_a + agree) / (prior_a + 1.0 + agree + disagree)
-        behavioral = any(e.agrees and e.kind in ("live", "retro", "counterfactual", "teachback") for e in self.evidence)
+        # confirmed requires behavior that did NOT prompt the rule: an independent case or probe
+        behavioral = any(e.agrees and e.kind in BEHAVIORAL for e in unique)
         if disagree > 0 and p < 0.6:
             status: Status = "contested"
         elif p >= 0.8 and behavioral:

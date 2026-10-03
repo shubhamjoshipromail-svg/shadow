@@ -57,9 +57,10 @@ async def reply(session: Session, messages: list[dict[str, Any]]) -> AsyncIterat
         if immediate is not None:  # off/on the record
             yield immediate
             return
-        nxt = await session.debrief_next()
-        ack = "" if nxt.startswith(("Thank", "Take your time")) else session.rng.choice(["Thanks.", "Got it.", "Okay, that helps."]) + " "
-        yield f"{ack}{nxt}"
+        # speak an acknowledgement now; the next question waits until this answer is in the map
+        yield session.rng.choice(["Thanks.", "Got it.", "Okay, that helps."]) + " "
+        await session.wait_learning()
+        yield await session.debrief_next()
     else:
         async for chunk in _tutor_turn(session, messages, text):
             yield chunk

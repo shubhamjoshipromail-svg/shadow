@@ -44,20 +44,21 @@ def test_full_loop_capture_debrief_tutor():
 
         # ---- debrief: close gaps, self-exam, teach-back
         await s.start_debrief()
-        for _ in range(30):
-            text = await s.debrief_next()
+        for _ in range(40):
+            await s.debrief_next()
             if s.awaiting is None:
                 break
             await s.on_utterance("yes" if s.awaiting.type == "teachback" else "spoken answer")
             await s.drain()
-            if s.teachback_confirmed:
-                break
         u = s.understood()
         debrief_qs = [q for q in s.planner.history if q.phase == "debrief" and q.type not in ("exam", "teachback")]
         assert len(debrief_qs) >= 3
         assert u["teachback_confirmed"]["passed"]
         assert u["guardrails"]["passed"]
-        assert u["exam"]["score"] != "not run"
+        assert u["exam"]["passed"], u["exam"]
+        assert u["done"], u
+        # evaluation answers are never learned from
+        assert all(e.weight == 0.0 for e in s.episodes if e.evaluation)
 
         # learned map must predict the oracle on cases it never saw
         unseen = PACK.generate_cases(40, seed=99)

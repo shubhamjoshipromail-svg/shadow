@@ -50,6 +50,8 @@ class Episode:
     synthetic: bool = False
     weight: float = 1.0
     source_inquiry: str | None = None
+    scored: bool = True  # False if the prediction wasn't committed before the decision arrived
+    evaluation: bool = False  # self-exam answer: scored, never learned from
 
     def to_json(self) -> dict[str, Any]:
         return dict(self.__dict__)
@@ -62,6 +64,8 @@ class DecisionPoint:
     prediction: MapPrediction | None = None
     attention: list[str] = field(default_factory=list)
     field_moments: dict[str, dict[str, Any]] = field(default_factory=dict)
+    task: asyncio.Task | None = None
+    committed_at: float | None = None
 
 
 class Session:
@@ -102,7 +106,14 @@ class Session:
         self.exam: list[dict[str, Any]] = []
         self.exam_results: list[bool] = []
         self.exam_cursor = 0
+        self.exam_round = 0
+        self.exam_retries = 0
+        self.exam_fp: str | None = None
+        self.exam_used: set[str] = set()
+        self.exam_failures: list[tuple[Episode, dict[str, Any], str, Any]] = []
         self.teachback_pending = False
+        self.last_learn: asyncio.Task | None = None
+        self.tutor_attempted: set[str] = set()
         self.teachback_text: str | None = None
         self.teachback_confirmed = False
         self.mastery: dict[str, dict[str, Any]] = {}
@@ -164,8 +175,9 @@ class Session:
 
     def metrics(self) -> dict[str, Any]:
         real = [e for e in self.episodes if not e.synthetic]
-        decisions = sum(len([f for f in e.expert if e.expert[f] is not None]) for e in real)
-        correct = sum(1 for e in real for f, v in e.expert.items() if v is not None and e.predicted.get(f) == v)
+        scored = [e for e in real if e.scored]
+        decisions = sum(len([f for f in e.expert if e.expert[f] is not None]) for e in scored)
+        correct = sum(1 for e in scored for f, v in e.expert.items() if v is not None and e.predicted.get(f) == v)
         asked = [q for q in self.planner.history if q.status in ("asked", "answered")]
         return {
             "episodes": len(real), "decisions": decisions,
@@ -190,6 +202,22 @@ class Session:
             return None
         if kind == "screen_changed":
             self.activity.screen_changed()
+            return None
+        if kind == "ask_now":
+            # the expert tapped Shadow's raised hand: they chose the moment, so no pause is needed
+            return {"asked": bool(await self.tick(force=True))}
+        if kind == "ask_later":
+            for q in self.planner.queue:
+                if q.phase == "live":
+                    q.phase = "debrief"
+            self.planner.lam *= 1.3  # this expert wants fewer live questions
+            await self.emit("inquiry_deferred", {"lambda": round(self.planner.lam, 3)})
+            return None
+        if kind == "replay_request":
+            iv = self.pending_interventions.get(evt.get("intervention_id", ""))
+            if iv:
+                await self.emit("replay", {"screen_moment": iv.get("screen_moment"), "intervention_id": iv["id"],
+                                          "quote": (iv.get("violation") or {}).get("quote")})
             return None
         if kind == "pii_rects":
             await self.emit("pii_rects", {"rects": evt.get("rects", []), "vw": evt.get("vw"), "vh": evt.get("vh")})
@@ -233,24 +261,34 @@ class Session:
         if self.mode == "tutor":
             await self.tutor_open(case_id)
             return
-        pred = await novice.predict(self.wm, self.pack, self.cases[case_id], use_llm=self.use_llm)
+        dp.task = asyncio.ensure_future(self._commit_prediction(dp))
+        await dp.task
+
+    async def _commit_prediction(self, dp: DecisionPoint) -> None:
+        pred = await novice.predict(self.wm, self.pack, self.cases[dp.case_id], use_llm=self.use_llm)
         dp.prediction = pred
-        await self.emit("prediction", {"case_id": case_id, "prediction": pred.model_dump(),
-                                       "committed_at": self.now(), "case": self.pack.describe(self.cases[case_id])})
+        dp.committed_at = self.now()
+        await self.emit("prediction", {"case_id": dp.case_id, "prediction": pred.model_dump(),
+                                       "committed_at": dp.committed_at, "map_version": self.wm.version,
+                                       "case": self.pack.describe(self.cases[dp.case_id])})
 
     # ------------------------------------------------------------ compare + learn
     async def on_decision(self, case_id: str, booking: dict[str, Any], action: str) -> None:
         case = self.cases[case_id]
         dp = self.dps.get(case_id)
-        if dp is None or dp.prediction is None:
+        # only predictions committed before the decision arrived count as prospective
+        scored = dp is not None and dp.prediction is not None
+        if dp is None:
             await self.open_case(case_id)
             dp = self.dps[case_id]
+        elif dp.prediction is None and dp.task is not None:
+            await dp.task
         expert = {**self.pack.normalize(case, booking), "action": action}
         pred = dp.prediction
         predicted = {k: fp.value for k, fp in pred.fields.items()}
         predicted["action"] = pred.action.value if pred.action else None
         ep = Episode(id=f"ep{len(self.episodes) + 1}", case_id=case_id, ts=self.now(), expert=expert,
-                     predicted=predicted)
+                     predicted=predicted, scored=scored)
         self.episodes.append(ep)
         self.activity.boundary()
         self._record_evidence(ep, case)
@@ -524,8 +562,8 @@ class Session:
         self.planner.enqueue(q)
         self.spawn(self.emit("inquiry", {"inquiry": q.to_json()}))
 
-    async def tick(self) -> Inquiry | None:
-        """Called frequently; releases a queued question at a natural pause."""
+    async def tick(self, force: bool = False) -> Inquiry | None:
+        """Called frequently; releases a queued question at a natural pause (or now, if the expert asked)."""
         state = self.activity.state()
         sig = (state["paused"], tuple(state["blocking"]))
         if sig != getattr(self, "_last_activity", None):
@@ -533,10 +571,10 @@ class Session:
             await self.emit("activity", {"activity": state})
         if self.mode != "capture" or self.awaiting or self.off_record:
             return None
-        q = self.planner.release(state["paused"], self.current_case)
+        q = self.planner.release(state["paused"] or force, self.current_case, ignore_budget=force)
         if q:
             self.awaiting = q
-            await self.emit("ask", {"inquiry": q.to_json(), "activity": state})
+            await self.emit("ask", {"inquiry": q.to_json(), "activity": state, "expert_initiated": force})
         return q
 
     # ------------------------------------------------------------ answers
@@ -561,10 +599,26 @@ class Session:
             return None
         self.awaiting = None
         q.status = "answered"
-        self.spawn(self.learn_from_answer(q, text))
+        self.last_learn = self.spawn(self.learn_from_answer(q, text))
         if self.mode == "debrief":
             return None
         return self.rng.choice(["Got it, thanks.", "That helps, thank you.", "Makes sense. Thanks."])
+
+    async def wait_learning(self, timeout: float = 15.0) -> None:
+        """Turn barrier: the next debrief question waits until the last answer is in the map."""
+        task = self.last_learn
+        if task and not task.done():
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout)
+            except asyncio.TimeoutError:
+                log.warning("answer compilation still running after %ss", timeout)
+
+    def _map_fp(self) -> str:
+        """Fingerprint of everything that changes predictions; an exam is only valid for the map it tested."""
+        parts = [(n.id, n.when, getattr(n, "then", None) or getattr(n, "action", None), getattr(n, "priority", 0),
+                  n.belief.status == "contested") for n in [*self.wm.rules, *self.wm.guardrails]]
+        params = {k: round(v, -1) for k, v in self.wm.params.items()}
+        return str(zlib.crc32(repr((parts, sorted(params.items()))).encode()))
 
     async def learn_from_answer(self, q: Inquiry, transcript: str) -> None:
         case = self.cases.get(q.case_id or "") if q.case_id else None
@@ -583,6 +637,18 @@ class Session:
         if compiled.off_the_record:
             self.off_record = True
             await self.emit("record", {"off_record": True})
+            return
+        if not compiled.answers_question and q.type != "teachback":
+            # "sorry, say that again" or unrelated speech must not consume the question
+            q.status = "queued"
+            if q.type == "exam" and getattr(q, "exam_index", None) is not None:
+                self.exam.append(self.exam[q.exam_index])
+            else:
+                if q in self.planner.history:
+                    self.planner.history.remove(q)
+                q.phase = "debrief" if self.mode == "debrief" else q.phase
+                self.planner.queue.insert(0, q)
+            await self.emit("inquiry", {"inquiry": q.to_json(), "note": "not answered yet — kept open"})
             return
         quote = Quote(text=compiled.key_quote, speaker=self.expert, ts=self.now(), lang=self.lang,
                       translation=compiled.translation_en, inquiry_id=q.id)
@@ -671,9 +737,15 @@ class Session:
         changes: list[dict[str, Any]] = [{"kind": "probe", "delta": q.probe_delta, "answer": answer,
                                           "map_predicted": predicted[f]}]
         if q.type == "exam":
-            ok = predicted[f] == answer
+            # evaluation pass: scored against the prediction frozen when the exam was built; never learned from
+            ok = q.expert_value == answer
+            ep.evaluation, ep.weight, ep.predicted = True, 0.0, {f: q.expert_value}
             self.exam_results.append(ok)
-            changes.append({"kind": "exam", "correct": ok})
+            if not ok:
+                self.exam_failures.append((ep, probe, f, answer))
+            changes[0]["map_predicted"] = q.expert_value
+            changes.append({"kind": "exam", "correct": ok, "round": self.exam_round})
+            return changes
         resolved_conflict = False
         if q.target_node and "|" in q.target_node:
             a, b = (self.wm.node(i) for i in q.target_node.split("|"))
@@ -736,7 +808,7 @@ class Session:
         node.origin = "expert" if quote else "inferred"
         node.quote = quote
         node.screen_moment = moment
-        node.evidence.append(Evidence(episode_id=h.id.split(".")[0], kind="live", agrees=True))
+        node.evidence.append(Evidence(episode_id=h.id.split(".")[0], kind="origin", agrees=True))
         node.refresh_belief()
         self._attach(node)
         return node
@@ -766,7 +838,7 @@ class Session:
                         agrees = ep.expert.get("action") == node.action or node.action == "block"
                     else:
                         agrees = ep.expert.get(cr.field) == node.then.get(cr.field)
-                    node.evidence.append(Evidence(episode_id=ep.id, kind="live", agrees=agrees))
+                    node.evidence.append(Evidence(episode_id=ep.id, kind="origin", agrees=agrees))
         node.refresh_belief()
         self._attach(node)
         return node
@@ -929,11 +1001,12 @@ class Session:
             self.planner.enqueue(q)
 
     def _build_exam(self, k: int = 5) -> None:
-        """Unseen cases spanning the rule boundaries; Shadow must predict the expert's answer."""
+        """Unseen cases spanning the rule boundaries. Predictions are frozen now, before any answer."""
         candidates = []
         for cid in self.case_order:
-            candidates += self.pack.perturb(self.cases[cid], random.Random(len(cid)))
-        trusted = [n for n in [*self.wm.rules, *self.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
+            candidates += self.pack.perturb(self.cases[cid], random.Random(len(cid) + 31 * self.exam_round))
+        asked_probes = {q.probe_case["id"] for q in self.planner.history if q.probe_case is not None}
+        candidates = [c for c in candidates if c["id"] not in self.exam_used and c["id"] not in asked_probes]
         chosen, used_nodes = [], set()
         for v in candidates:
             pred = run_map(self.wm, self.pack, v, TRUSTED + ("inferred",))
@@ -951,9 +1024,25 @@ class Session:
                 used_nodes.update(new)
             if len(chosen) >= k:
                 break
+        # top up with fresh generated cases the expert has never seen
+        for c in self.pack.generate_cases(40, seed=1000 + self.exam_round):
+            if len(chosen) >= k:
+                break
+            if c["id"] in self.exam_used:
+                continue
+            pred = run_map(self.wm, self.pack, c)
+            learned_field = next((f for f, fp in pred.fields.items() if (n := self.wm.node(fp.source)) and n.origin != "doc"), None)
+            field_ = learned_field or "action"
+            expected = (pred.action.value if pred.action else None) if field_ == "action" else pred.fields[field_].value
+            c = {**c, "_probe": {"base": None, "delta": self.pack.describe(c)}}
+            chosen.append({"case": c, "field": field_, "expected": expected, "node": None})
         self.exam = chosen
         self.exam_results = []
-        _ = trusted
+        self.exam_failures = []
+        self.exam_cursor = 0
+        self.exam_fp = self._map_fp()
+        self.exam_round += 1
+        self.exam_used.update(item["case"]["id"] for item in chosen)
 
     async def debrief_next(self) -> str:
         """The next thing the interviewer should say in the debrief."""
@@ -968,23 +1057,47 @@ class Session:
             self.awaiting = q
             await self.emit("ask", {"inquiry": q.to_json()})
             return q.text
+        if self.exam_cursor == 0 and self.exam_fp != self._map_fp():
+            self._build_exam()  # the map changed since the exam was drawn: freeze a fresh one
         done_exam = self.exam_cursor
         if done_exam < len(self.exam):
             self.exam_cursor += 1
             item = self.exam[done_exam]
-            base = self.cases.get(item["case"]["_probe"]["base"]) if "_probe" in item["case"] else None
+            base = self.cases.get(item["case"]["_probe"]["base"] or "") if "_probe" in item["case"] else None
             q = Inquiry(id=self.planner.new_id(), type="exam", case_id=base["id"] if base else None,
                         field=item["field"], text="", evoi=0.3, phase="debrief", probe_case=item["case"],
                         probe_delta=self.pack.describe_delta(base or item["case"], item["case"]),
                         expert_value=item["expected"], target_node=item["node"],
                         reason=f"self-exam {done_exam + 1}/{len(self.exam)}")
-            q.text = ("Now let me test myself. " if done_exam == 0 else "") + questions.template(
-                self.pack, "exam", case=base, field=item["field"], probe_delta=q.probe_delta)
+            q.exam_index = done_exam  # type: ignore[attr-defined]
+            if base is None:  # a fresh generated case, not a variant of something the expert saw
+                q.text = ("Now let me test myself on a case you haven't seen. " if done_exam == 0 else "") + \
+                    f"Say you get {q.probe_delta}. What would you do?"
+            else:
+                q.text = ("Now let me test myself. " if done_exam == 0 else "") + questions.template(
+                    self.pack, "exam", case=base, field=item["field"], probe_delta=q.probe_delta)
             self.planner.mark_asked(q)
             self.awaiting = q
             await self.emit("ask", {"inquiry": q.to_json(), "exam": {"index": done_exam, "of": len(self.exam),
                                                                     "expected": item["expected"]}})
             return q.text
+        if self.exam and self.exam_cursor >= len(self.exam):
+            await self.drain()  # every exam answer scored before judging the exam
+            fresh_exam_needed = self.exam_failures or self.exam_fp != self._map_fp()
+            if fresh_exam_needed and self.exam_retries < 2:
+                self.exam_retries += 1
+                for ep, probe, f, answer in self.exam_failures:  # a failed exam item becomes a lesson
+                    lesson = Episode(id=f"lesson{len(self.episodes) + 1}", case_id=probe["id"], ts=self.now(),
+                                     expert={f: answer}, predicted=dict(ep.predicted), synthetic=True, weight=0.6)
+                    self.episodes.append(lesson)
+                    self._observe_thresholds(probe, lesson.expert, weight=0.6)
+                    gap = {"id": f"{lesson.id}.{f}", "field": f, "expert": answer, "predicted": ep.predicted.get(f),
+                           "case_id": probe["id"], "type": "structural", "why": "failed its own exam"}
+                    lesson.gaps.append(gap)
+                    self.spawn(self.analyze_gap(lesson, probe, gap))
+                await self.drain()
+                self._build_exam()
+                return await self.debrief_next()
         if self.teachback_pending:
             await self.drain()  # the teach-back verdict decides what comes next
             if self.teachback_pending:
@@ -998,7 +1111,11 @@ class Session:
             self.awaiting = q
             await self.emit("ask", {"inquiry": q.to_json(), "teachback": True})
             return text
-        return "Thank you. I have everything I need, and the Work Map is ready."
+        u = self.understood()
+        if u["done"]:
+            return "Thank you. I have everything I need, and the Work Map is ready."
+        missing = [k.replace("_", " ") for k, v in u.items() if isinstance(v, dict) and not v["passed"]]
+        return f"Thank you. I'm not done yet: {', '.join(missing)} still open. Let's pick those up next time."
 
     async def build_teachback(self) -> str:
         """Walk the executable map, step by step. The LLM only smooths the wording."""
@@ -1072,9 +1189,12 @@ class Session:
             covered.append(bool(learned) or s.discretion or self._doc_rule_validated(s))
         exam_n = len(self.exam_results)
         exam_ok = sum(self.exam_results)
+        exam_valid = bool(self.exam) and exam_n >= len(self.exam) >= 5 and self.exam_fp == self._map_fp()
         agenda_value = max((q.value for q in self.planner.debrief_agenda()), default=0.0)
         checks = {
-            "exam": {"passed": exam_n >= 5 and exam_ok >= 4, "score": f"{exam_ok}/{exam_n}" if exam_n else "not run"},
+            "exam": {"passed": exam_valid and exam_ok >= 0.8 * exam_n, "round": self.exam_round,
+                     "score": f"{exam_ok}/{exam_n}" if exam_n else "not run",
+                     "stale": bool(exam_n) and self.exam_fp != self._map_fp()},
             "steps_covered": {"passed": all(covered), "covered": sum(covered), "of": len(decision_steps)},
             "guardrails": {"passed": any(g.origin != "doc" for g in self.wm.guardrails),
                            "count": sum(1 for g in self.wm.guardrails if g.origin != "doc")},
@@ -1105,14 +1225,22 @@ class Session:
         violations = check_proposal(self.wm, self.pack, case, booking, action)
         pred = run_map(self.wm, self.pack, case, TRUSTED)
         relevant = pred.fired_rules + pred.triggered_guardrails
+        # only the first attempt on a case is independent evidence; a fix after Shadow stepped in is assisted
+        first_attempt = case_id not in self.tutor_attempted
+        self.tutor_attempted.add(case_id)
         if not violations:
             for nid in relevant:
-                self._bkt(nid, correct=True)
-            await self.emit("tutor_ok", {"case_id": case_id, "action": action, "mastery": self.mastery})
+                if first_attempt:
+                    self._bkt(nid, correct=True)
+                else:
+                    self._note_assisted(nid)
+            await self.emit("tutor_ok", {"case_id": case_id, "action": action, "mastery": self.mastery,
+                                         "independent": first_attempt})
             return {"allow": True}
         v = violations[0]
-        for viol in violations:
-            self._bkt(viol.node_id, correct=False)
+        if first_attempt:
+            for viol in violations:
+                self._bkt(viol.node_id, correct=False)
         iid = uuid.uuid4().hex[:8]
         node = self.wm.node(v.node_id)
         parts = []
@@ -1149,6 +1277,12 @@ class Session:
         m["p"] = round(cond + (1 - cond) * p_t, 3)
         m["opportunities"] += 1
         m["status"] = "mastered" if m["p"] >= 0.85 else ("shaky" if m["p"] >= 0.5 else "practice")
+
+    def _note_assisted(self, node_id: str) -> None:
+        node = self.wm.node(node_id)
+        m = self.mastery.setdefault(node_id, {"p": 0.2, "opportunities": 0, "status": "practice",
+                                              "title": node.title if node else node_id})
+        m["assisted"] = m.get("assisted", 0) + 1
 
     def tutor_report(self) -> dict[str, Any]:
         trusted = [n for n in [*self.wm.rules, *self.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
