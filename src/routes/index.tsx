@@ -1,24 +1,120 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useErp } from "@/lib/erp/store";
+import { STATUSES } from "@/lib/erp/types";
+import { date, flag, money } from "@/lib/erp/format";
+import { StatusBadge } from "@/components/erp/StatusBadge";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "AP Inbox · Nordwerk ERP" },
+      { name: "description", content: "Open supplier invoices awaiting booking at Nordwerk Maschinenbau." },
+      { property: "og:title", content: "AP Inbox · Nordwerk ERP" },
+      { property: "og:description", content: "Open supplier invoices awaiting booking." },
+    ],
+  }),
+  component: Inbox,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Inbox() {
+  const { cases } = useErp();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [q, setQ] = useState("");
+
+  const suppliers = useMemo(() => [...new Set(cases.map((c) => c.supplier.name))].sort(), [cases]);
+  const openCount = cases.filter((c) => !["Posted", "Rejected"].includes(c.status)).length;
+  const rows = cases.filter((c) => {
+    if (status && c.status !== status) return false;
+    if (supplier && c.supplier.name !== supplier) return false;
+    if (q) {
+      const s = q.toLowerCase();
+      return [c.invoice_no, c.supplier.name, String(c.gross)].some((v) => v.toLowerCase().includes(s));
+    }
+    return true;
+  });
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="p-4">
+      <div className="mb-3 flex items-center gap-2 rounded-sm border border-banner-foreground/25 bg-banner px-3 py-2 text-banner-foreground">
+        <span className="font-semibold">Month-end close in 2 days</span>
+        <span>·</span>
+        <span>{openCount} invoices open</span>
+      </div>
+
+      <div className="rounded-sm border border-border bg-card">
+        <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+          <h1 className="mr-4 text-[15px] font-semibold">Supplier invoices</h1>
+          <input
+            className="field max-w-64"
+            placeholder="Search invoice no., supplier, amount…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <select className="field max-w-48" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+          <select className="field max-w-64" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+            <option value="">All suppliers</option>
+            {suppliers.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+          <span className="ml-auto text-muted-foreground">{rows.length} items</span>
+        </div>
+        <table className="w-full text-[13px]">
+          <thead className="bg-muted text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-3 py-1.5 font-medium">Invoice no.</th>
+              <th className="px-3 py-1.5 font-medium">Supplier</th>
+              <th className="px-3 py-1.5 font-medium">Ctry</th>
+              <th className="px-3 py-1.5 font-medium">Invoice date</th>
+              <th className="px-3 py-1.5 font-medium">Due date</th>
+              <th className="px-3 py-1.5 text-right font-medium">Net</th>
+              <th className="px-3 py-1.5 text-right font-medium">Gross</th>
+              <th className="px-3 py-1.5 font-medium">Curr.</th>
+              <th className="px-3 py-1.5 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((c) => (
+              <tr
+                key={c.id}
+                data-shadow-entity={`invoice:${c.id}`}
+                data-shadow-action="open"
+                onClick={() => navigate({ to: "/invoice/$id", params: { id: c.id } })}
+                className="cursor-pointer border-t border-border even:bg-muted/40 hover:bg-accent"
+              >
+                <td className="px-3 py-1.5 font-mono text-primary">{c.invoice_no}</td>
+                <td className="px-3 py-1.5">{c.supplier.name}</td>
+                <td className="px-3 py-1.5" title={c.supplier.country}>
+                  {flag(c.supplier.country)} <span className="text-muted-foreground">{c.supplier.country}</span>
+                </td>
+                <td className="px-3 py-1.5 amount">{date(c.invoice_date)}</td>
+                <td className="px-3 py-1.5 amount">{date(c.due_date)}</td>
+                <td className="px-3 py-1.5 text-right amount">{money(c.net, c.currency)}</td>
+                <td className="px-3 py-1.5 text-right amount">{money(c.gross, c.currency)}</td>
+                <td className="px-3 py-1.5">{c.currency}</td>
+                <td className="px-3 py-1.5">
+                  <StatusBadge status={c.status} />
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
+                  No invoices match the filter.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
