@@ -1,0 +1,1180 @@
+[
+ {
+  "id": "c001",
+  "invoice_no": "HM-2026-0412",
+  "invoice_date": "2026-09-18",
+  "due_date": "2026-10-18",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s01",
+   "name": "Hessler Maschinentechnik GmbH",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 284 551 903",
+   "iban": "DE44 5001 0517 5407 3249 31"
+  },
+  "lines": [
+   {
+    "description": "Säulenbohrmaschine SB 32 inkl. Kühlmitteleinrichtung",
+    "qty": 1,
+    "unit_price": 5980,
+    "category": "equipment"
+   },
+   {
+    "description": "Lieferung und Aufstellung",
+    "qty": 1,
+    "unit_price": 420,
+    "category": "freight"
+   }
+  ],
+  "net": 6400.0,
+  "vat_rate": 19,
+  "vat": 1216.0,
+  "gross": 7616.0,
+  "payment_terms": {
+   "skonto_pct": 2,
+   "skonto_days": 14,
+   "net_days": 30
+  },
+  "po": {
+   "po_no": "4500018231",
+   "ordered_total": 6400,
+   "received_qty_ratio": 1,
+   "price_variance_pct": 0
+  },
+  "history": [
+   {
+    "invoice_no": "HM-2026-0411",
+    "date": "2026-09-13",
+    "amount": 9622.86,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0410",
+    "date": "2026-08-15",
+    "amount": 8039.86,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0409",
+    "date": "2026-07-05",
+    "amount": 8947.98,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0408",
+    "date": "2026-06-06",
+    "amount": 6519.16,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0407",
+    "date": "2026-05-04",
+    "amount": 9419.41,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0406",
+    "date": "2026-04-09",
+    "amount": 4769.5,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0405",
+    "date": "2026-03-16",
+    "amount": 6798.96,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "HM-2026-0404",
+    "date": "2026-02-10",
+    "amount": 5053.21,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c002",
+  "invoice_no": "BT-90233871",
+  "invoice_date": "2026-09-22",
+  "due_date": "2026-10-22",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s02",
+   "name": "Bürotec Systemhaus AG",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 811 204 556",
+   "iban": "DE12 6005 0101 0004 1188 22"
+  },
+  "lines": [
+   {
+    "description": "Notebook Lenovo ThinkPad T16 Gen 3, 32 GB",
+    "qty": 3,
+    "unit_price": 1489,
+    "category": "it_hardware"
+   },
+   {
+    "description": "Dockingstation USB-C",
+    "qty": 3,
+    "unit_price": 129,
+    "category": "it_hardware"
+   },
+   {
+    "description": "Imaging & Rollout",
+    "qty": 3,
+    "unit_price": 36,
+    "category": "service"
+   }
+  ],
+  "net": 4962.0,
+  "vat_rate": 19,
+  "vat": 942.78,
+  "gross": 5904.78,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 30
+  },
+  "po": {
+   "po_no": "4500018302",
+   "ordered_total": 4962,
+   "received_qty_ratio": 1,
+   "price_variance_pct": 0
+  },
+  "history": [
+   {
+    "invoice_no": "BT-90233870",
+    "date": "2026-09-16",
+    "amount": 3787.19,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233869",
+    "date": "2026-08-21",
+    "amount": 4054.58,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233868",
+    "date": "2026-07-10",
+    "amount": 6149.46,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233867",
+    "date": "2026-06-21",
+    "amount": 7460.08,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233866",
+    "date": "2026-05-21",
+    "amount": 5963.11,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233865",
+    "date": "2026-04-04",
+    "amount": 7578.07,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233864",
+    "date": "2026-03-04",
+    "amount": 5843.76,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "BT-90233863",
+    "date": "2026-02-07",
+    "amount": 4739.92,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c003",
+  "invoice_no": "KI-26-1408",
+  "invoice_date": "2026-09-29",
+  "due_date": "2026-10-29",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s03",
+   "name": "Krämer Industriebedarf e.K.",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 197 330 412",
+   "iban": "DE89 3704 0044 0532 0130 00",
+   "notes": "Monthly consumables supplier. Has billed twice for the same delivery before (Dec 2025)."
+  },
+  "lines": [
+   {
+    "description": "Schutzhandschuhe Nitril Gr. 9 (Karton)",
+    "qty": 20,
+    "unit_price": 38.5,
+    "category": "consumables"
+   },
+   {
+    "description": "Kühlschmierstoff 20 l",
+    "qty": 6,
+    "unit_price": 89,
+    "category": "consumables"
+   },
+   {
+    "description": "Putztücher Rolle",
+    "qty": 30,
+    "unit_price": 12.9,
+    "category": "consumables"
+   }
+  ],
+  "net": 1691.0,
+  "vat_rate": 19,
+  "vat": 321.29,
+  "gross": 2012.29,
+  "payment_terms": {
+   "skonto_pct": 2,
+   "skonto_days": 10,
+   "net_days": 30
+  },
+  "history": [
+   {
+    "invoice_no": "KI-25-1187",
+    "date": "2025-12-04",
+    "amount": 2186.8,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-1193",
+    "date": "2025-12-18",
+    "amount": 2186.8,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-1102",
+    "date": "2025-11-12",
+    "amount": 1844.1,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-1034",
+    "date": "2025-10-09",
+    "amount": 1902.55,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-0981",
+    "date": "2025-09-15",
+    "amount": 2011.3,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-0920",
+    "date": "2025-08-21",
+    "amount": 1755.0,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-0874",
+    "date": "2025-07-30",
+    "amount": 2186.8,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "KI-25-0811",
+    "date": "2025-07-02",
+    "amount": 1690.45,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c004",
+  "invoice_no": "NCZ-2026-0917",
+  "invoice_date": "2026-09-20",
+  "due_date": "2026-10-20",
+  "currency": "CZK",
+  "supplier": {
+   "id": "s04",
+   "name": "Nordwerk CZ s.r.o.",
+   "country": "CZ",
+   "status": "known",
+   "intercompany": true,
+   "bank_changed_recently": false,
+   "vat_id": "CZ 27118521",
+   "iban": "CZ65 0800 0000 1920 0014 5399",
+   "notes": "Group company – intercompany. Book to 9100 clearing."
+  },
+  "lines": [
+   {
+    "description": "Lohnfertigung Schweißbaugruppen BG-220",
+    "qty": 40,
+    "unit_price": 5850,
+    "category": "service"
+   },
+   {
+    "description": "Transport Plzeň – Bremen",
+    "qty": 1,
+    "unit_price": 18500,
+    "category": "freight"
+   }
+  ],
+  "net": 252500.0,
+  "vat_rate": 0,
+  "vat": 0.0,
+  "gross": 252500.0,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 45
+  },
+  "po": {
+   "po_no": "IC-2026-0331",
+   "ordered_total": 252500,
+   "received_qty_ratio": 1,
+   "price_variance_pct": 0
+  },
+  "history": [
+   {
+    "invoice_no": "NCZ-2026-0916",
+    "date": "2026-09-07",
+    "amount": 247066.23,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0915",
+    "date": "2026-08-21",
+    "amount": 206024.16,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0914",
+    "date": "2026-07-24",
+    "amount": 183443.39,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0913",
+    "date": "2026-06-21",
+    "amount": 252460.38,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0912",
+    "date": "2026-05-09",
+    "amount": 217321.27,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0911",
+    "date": "2026-04-20",
+    "amount": 277365.58,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0910",
+    "date": "2026-03-21",
+    "amount": 162034.51,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "NCZ-2026-0909",
+    "date": "2026-02-09",
+    "amount": 239241.26,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c005",
+  "invoice_no": "AT-24-5531",
+  "invoice_date": "2026-09-16",
+  "due_date": "2026-10-16",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s05",
+   "name": "Alpin Hydraulik GmbH",
+   "country": "AT",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "ATU 63829104",
+   "iban": "AT61 1904 3002 3457 3201"
+  },
+  "lines": [
+   {
+    "description": "Hydraulikzylinder HZ-80/400",
+    "qty": 4,
+    "unit_price": 612,
+    "category": "equipment"
+   },
+   {
+    "description": "Dichtungssatz",
+    "qty": 8,
+    "unit_price": 44.5,
+    "category": "consumables"
+   }
+  ],
+  "net": 2804.0,
+  "vat_rate": 0,
+  "vat": 0.0,
+  "gross": 2804.0,
+  "payment_terms": {
+   "skonto_pct": 3,
+   "skonto_days": 8,
+   "net_days": 30
+  },
+  "po": {
+   "po_no": "4500018190",
+   "ordered_total": 2804,
+   "received_qty_ratio": 1,
+   "price_variance_pct": 0
+  },
+  "history": [
+   {
+    "invoice_no": "AT-24-5530",
+    "date": "2026-09-20",
+    "amount": 2521.68,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5529",
+    "date": "2026-08-13",
+    "amount": 2596.28,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5528",
+    "date": "2026-07-17",
+    "amount": 2392.11,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5527",
+    "date": "2026-06-10",
+    "amount": 3241.61,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5526",
+    "date": "2026-05-25",
+    "amount": 3213.05,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5525",
+    "date": "2026-04-05",
+    "amount": 2809.88,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5524",
+    "date": "2026-03-19",
+    "amount": 2654.21,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "AT-24-5523",
+    "date": "2026-02-13",
+    "amount": 3114.16,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c006",
+  "invoice_no": "INV-00017",
+  "invoice_date": "2026-09-30",
+  "due_date": "2026-10-07",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s06",
+   "name": "Westbridge Trading Ltd.",
+   "country": "GB",
+   "status": "unknown",
+   "intercompany": false,
+   "bank_changed_recently": true,
+   "vat_id": "GB 391 2210 77",
+   "iban": "LT12 3250 0249 6812 0045",
+   "notes": "Bank details changed by e-mail on 28.09.2026. Not verified by phone."
+  },
+  "lines": [
+   {
+    "description": "Spare parts package (various)",
+    "qty": 1,
+    "unit_price": 8740,
+    "category": "equipment"
+   }
+  ],
+  "net": 8740.0,
+  "vat_rate": 19,
+  "vat": 1660.6,
+  "gross": 10400.6,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 7
+  },
+  "history": [],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c007",
+  "invoice_no": "SL-260981",
+  "invoice_date": "2026-09-12",
+  "due_date": "2026-10-12",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s07",
+   "name": "Schöller Lagertechnik GmbH",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 142 778 309",
+   "iban": "DE27 1007 7777 0209 2997 00"
+  },
+  "lines": [
+   {
+    "description": "Pendelrollenlager 22320 E",
+    "qty": 12,
+    "unit_price": 312,
+    "category": "equipment"
+   },
+   {
+    "description": "Zylinderrollenlager NU 2216",
+    "qty": 10,
+    "unit_price": 148.2,
+    "category": "equipment"
+   }
+  ],
+  "net": 5226.0,
+  "vat_rate": 19,
+  "vat": 992.94,
+  "gross": 6218.94,
+  "payment_terms": {
+   "skonto_pct": 2,
+   "skonto_days": 14,
+   "net_days": 30
+  },
+  "po": {
+   "po_no": "4500018077",
+   "ordered_total": 5023.85,
+   "received_qty_ratio": 1,
+   "price_variance_pct": 4.0
+  },
+  "history": [
+   {
+    "invoice_no": "SL-260980",
+    "date": "2026-09-12",
+    "amount": 6382.32,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260979",
+    "date": "2026-08-05",
+    "amount": 4245.33,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260978",
+    "date": "2026-07-16",
+    "amount": 4449.49,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260977",
+    "date": "2026-06-13",
+    "amount": 4392.99,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260976",
+    "date": "2026-05-18",
+    "amount": 5567.13,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260975",
+    "date": "2026-04-24",
+    "amount": 4069.27,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260974",
+    "date": "2026-03-20",
+    "amount": 6225.89,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "SL-260973",
+    "date": "2026-02-13",
+    "amount": 5212.0,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c008",
+  "invoice_no": "FS-2026-3317",
+  "invoice_date": "2026-09-24",
+  "due_date": "2026-10-24",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s08",
+   "name": "Fritz Schrauben & Normteile GmbH",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 205 913 664",
+   "iban": "DE02 2004 1111 0563 1234 00"
+  },
+  "lines": [
+   {
+    "description": "Sechskantschraube DIN 933 M12x40 (VE 100)",
+    "qty": 25,
+    "unit_price": 21.4,
+    "category": "consumables"
+   },
+   {
+    "description": "Mutter DIN 934 M12 (VE 100)",
+    "qty": 25,
+    "unit_price": 8.9,
+    "category": "consumables"
+   },
+   {
+    "description": "Fracht",
+    "qty": 1,
+    "unit_price": 24,
+    "category": "freight"
+   }
+  ],
+  "net": 781.5,
+  "vat_rate": 19,
+  "vat": 148.49,
+  "gross": 929.99,
+  "payment_terms": {
+   "skonto_pct": 2,
+   "skonto_days": 10,
+   "net_days": 30
+  },
+  "history": [
+   {
+    "invoice_no": "FS-2026-3316",
+    "date": "2026-09-14",
+    "amount": 944.92,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3315",
+    "date": "2026-08-21",
+    "amount": 1076.76,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3314",
+    "date": "2026-07-05",
+    "amount": 1104.8,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3313",
+    "date": "2026-06-11",
+    "amount": 866.62,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3312",
+    "date": "2026-05-24",
+    "amount": 600.31,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3311",
+    "date": "2026-04-26",
+    "amount": 1014.65,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3310",
+    "date": "2026-03-23",
+    "amount": 934.23,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "FS-2026-3309",
+    "date": "2026-02-24",
+    "amount": 1093.06,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ },
+ {
+  "id": "c009",
+  "invoice_no": "EW-7712093",
+  "invoice_date": "2026-09-15",
+  "due_date": "2026-10-15",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s09",
+   "name": "Energieversorgung Weser AG",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 114 006 210",
+   "iban": "DE33 2905 0101 0001 0090 00"
+  },
+  "lines": [
+   {
+    "description": "Strom Leistungspreis 08/2026",
+    "qty": 1,
+    "unit_price": 2140,
+    "category": "service"
+   },
+   {
+    "description": "Strom Arbeitspreis 08/2026",
+    "qty": 48200,
+    "unit_price": 0.118,
+    "category": "service"
+   }
+  ],
+  "net": 7827.6,
+  "vat_rate": 19,
+  "vat": 1487.24,
+  "gross": 9314.84,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 14
+  },
+  "history": [
+   {
+    "invoice_no": "EW-7712092",
+    "date": "2026-09-12",
+    "amount": 10261.6,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712091",
+    "date": "2026-08-24",
+    "amount": 7851.52,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712090",
+    "date": "2026-07-17",
+    "amount": 7906.67,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712089",
+    "date": "2026-06-22",
+    "amount": 6352.42,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712088",
+    "date": "2026-05-04",
+    "amount": 7011.71,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712087",
+    "date": "2026-04-12",
+    "amount": 6432.26,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712086",
+    "date": "2026-03-10",
+    "amount": 8183.35,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "EW-7712085",
+    "date": "2026-02-18",
+    "amount": 6114.33,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": "4711",
+   "gl_account": "4240",
+   "asset_number": null,
+   "tax_code": "V19",
+   "payment_date": "2026-09-29",
+   "note": "Monthly utility."
+  },
+  "status": "Posted"
+ },
+ {
+  "id": "c010",
+  "invoice_no": "US-11408",
+  "invoice_date": "2026-09-10",
+  "due_date": "2026-10-10",
+  "currency": "USD",
+  "supplier": {
+   "id": "s10",
+   "name": "Precision Sensors Inc.",
+   "country": "US",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "US 46-2331908",
+   "iban": "US-ACH 021000021 / 7781203"
+  },
+  "lines": [
+   {
+    "description": "Laser displacement sensor LDS-200",
+    "qty": 6,
+    "unit_price": 684,
+    "category": "equipment"
+   },
+   {
+    "description": "Calibration certificate",
+    "qty": 6,
+    "unit_price": 45,
+    "category": "service"
+   }
+  ],
+  "net": 4374.0,
+  "vat_rate": 0,
+  "vat": 0.0,
+  "gross": 4374.0,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 30
+  },
+  "po": {
+   "po_no": "4500017966",
+   "ordered_total": 4374,
+   "received_qty_ratio": 0.83,
+   "price_variance_pct": 0
+  },
+  "history": [
+   {
+    "invoice_no": "US-11407",
+    "date": "2026-09-17",
+    "amount": 3854.15,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11406",
+    "date": "2026-08-11",
+    "amount": 5329.14,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11405",
+    "date": "2026-07-16",
+    "amount": 5269.75,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11404",
+    "date": "2026-06-11",
+    "amount": 4787.25,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11403",
+    "date": "2026-05-14",
+    "amount": 4714.76,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11402",
+    "date": "2026-04-15",
+    "amount": 5556.78,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11401",
+    "date": "2026-03-07",
+    "amount": 2878.48,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "US-11400",
+    "date": "2026-02-07",
+    "amount": 3334.61,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": "4711",
+   "gl_account": "3400",
+   "asset_number": null,
+   "tax_code": "V0",
+   "payment_date": null,
+   "note": "Only 5 of 6 sensors received. Waiting for GR."
+  },
+  "status": "On hold"
+ },
+ {
+  "id": "c011",
+  "invoice_no": "RS-26-0844",
+  "invoice_date": "2026-09-21",
+  "due_date": "2026-10-21",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s11",
+   "name": "Reinigungsservice Nord GmbH",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 266 018 445",
+   "iban": "DE75 2915 1700 1220 4471 08"
+  },
+  "lines": [
+   {
+    "description": "Unterhaltsreinigung Halle 1–3, 09/2026",
+    "qty": 1,
+    "unit_price": 1860,
+    "category": "service"
+   }
+  ],
+  "net": 1860.0,
+  "vat_rate": 19,
+  "vat": 353.4,
+  "gross": 2213.4,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 30
+  },
+  "history": [
+   {
+    "invoice_no": "RS-26-0843",
+    "date": "2026-09-10",
+    "amount": 1346.73,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0842",
+    "date": "2026-08-21",
+    "amount": 1610.56,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0841",
+    "date": "2026-07-12",
+    "amount": 1334.38,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0840",
+    "date": "2026-06-16",
+    "amount": 2156.32,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0839",
+    "date": "2026-05-22",
+    "amount": 2205.52,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0838",
+    "date": "2026-04-07",
+    "amount": 2397.88,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0837",
+    "date": "2026-03-19",
+    "amount": 2800.3,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "RS-26-0836",
+    "date": "2026-02-23",
+    "amount": 2375.73,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": "4711",
+   "gl_account": "4250",
+   "asset_number": null,
+   "tax_code": "V19",
+   "payment_date": "2026-10-20",
+   "note": ""
+  },
+  "status": "Awaiting 2nd approval"
+ },
+ {
+  "id": "c012",
+  "invoice_no": "MS-DE-2026-5520",
+  "invoice_date": "2026-09-26",
+  "due_date": "2026-10-26",
+  "currency": "EUR",
+  "supplier": {
+   "id": "s12",
+   "name": "Microsoft Deutschland GmbH",
+   "country": "DE",
+   "status": "known",
+   "intercompany": false,
+   "bank_changed_recently": false,
+   "vat_id": "DE 129 415 943",
+   "iban": "DE10 7003 0000 0000 5520 00"
+  },
+  "lines": [
+   {
+    "description": "Microsoft 365 E3 – 85 Lizenzen, 10/2026",
+    "qty": 85,
+    "unit_price": 33.6,
+    "category": "software"
+   }
+  ],
+  "net": 2856.0,
+  "vat_rate": 19,
+  "vat": 542.64,
+  "gross": 3398.64,
+  "payment_terms": {
+   "skonto_pct": 0,
+   "skonto_days": 0,
+   "net_days": 30
+  },
+  "history": [
+   {
+    "invoice_no": "MS-DE-2026-5519",
+    "date": "2026-09-04",
+    "amount": 3125.56,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5518",
+    "date": "2026-08-24",
+    "amount": 3937.36,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5517",
+    "date": "2026-07-15",
+    "amount": 2986.21,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5516",
+    "date": "2026-06-15",
+    "amount": 2285.5,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5515",
+    "date": "2026-05-23",
+    "amount": 2991.86,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5514",
+    "date": "2026-04-09",
+    "amount": 2199.41,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5513",
+    "date": "2026-03-09",
+    "amount": 3087.46,
+    "status": "Paid"
+   },
+   {
+    "invoice_no": "MS-DE-2026-5512",
+    "date": "2026-02-06",
+    "amount": 2848.19,
+    "status": "Paid"
+   }
+  ],
+  "booking": {
+   "cost_center": null,
+   "gl_account": null,
+   "asset_number": null,
+   "tax_code": null,
+   "payment_date": null,
+   "note": ""
+  },
+  "status": "Open"
+ }
+]
