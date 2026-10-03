@@ -91,10 +91,13 @@ async def create_session(body: NewSession) -> dict[str, Any]:
         wm = WorkMap(**saved) if saved else None
     sid = uuid.uuid4().hex[:10]
     sim_kwargs = {}
-    if body.simulate or not llm.available():
+    if body.simulate:
         sim_kwargs = dict(proposer=sim.fake_propose, compiler=sim.FakeCompiler())
+    elif not llm.available():
+        raise HTTPException(409, "No LLM provider configured. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to backend/.env, "
+                                 "or start a Rehearsal session (simulated expert).")
     s = Session(sid, pack, mode=body.mode, expert=expert, wm=wm, store=store, lang=body.lang, trainee=body.trainee,
-                **sim_kwargs)
+                use_llm=not body.simulate, **sim_kwargs)
     s.simulated = bool(sim_kwargs)  # type: ignore[attr-defined]
     sessions[sid] = s
     latest.append(sid)
@@ -389,4 +392,10 @@ async def chat_completions(request: Request):
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    return {"ok": True, "llm": llm.available(), "sessions": len(sessions)}
+    return {"ok": True, "llm": llm.available(), "sessions": len(sessions), "spend": llm.meter.summary()}
+
+
+@app.post("/api/llm/check")
+async def llm_check() -> dict[str, Any]:
+    """Tiny live call per provider, so 'key present' is never mistaken for 'works'."""
+    return {"providers": await llm.check(), "spend": llm.meter.summary()}

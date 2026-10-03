@@ -12,7 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from shadow import config, llm
+from shadow import llm
 
 
 class VisibleField(BaseModel):
@@ -50,4 +50,4 @@ async def read_frame(image_b64: str, previous_summary: str | None, media_type: s
         llm.image_block(image_b64, media_type),
         {"type": "text", "text": f"Previous screen: {previous_summary or '(none — first frame)'}"},
     ]
-    return await llm.parse(FrameReading, SYSTEM, content, model=config.VISION_MODEL, max_tokens=1500)
+    return await llm.parse(FrameReading, SYSTEM, content, tier="vision", max_tokens=1500)

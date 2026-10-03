@@ -6,7 +6,16 @@ import { AGENTS } from '../lib/voice'
 
 export default function Home() {
   const nav = useNavigate()
-  const [health, setHealth] = useState<{ ok: boolean; llm: boolean } | null>(null)
+  const [health, setHealth] = useState<{ ok: boolean; llm: boolean; spend?: { usd: number; calls: number } } | null>(null)
+  const [rehearsal, setRehearsal] = useState(false)
+  const [check, setCheck] = useState<Record<string, { ok: boolean; why?: string; model?: string }> | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const runCheck = async () => {
+    setCheck(null)
+    const r = await api<{ providers: Record<string, { ok: boolean; why?: string; model?: string }> }>('/api/llm/check', { method: 'POST' })
+    setCheck(r.providers)
+    if (!Object.values(r.providers).some((p) => p.ok)) setRehearsal(true)
+  }
   const [sessions, setSessions] = useState<{ id: string; mode: string; expert: string; metrics: any }[]>([])
   const [interviewer, setInterviewer] = useState(AGENTS.interviewer())
   const [tutor, setTutor] = useState(AGENTS.tutor())
@@ -14,7 +23,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    api('/health').then(setHealth).catch(() => setHealth({ ok: false, llm: false }))
+    api('/health').then((h) => { setHealth(h); if (!h.llm) setRehearsal(true) }).catch(() => setHealth({ ok: false, llm: false }))
     api('/api/sessions').then(setSessions).catch(() => {})
   }, [])
 
@@ -26,14 +35,20 @@ export default function Home() {
   const start = async (mode: 'capture' | 'tutor') => {
     save()
     setBusy(true)
-    const capture = sessions.find((s) => s.mode !== 'tutor')
-    const snap = await api('/api/sessions', {
-      method: 'POST',
-      body: JSON.stringify(mode === 'tutor'
-        ? { mode, trainee: 'Lena', from_session: capture?.id ?? null }
-        : { mode, lang }),
-    })
-    nav(`/s/${snap.id}`)
+    setError(null)
+    const capture = sessions.slice().reverse().find((s) => s.mode !== 'tutor')
+    try {
+      const snap = await api('/api/sessions', {
+        method: 'POST',
+        body: JSON.stringify(mode === 'tutor'
+          ? { mode, trainee: 'Lena', from_session: capture?.id ?? null, simulate: rehearsal }
+          : { mode, lang, simulate: rehearsal }),
+      })
+      nav(`/s/${snap.id}`)
+    } catch (e) {
+      setError(String(e))
+      setBusy(false)
+    }
   }
 
   return (
@@ -43,7 +58,8 @@ export default function Home() {
         <div className="text-lg font-bold tracking-tight">Shadow</div>
         <div className="ml-auto flex items-center gap-3 text-xs text-muted">
           <span className={health?.ok ? 'text-learn' : 'text-gap'}>{health?.ok ? 'core online' : 'core offline'}</span>
-          <span className={health?.llm ? 'text-learn' : 'text-ask'}>{health?.llm ? 'Claude connected' : 'no ANTHROPIC_API_KEY (offline mode)'}</span>
+          <span className={health?.llm ? 'text-learn' : 'text-ask'}>{health?.llm ? 'LLM key present' : 'no LLM key'}</span>
+          {health?.spend && <span className="num">${health.spend.usd.toFixed(3)} spent · {health.spend.calls} calls</span>}
         </div>
       </div>
 
@@ -86,7 +102,18 @@ export default function Home() {
             <option value="de">Deutsch (tutor teaches in English)</option>
           </select>
         </label>
-        <div className="flex items-center gap-2 text-[11px] text-faint md:col-span-3"><Mic size={12} /> Both agents use a Custom LLM pointing at Shadow Core, so Shadow decides what they say.</div>
+        <div className="flex flex-wrap items-center gap-4 md:col-span-3">
+          <div className="flex rounded-lg border border-line-2 p-0.5 text-[12px] font-semibold">
+            <button onClick={() => setRehearsal(false)} className={`rounded-md px-3 py-1 ${!rehearsal ? 'bg-learn text-ink' : 'text-muted'}`}>Live</button>
+            <button onClick={() => setRehearsal(true)} className={`rounded-md px-3 py-1 ${rehearsal ? 'bg-hyp text-ink' : 'text-muted'}`}>Rehearsal · simulated expert</button>
+          </div>
+          <button onClick={runCheck} className="text-[12px] text-predict hover:underline">Check LLM providers</button>
+          {check && Object.entries(check).map(([p, s]) => (
+            <span key={p} className={`text-[11.5px] ${s.ok ? 'text-learn' : 'text-gap'}`} title={s.why}>{p}: {s.ok ? `ok (${s.model})` : s.why}</span>
+          ))}
+        </div>
+        {error && <div className="text-[12px] text-gap md:col-span-3">{error}</div>}
+        <div className="flex items-center gap-2 text-[11px] text-faint md:col-span-3"><Mic size={12} /> Both agents use a Custom LLM pointing at Shadow Core, so Shadow decides what they say. Live learns from real speech; Rehearsal uses simulated Sabine and costs nothing.</div>
       </div>
 
       {sessions.length > 0 && (

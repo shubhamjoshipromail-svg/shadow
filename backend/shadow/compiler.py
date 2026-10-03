@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from shadow import config, dsl, llm
+from shadow import dsl, llm
 from shadow.packs.base import Pack
 from shadow.workmap import WorkMap
 
@@ -79,7 +79,7 @@ async def compile_answer(pack: Pack, wm: WorkMap, inquiry: dict[str, Any], trans
         f"Existing guardrails: " + json.dumps([{"id": g.id, "title": g.title, "when": g.when}
                                                 for g in wm.guardrails])
     )
-    out = await llm.parse(Compiled, SYSTEM, user, model=config.REASON_MODEL, max_tokens=3000)
+    out = await llm.parse(Compiled, SYSTEM, user, tier="reason", max_tokens=3000)
     valid = []
     for r in out.rules:
         try:

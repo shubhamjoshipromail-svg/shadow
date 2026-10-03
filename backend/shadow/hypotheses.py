@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from shadow import config, dsl, llm
+from shadow import dsl, llm
 from shadow.bayes import Hypothesis, entropy
 from shadow.packs.base import Pack
 from shadow.workmap import Guardrail, Rule, WorkMap, run_map, with_rule
@@ -122,7 +122,7 @@ async def propose(pack: Pack, wm: WorkMap, case: dict[str, Any], field: str, exp
         f"Rules already known:\n" + "\n".join(f"- {r.title}: {r.when}" for r in wm.rules) + "\n\n"
         f"Write each rule so that it explains why `{field}` should be {expert_value!r} here."
     )
-    out = await llm.parse(Proposals, SYSTEM, user, model=config.REASON_MODEL, max_tokens=2500)
+    out = await llm.parse(Proposals, SYSTEM, user, tier="reason", max_tokens=2500)
     return out.hypotheses
 
 

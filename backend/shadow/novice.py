@@ -15,7 +15,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, create_model
 
-from shadow import config, llm
+from shadow import llm
 from shadow.packs.base import Pack
 from shadow.workmap import ACTIVE, FieldPred, MapPrediction, WorkMap, run_map
 
@@ -64,7 +64,7 @@ async def predict(wm: WorkMap, pack: Pack, case: dict[str, Any], use_llm: bool =
         f"Full case:\n{json.dumps({k: v for k, v in case.items() if not k.startswith('_')}, default=str)}\n\n"
         "Decide every field and the action. Prefer the learned rules over the work instruction when they conflict."
     )
-    out = await llm.parse(schema, system, user, model=config.FAST_MODEL, max_tokens=800)
+    out = await llm.parse(schema, system, user, tier="fast", max_tokens=800)
     data = out.model_dump()
     for f in pack.decision_fields:
         if f.name not in pred.fields:
