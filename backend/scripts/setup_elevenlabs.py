@@ -62,9 +62,13 @@ def payload(role: str, public_url: str) -> dict:
                     "prompt": PROMPT,
                     "llm": "custom-llm",
                     "custom_llm": {"url": public_url.rstrip("/") + "/v1", "model_id": "shadow"},
+                    # lets Shadow stay silent properly (an empty reply makes ElevenLabs retry and stall)
+                    "built_in_tools": {"skip_turn": {"type": "system", "name": "skip_turn", "description": "",
+                                                     "params": {"system_tool_type": "skip_turn"}}},
                 },
             },
-            "turn": {"turn_eagerness": "patient"},
+            # the expert is working, not chatting: don't prompt them after silence
+            "turn": {"turn_eagerness": "patient", "turn_timeout": 30},
             "conversation": {"max_duration_seconds": 1800},
         },
         "platform_settings": {

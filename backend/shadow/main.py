@@ -392,12 +392,22 @@ async def chat_completions(request: Request):
     model = body.get("model", "shadow")
     cid = f"chatcmpl-{uuid.uuid4().hex[:12]}"
 
+    heard = next((converse._text(m) for m in reversed(messages) if m.get("role") == "user"), "")
+    tool_names = [t.get("function", {}).get("name") for t in body.get("tools") or []]
+    skip_tool = next((t for t in body.get("tools") or [] if t.get("function", {}).get("name") == "skip_turn"), None)
+    if messages and messages[-1].get("role") == "tool":
+        # ElevenLabs reporting a system tool result back to us: nothing to add
+        heard = "[tool result]"
+
     async def chunks():
         if s is None:
             yield "I'm not connected to a session yet."
             return
+        said = []
         async for c in converse.reply(s, messages):
+            said.append(c)
             yield c
+        log.info("voice turn [%s] heard=%r said=%r", s.id, heard[:120], "".join(said)[:160])
 
     if not body.get("stream"):
         text = "".join([c async for c in chunks()])
@@ -410,11 +420,25 @@ async def chat_completions(request: Request):
                                           "model": model, "choices": [{"index": 0, "delta": delta,
                                                                        "finish_reason": finish}]}) + "\n\n"
         yield frame({"role": "assistant"})
-        async for c in chunks():
-            if c:
-                yield frame({"content": c})
-        yield frame({}, "stop")
+        spoke = False
+        if heard != "[tool result]":
+            async for c in chunks():
+                if c:
+                    spoke = True
+                    yield frame({"content": c})
+        if not spoke and skip_tool is not None:
+            # stay silent the way ElevenLabs expects: call its skip_turn system tool
+            args = {k: "Shadow is staying quiet while the expert works." for k in
+                    (skip_tool.get("function", {}).get("parameters", {}).get("required") or [])}
+            yield frame({"tool_calls": [{"index": 0, "id": f"call_{uuid.uuid4().hex[:10]}", "type": "function",
+                                         "function": {"name": "skip_turn", "arguments": json.dumps(args)}}]})
+            yield frame({}, "tool_calls")
+        else:
+            yield frame({}, "stop")
         yield "data: [DONE]\n\n"
+        if not spoke:
+            log.info("voice turn [%s] silent (tools offered: %s; skip params: %s)", s.id if s else "-", tool_names,
+                     json.dumps((skip_tool or {}).get("function", {}).get("parameters"))[:200])
 
     return StreamingResponse(sse(), media_type="text/event-stream")
 

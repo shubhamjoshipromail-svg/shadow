@@ -36,7 +36,33 @@ def _text(m: dict[str, Any]) -> str:
     return c or ""
 
 
+FILLER = re.compile(r"^(?:[.\u2026\s,!?-]*|(?:ok(?:ay)?|mm+|m+-?hm+|uh+|um+|hmm+|ah+|oh|right|sure|alright|cool|"
+                    r"got it|i see|yeah|yep)[\s.,!?\u2026]*)$", re.I)
+STAGE = re.compile(r"\*[^*]{0,80}\*|\([^)]{0,80}\)|\[[^\]]{0,80}\]")
+
+
+def is_filler(text: str) -> bool:
+    """Backchannels and ElevenLabs' idle '...' turns: never a reply, never an answer."""
+    return bool(FILLER.match(text.strip()))
+
+
+def addressed(text: str) -> bool:
+    t = text.lower()
+    return "shadow" in t or (t.rstrip().endswith("?") and len(t.split()) >= 4)
+
+
+def _clean(chunk: str) -> str:
+    return STAGE.sub("", chunk)
+
+
 async def reply(session: Session, messages: list[dict[str, Any]]) -> AsyncIterator[str]:
+    async for chunk in _reply(session, messages):
+        chunk = _clean(chunk)
+        if chunk.strip():
+            yield chunk
+
+
+async def _reply(session: Session, messages: list[dict[str, Any]]) -> AsyncIterator[str]:
     last_user = next((m for m in reversed(messages) if m.get("role") == "user"), None)
     text = _text(last_user).strip() if last_user else ""
     tag = TAG.search(text)
@@ -46,13 +72,18 @@ async def reply(session: Session, messages: list[dict[str, Any]]) -> AsyncIterat
         return
     if not text:
         return
+    awaiting = session.awaiting
+    expects_yes_no = awaiting is not None and awaiting.type in ("confirm", "teachback")
+    if is_filler(text) and not (expects_yes_no and re.match(r"^(yeah|yep)\b", text, re.I)):
+        return  # stay silent: no reply, no API call, and it doesn't consume a pending question
     immediate = await session.on_utterance(text)
     if session.mode == "capture":
         if immediate is not None:
             yield immediate
             return
-        async for chunk in _small_talk(session, messages):
-            yield chunk
+        if addressed(text):  # only when spoken to; thinking aloud while working gets silence
+            async for chunk in _small_talk(session, messages):
+                yield chunk
     elif session.mode == "debrief":
         if immediate is not None:  # off/on the record
             yield immediate
@@ -91,8 +122,9 @@ async def _small_talk(session: Session, messages: list[dict[str, Any]]) -> Async
         yield "Mm-hm."
         return
     system = (f"You are Shadow, a quiet, curious apprentice watching {session.expert} work. They just said "
-              "something to you. Reply in at most one short sentence. Do not ask questions now; you'll ask at "
-              "natural pauses. If they ask what you've learned, summarize in one sentence."
+              "something to you. Reply in at most one short sentence of plain spoken words. Never describe "
+              "actions or use stage directions. Do not ask questions now; you'll ask at natural pauses. If they "
+              "ask what you've learned, summarize in one sentence."
               f" Rules learned so far: {[r.title for r in session.wm.rules if r.origin != 'doc']}")
     history = _history(messages)
     async for chunk in llm.stream_text(system, history, max_tokens=80):
