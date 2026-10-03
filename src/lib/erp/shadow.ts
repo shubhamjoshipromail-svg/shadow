@@ -9,8 +9,8 @@ declare global {
         action: ActionKind;
         caseId: string;
         booking: Booking;
-        reason?: string;
-        approver?: string;
+        reason?: string | undefined;
+        approver?: string | undefined;
       }) => Promise<Verdict>;
     };
     shadowERP?: {
@@ -61,8 +61,8 @@ export async function beforeSave(p: {
   action: ActionKind;
   caseId: string;
   booking: Booking;
-  reason?: string;
-  approver?: string;
+  reason?: string | undefined;
+  approver?: string | undefined;
 }): Promise<Verdict> {
   try {
     return await (window.shadow?.beforeSave?.(p) ?? Promise.resolve({ allow: true }));
