@@ -308,6 +308,7 @@ class Session:
         await self.emit("episode", {"episode": ep.to_json(), "metrics": self.metrics()})
         for gap in ep.gaps:
             if gap["type"] == "structural":
+                self._quick_question(case, gap)  # ask now; don't wait for the LLM's explanations
                 self.spawn(self.analyze_gap(ep, case, gap))
         self._maybe_guardrail_question(case, ep)
         if self.store:
@@ -458,6 +459,26 @@ class Session:
             self.param_quantity[param] = best_q
 
     # ------------------------------------------------------------ hypotheses + inquiry
+    def _quick_question(self, case: dict[str, Any], gap: dict[str, Any]) -> None:
+        """An open cue probe needs no hypotheses, so it can go out at the very next pause.
+
+        Hypothesis generation (an LLM call, several seconds) continues in the background; if it
+        finishes before the question is spoken, the planner may replace it with a sharper one.
+        """
+        if self.mode != "capture":
+            return
+        f = gap["field"]
+        dp = self.dps.get(case["id"])
+        moment = (dp.field_moments.get(f) if dp else None) or {"ts": dp.opened_at if dp else self.now()}
+        q = Inquiry(id=self.planner.new_id(), type="cue_probe", case_id=case["id"], field=f, text="",
+                    evoi=1.0, impact=0.8, guardrail_gap=1.0 if f == "action" else 0.0, phase="live",
+                    gap_id=gap["id"], expert_value=gap["expert"], predicted_value=gap["predicted"],
+                    screen_moment=moment, reason="open question asked right away; explanations still forming")
+        q.text = questions.template(self.pack, "cue_probe", case=case, field=f, expert_value=gap["expert"],
+                                    predicted_value=gap["predicted"])
+        self.planner.enqueue(q)
+        self.spawn(self.emit("inquiry", {"inquiry": q.to_json()}))
+
     async def analyze_gap(self, ep: Episode, case: dict[str, Any], gap: dict[str, Any]) -> None:
         f, val, predicted = gap["field"], gap["expert"], gap["predicted"]
         dp = self.dps.get(case["id"])
@@ -480,6 +501,12 @@ class Session:
 
     async def plan_inquiry(self, hs: hypotheses.HypothesisSet, case: dict[str, Any], phase: str = "live") -> None:
         f = hs.field
+        prior = [q for q in [*self.planner.queue, *self.planner.history] if q.gap_id == hs.gap_id]
+        if any(q.status in ("asked", "answered") for q in prior):
+            return  # already asked; its answer will collapse these hypotheses
+        for q in prior:
+            if q in self.planner.queue:
+                self.planner.queue.remove(q)  # replace the provisional open question with a planned one
         dp = self.dps.get(case["id"])
         moment = (dp.field_moments.get(f) if dp else None) or {"ts": dp.opened_at if dp else self.now()}
         H = hs.entropy()
@@ -540,7 +567,7 @@ class Session:
             chosen.text = questions.template(self.pack, chosen.type, case=case, field=f,
                                              expert_value=hs.expert_value, predicted_value=hs.predicted_value,
                                              hypotheses=chosen.hypotheses, probe_delta=chosen.probe_delta)
-        if self.use_llm:
+        if self.use_llm and phase != "live":
             chosen.text = await questions.polish(chosen.text, self.lang)
         chosen.reason = (f"EVOI {chosen.evoi:.2f} bits × impact {chosen.impact:.2f} + guardrail {chosen.guardrail_gap:.1f} "
                          f"− cost {chosen.cost:.2f} = {chosen.value:.2f}")

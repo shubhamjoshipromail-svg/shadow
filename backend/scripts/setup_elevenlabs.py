@@ -71,7 +71,9 @@ def payload(role: str, public_url: str) -> dict:
             "overrides": {
                 "conversation_config_override": {
                     "agent": {"first_message": True, "language": True, "prompt": {"prompt": True}},
-                }
+                    "conversation": {"text_only": True},
+                },
+                "custom_llm_extra_body": True,
             }
         },
     }

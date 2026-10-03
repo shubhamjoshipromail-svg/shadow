@@ -175,7 +175,7 @@
       case "ask": {
         var a = m.inquiry || {};
         F.hand = false; F.asking = true; F.askText = a.text || "";
-        later("ask", 25000, function () { F.asking = false; render(); });
+        later("ask", 120000, function () { F.asking = false; render(); });
         break;
       }
       case "learned": {
@@ -318,6 +318,10 @@
     'padding:8px 11px;font-size:13px;line-height:1.38;box-shadow:0 8px 28px rgba(0,0,0,.28),0 0 18px rgba(245,181,68,.15)}' +
     '.bubble span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
     '.bubble:hover span{display:block}' +
+    '.bubble .hint{margin-top:6px;font-size:11px;color:#f5b544;opacity:.9}' +
+    '.bubble input{all:unset;box-sizing:border-box;display:block;width:100%;margin-top:6px;padding:5px 8px;' +
+    'border-radius:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);font-size:12px;color:#f4efe4;pointer-events:auto}' +
+    '.bubble input::placeholder{color:rgba(244,239,228,.45)}' +
     '.toast{max-width:250px;background:#141a23;border:1px solid rgba(61,220,151,.55);border-radius:10px;padding:7px 10px;' +
     'font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}.toast b{color:var(--green);font-weight:600}.toast div+div{color:#9fb0c2}' +
     '.glass{width:260px;box-sizing:border-box;background:rgba(14,19,27,.9);-webkit-backdrop-filter:blur(14px) saturate(1.3);' +
@@ -364,7 +368,9 @@
           '<div class="st" id="v-st" hidden><span id="v-t"></span></div>' +
           '<a class="nb" id="nb" target="_blank" rel="noopener">Open Shadow\u2019s notebook \u2197</a>' +
         '</div>' +
-        '<div class="bubble pop" id="cap"><span id="cap-t"></span></div>' +
+        '<div class="bubble pop" id="cap"><span id="cap-t"></span>' +
+          '<div class="hint" id="cap-h"></div>' +
+          '<input id="cap-in" placeholder="\u2026or type your answer, then Enter" autocomplete="off"></div>' +
         '<div class="toast pop" id="toast"></div>' +
       '</div>' +
       '<button class="kid" id="kid" aria-label="Shadow companion">' + SVG + '</button>' +
@@ -413,6 +419,7 @@
     if (SID) { nb.href = CONSOLE.replace(/\/$/, "") + "/s/" + SID; nb.style.display = ""; } else nb.style.display = "none";
     $("hc").classList.toggle("show", F.open);
     $("cap-t").textContent = F.askText;
+    $("cap-h").textContent = V.conv ? "\ud83c\udf99 Shadow is listening \u2014 just answer out loud" : "Answer here \u2014 or click Start Shadow to talk";
     $("cap").title = F.askText;
     $("cap").classList.toggle("show", F.asking && !!F.askText);
     $("kid").setAttribute("aria-label", "Shadow \u2014 " + stateLine() + (F.off ? " (off the record)" : ""));
@@ -538,6 +545,17 @@
     clearTimeout(T.open); F.open = !F.open; render();
   });
   $("later").addEventListener("click", function (e) { e.stopPropagation(); askLater(); });
+  $("cap-in").addEventListener("keydown", function (e) {
+    e.stopPropagation();  // typing an answer is not expert activity on the ERP
+    if (e.key !== "Enter") return;
+    var text = e.target.value.trim();
+    if (!text || !SID) return;
+    e.target.value = "";
+    F.asking = false; think(); render();
+    api("/api/sessions/" + SID + "/utterance", { text: text }).then(function (r) {
+      if (r.reply) toast([r.reply], "amber");
+    }).catch(function () {});
+  });
   $("b-voice").addEventListener("click", function (e) {
     e.stopPropagation();
     if (V.conv) { sessionStorage.removeItem("shadow.voice"); stopVoice(); }
