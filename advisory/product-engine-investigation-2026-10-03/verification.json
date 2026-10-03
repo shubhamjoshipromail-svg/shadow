@@ -1,0 +1,58 @@
+{
+  "utc": "2026-10-03T21:12:01.960937+00:00",
+  "commit": "be00baadcd0db27070d2f023d3411498f7f49b19",
+  "scope": "offline component diagnostics; no LLM, voice, browser capture, or live learning tested",
+  "unknown_case": {
+    "case_count_before": 7,
+    "case_count_after": 7,
+    "current_case": null,
+    "prediction_count": 0
+  },
+  "vision_only": {
+    "events_emitted": [
+      "screen_event"
+    ],
+    "case_count_after": 7,
+    "prediction_count": 0,
+    "map_version": 0
+  },
+  "manually_inserted_rule_execution_NOT_learning": [
+    {
+      "net": 7299,
+      "value": "4711",
+      "source": "D3"
+    },
+    {
+      "net": 7300,
+      "value": "4711",
+      "source": "D3"
+    },
+    {
+      "net": 7301,
+      "value": "0400",
+      "source": "R_AUDIT"
+    },
+    {
+      "net": 9000,
+      "value": "0400",
+      "source": "R_AUDIT"
+    }
+  ],
+  "unsupported_feature": {
+    "expression": "inv.customer_risk_tier == 'critical'",
+    "syntax_accepted": true,
+    "context_contains_field": false,
+    "evaluates_to": false
+  },
+  "source_sha256": {
+    "backend/shadow/engine.py": "9ae7e9d2379f93e54f412c851adde7873ae08c726bb49b302148209b2db3a650",
+    "backend/shadow/main.py": "905d53d8970a73c9d8636f762f3e9d6aa3dbab1c971d490d34a532108f292a63",
+    "backend/shadow/compiler.py": "de63c433224deee3cf7277a97f0856ea64a8f49959699f65d2322c08ca35809b",
+    "backend/shadow/workmap.py": "2b90dd00dc4c91a509334ff3c05fabaed04a5c600806bb3f95055ceb7c8e1000",
+    "backend/shadow/packs/ap_invoices/__init__.py": "38853361eda0e226cc397973e857540ab4b24c181af5aee36238d11400ae6885",
+    "backend/shadow/static/capture.js": "3f62ed1cb7a11993e659ff1f3deef9da53f65feef4258ff4d7fce364164641f8",
+    "console/src/pages/Home.tsx": "900eaf7ed93c956e6905097e30745239f0f86d5796b50a7286983d71cfc4b19a",
+    "console/src/pages/MapPage.tsx": "5a079a217e4851a40efb2df716230c671b95e6a8f64d05453d4a934c6437f0cf",
+    "console/src/components/WorkMapView.tsx": "bf8c6a57c3b72ffabdab4cd1044750ec62b3ffe4bf3f0781fd61350966dd7790"
+  }
+}
