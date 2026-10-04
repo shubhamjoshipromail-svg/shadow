@@ -200,13 +200,29 @@ class Session:
         while self.tasks:
             await asyncio.gather(*list(self.tasks), return_exceptions=True)
 
+    def pack_home(self) -> str | None:
+        """Where a learned workflow lives (origin + path before the first id), so the new hire opens that page.
+        None for the built-in pack: its app is the ERP inbox."""
+        if not hasattr(self, "_pack_home"):
+            self._pack_home = None
+            try:
+                row = self.store.workflow(self.pack.id) if self.store else None
+                sig = (row or {}).get("signature") or {}
+                if sig.get("origin"):
+                    path = (sig.get("path") or "/").split("/:id")[0] or "/"
+                    self._pack_home = sig["origin"] + path
+            except Exception:  # noqa: BLE001
+                log.exception("workflow home lookup failed")
+        return self._pack_home
+
     def snapshot(self) -> dict[str, Any]:
         return {
             "id": self.id, "mode": self.mode, "expert": self.expert, "trainee": self.trainee, "lang": self.lang,
             "expert_lang": self.expert_lang, "learner_lang": self.learner_lang,
             "interventions": list(reversed(list(self.pending_interventions.values()))),
             "pack": {"id": self.pack.id, "name": self.pack.name,
-                     "fields": [f.__dict__ for f in self.pack.decision_fields], "actions": self.pack.actions},
+                     "fields": [f.__dict__ for f in self.pack.decision_fields], "actions": self.pack.actions,
+                     "home": self.pack_home()},
             "map": self.wm.model_dump(), "current_case": self.current_case,
             "cases": [self.cases[c] for c in self.case_order],
             "predictions": {cid: dp.prediction.model_dump() for cid, dp in self.dps.items() if dp.prediction},

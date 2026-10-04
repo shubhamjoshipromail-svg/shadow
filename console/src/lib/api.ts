@@ -155,3 +155,7 @@ export const mmss = (t: number | null | undefined) => {
   const s = Math.floor(t % 60)
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
+
+/** The page a session's workflow lives on, pinned to the session: the ERP inbox, or a learned workflow's own page. */
+export const appUrl = (erpUrl: string, home: string | null | undefined, sid: string) =>
+  home ? `${home}?tacet=learn&shadow=${sid}` : `${erpUrl}/?shadow=${sid}`

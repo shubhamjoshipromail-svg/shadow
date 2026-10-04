@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConversationProvider } from '@elevenlabs/react'
-import { API, api, mmss, useShadow } from '../lib/api'
+import { API, api, appUrl, mmss, useShadow } from '../lib/api'
 import { useScreen } from '../lib/screen'
 import { useVoiceBridge } from '../lib/voice'
 import type { Intervention, MapNode, Quote } from '../lib/types'
@@ -196,8 +196,8 @@ function ConsoleInner({ sid }: { sid: string }) {
               Read changed frames with a vision model (personal data blurred first)
             </label>
             {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
-            <a href={`${erpUrl}/?shadow=${sid}`} target="nordwerk-erp" className="mt-3 block border-t border-rule pt-2.5 text-[12px] text-inferred hover:underline">
-              Open Nordwerk ERP ↗ <span className="num text-[10.5px] text-ink-3">(pinned to this session)</span>
+            <a href={appUrl(erpUrl, snap.pack.home, sid)} target="nordwerk-erp" className="mt-3 block border-t border-rule pt-2.5 text-[12px] text-inferred hover:underline">
+              Open {snap.pack.home ? snap.pack.name : 'Nordwerk ERP'} ↗ <span className="num text-[10.5px] text-ink-3">(pinned to this session)</span>
             </a>
           </Section>
 
