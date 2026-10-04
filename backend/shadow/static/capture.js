@@ -709,9 +709,9 @@
     var from = SID;
     stopVoice();
     api("/api/sessions", { mode: "tutor", trainee: NOVICE, from_session: from }).then(function (snap) {
-      SID = snap.id; MODE = "tutor"; send({ type: "hello" }); render();
-      setTimeout(function () { location.href = "/"; }, 300);  // reload so the inbox shows the new hire's cases
-    });
+      pinSession(snap.id, "tutor");  // remembered for the tab, so the reload lands in the tutor session
+      setTimeout(function () { location.href = "/?shadow=" + snap.id; }, 200);  // inbox shows the new hire's cases
+    }).catch(function () { toast(["Couldn\u2019t start tutoring \u2014 is a Work Map saved yet?"]); });
   }
   if (sessionStorage.getItem("shadow.voice") === "on") setTimeout(function () { if (SID) startVoice(); }, 1500);
 
