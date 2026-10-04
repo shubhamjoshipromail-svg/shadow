@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Tacet team video</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Overlay for the team video: 1080x1920, transparent over the camera take, a pure function of time (seek(t)).
+   ?bg=1 paints a grey stand-in so stills are readable on their own. */
+:root{--paper:#f4f1ea;--sheet:#fbf9f4;--rule:#e2ddd2;--rule2:#cbc4b5;--ink:#22201c;--ink2:#6b665d;--ink3:#9a9488;--sage:#4e6b44;--ochre:#8f6420;--slate:#56677c;
+ --sans:"Geist",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;--serif:"Newsreader",Georgia,serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:transparent}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+body.bg{background:#8d8a84}
+.abs{position:absolute}
+.plate{background:rgba(251,249,244,.97);border:1px solid var(--rule2);border-radius:4px;box-shadow:0 10px 30px rgba(20,18,14,.18)}
+.lab{font-family:var(--mono);font-size:22px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;white-space:nowrap}
+.w{display:inline-block;white-space:pre}
+#cap{left:60px;width:960px;top:1590px;padding:22px 30px 24px;text-align:center;font-size:44px;line-height:1.25;font-weight:500;letter-spacing:-.005em}
+#cap.mira{font-family:var(--serif);font-style:italic;font-weight:400;font-size:52px;color:var(--sage)}
+#capLab{left:0;width:1080px;top:1548px;text-align:center;color:var(--sage)}
+.spr{background-image:url(mira-sprite.png);background-repeat:no-repeat;image-rendering:pixelated}
+#mira{left:14px;top:930px;transform-origin:50% 100%}
+#mShadow{left:44px;top:1250px;width:230px;height:26px;border-radius:50%;background:radial-gradient(rgba(20,18,14,.28),rgba(20,18,14,0) 70%)}
+#mLab{left:30px;top:880px;color:var(--sage)}
+#noted{left:40px;top:1300px;padding:10px 16px;color:var(--sage);transform-origin:0 50%}
+#name{left:60px;top:560px;padding:26px 34px 24px}
+#big{left:60px;width:960px;top:250px;padding:40px 46px 44px}
+#big .row{position:relative;height:150px}
+#big .t{font-family:var(--serif);font-size:72px;line-height:1;font-weight:400;letter-spacing:-.01em;white-space:nowrap}
+#big .l{margin-bottom:16px}
+#end{inset:0;background:var(--paper)}
+</style></head>
+<body>
+<div class="abs plate" id="name">
+  <div style="font-family:var(--serif);font-size:72px;line-height:1">Shubham</div>
+  <div class="lab" style="margin-top:18px;color:var(--ink2)">Johns Hopkins &rarr; San Francisco</div>
+</div>
+
+<div class="abs" id="mShadow"></div>
+<div class="abs lab" id="mLab">&#9676; Mira &middot; the apprentice</div>
+<div class="abs" id="mira"></div>
+<div class="abs plate lab" id="noted">&#10003; noted</div>
+
+<div class="abs plate" id="big">
+  <div class="row" id="b1"><div class="lab l" style="color:var(--slate)">&#9676; what you say</div><div class="t" id="b1t">becomes a rule.</div></div>
+  <div class="row" id="b2" style="margin-top:40px"><div class="lab l" style="color:var(--ink)">&#9646; what you do</div><div class="t" id="b2t">proves it.</div></div>
+  <div style="height:1px;background:var(--rule2);margin:44px 0 30px" id="bRule"></div>
+  <div class="row" id="b3" style="height:auto"><div class="t" style="font-size:96px">This is <span style="color:var(--sage)">Tacet</span>.</div></div>
+</div>
+
+<div class="abs lab" id="capLab">Mira</div>
+<div class="abs plate" id="cap"></div>
+
+<div class="abs" id="end">
+  <div class="abs" id="eMira" style="left:390px;top:430px"></div>
+  <div class="abs" id="eT" style="left:0;width:1080px;top:880px;text-align:center;font-family:var(--serif);font-size:200px;line-height:1;font-weight:400;letter-spacing:-.02em">Tacet</div>
+  <div class="abs" id="eS" style="left:120px;width:840px;top:1130px;text-align:center;font-family:var(--serif);font-style:italic;font-size:54px;line-height:1.25;color:var(--ink2)">It learns the part of the job nobody wrote down.</div>
+  <div class="abs" id="eR" style="left:240px;width:600px;top:1330px;height:1px;background:var(--rule2)"></div>
+  <div class="abs lab" id="eU" style="left:0;width:1080px;top:1372px;text-align:center;color:var(--ink2);font-size:26px">tacet.up.railway.app</div>
+  <div class="abs lab" id="eB" style="left:0;width:1080px;top:1420px;text-align:center;color:var(--ink3);font-size:20px">Shubham &middot; HackNation &times; ElevenLabs</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const P=(t,a,b)=>clamp((t-a)/(b-a));
+const eo=x=>x>=1?1:1-Math.pow(2,-10*x);
+const ei=x=>x*x*x;
+const eb=x=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+if(location.search.includes('bg=1'))document.body.classList.add('bg');
+
+// ---- timeline (seconds in the edited cut; see build.py) ----
+const M1=29.05, M2=36.55, MOUT=39.55, END=53.3, DUR=57.6;
+const ENV={"mira1":[0,0,.19,.39,.38,.22,.01,.44,.48,.68,.79,.78,.54,.34,.24,.19,.03,0,.19,.19,.23,.16,.01,0,0,0,0,0,.13,.22,.28,.41,.9,1,1,.66,.52,.45,.36,.07,.02,.22,.15,.63,.48,.25,.34,.37,.22,.1,.23,.24,.21,.18,.15,.16,.13,.05,.01,0,0,0,.01,.01,.01,.01,0,.01,.52,.58,.66,.63,.6,.52,.63,.72,.63,.42,.56,.89,.72,.57,.71,.28,.23,.54,.07,.07,.2,.59,.54,.49,.39,.11,.03,.2,.35,.28,.19,.08,.01,.01,.03],
+"mira2":[0,0,0,.02,.08,.12,.65,1,.99,.81,.75,.61,.46,.35,.31,.31,.25,.11,.02,.01,.01,0,0,0,0,0,0,.02,.05,.38,.62,.21,.12,.27,.18,1,1,.75,.18,.01,.19,.24,.31,.46,.42,.43,.47,.49,.47,.38,.26,.1,.02,.01,.01,0,0,.01,.01,0,.01,.01,.01,.01,.1,.76,.53,.49,.19,.23,.09,.5,.57,.19,.02,.16,.45,.53,.49,.46,.42,.32,.05,.08,.23,.18,.21]};
+function env(t){for(const [k,a] of [['mira1',M1],['mira2',M2]]){const i=Math.floor((t-a)*30);if(i>=0&&i<ENV[k].length)return ENV[k][i]}return 0}
+
+// caption phrases: [start, end, who, [words with start times]]
+const C=[];
+function cap(who,end,...ws){C.push({who,s:ws[0][1],e:end,ws})}
+const W=(s)=>s.trim().split(/\s+/);
+function line(who,end,text,times){cap(who,end,...W(text).map((w,i)=>[w,times[i]]))}
+line('me',2.05,"Hi, I'm Shubham.",[.25,.87,1.05]);
+line('me',4.55,"I just graduated from Johns Hopkins,",[2.15,2.25,2.43,3.03,3.25,3.51]);
+line('me',6.72,"and I recently just moved to San Francisco,",[4.63,4.77,4.87,5.31,5.51,5.69,5.83,6.03]);
+line('me',9.45,"and I'm building out of a pretty tiny apartment.",[6.79,6.93,7.17,7.59,7.75,7.99,8.27,8.57,8.81]);
+line('me',12.32,"I got into AI last year because it felt like",[9.56,9.72,9.94,10.38,10.9,11.14,11.34,11.62,11.9,12.18]);
+line('me',14.8,"the next human revolution,",[12.36,12.54,12.9,13.58]);
+line('me',18.3,"and I'd rather be building it than just watching it.",[14.88,15.02,15.3,15.64,15.82,16.22,16.46,16.64,16.92,17.36]);
+line('me',22.1,"Today, I built something in the last couple of hours.",[18.54,18.92,19.02,19.26,20.2,20.34,20.48,20.8,21.04,21.22]);
+line('me',25.7,"It's an apprentice that learns from experts",[22.22,22.4,22.58,24.24,24.54,24.96,25.22]);
+line('me',29.02,"by watching what they do, and—",[25.78,26.08,26.7,26.92,27.14,28.64]);
+line('mira',M1+2.25,"—and asks one question.",[M1+.1,M1+.36,M1+1.08,M1+1.4]);
+line('mira',M1+3.9,"Only when it's worth it.",[M1+2.34,M1+2.62,M1+2.76,M1+2.96,M1+3.24]);
+line('me',36.5,"…yeah. That's Mira.",[35.28,35.72,35.98]);
+line('mira',M2+2.15,"Hi. He talks a lot.",[M2+.18,M2+.96,M2+1.14,M2+1.46,M2+1.52]);
+line('mira',M2+3.4,"I take notes.",[M2+2.24,M2+2.36,M2+2.56]);
+line('me',42.32,"What I care about is the stuff people know",[39.8,39.96,40.1,40.34,40.88,41.02,41.2,41.48,41.88]);
+line('me',45.6,"but never write down, and keep it when they leave.",[42.38,42.54,42.86,43.18,43.5,43.76,44.1,44.32,44.5,44.66]);
+
+const capEl=$('cap'),capLab=$('capLab');let curCap=-1;
+function renderCaption(t){
+  const i=C.findIndex(c=>t>=c.s-.08&&t<c.e);
+  if(i!==curCap){curCap=i;if(i>=0){const c=C[i];capEl.className='abs plate'+(c.who==='mira'?' mira':'');capEl.innerHTML=c.ws.map(w=>`<span class="w">${w[0]}</span>`).join(' ')}}
+  if(i<0){capEl.style.opacity=0;capLab.style.opacity=0;return}
+  const c=C[i],pin=eo(P(t,c.s-.08,c.s+.12)),pout=1-P(t,c.e-.12,c.e);
+  capEl.style.opacity=Math.min(pin,pout);capEl.style.transform=`translateY(${(1-pin)*12}px)`;
+  capLab.style.opacity=0;
+  capEl.querySelectorAll('.w').forEach((w,k)=>{const p=P(t,c.ws[k][1]-.06,c.ws[k][1]+.14);w.style.opacity=.42+.58*p});
+}
+
+// Mira sprite (cropped to one figure)
+function mira(el,size){const q=1.34*size;el.classList.add('spr');el.style.width=size+'px';el.style.height=Math.round(1.18*size)+'px';el.style.backgroundSize=(2*q)+'px '+(2*q)+'px';el._q=q}
+function frame(el,f){const q=el._q,c=f%2,r=Math.floor(f/2);el.style.backgroundPosition=`${-(c*q+.2*q)}px ${-(r*q+.115*q)}px`}
+mira($('mira'),270);mira($('eMira'),300);
+
+function seek(t){
+  // name tag
+  {const p=eo(P(t,.5,1.0)),o=1-P(t,5.6,6.0);$('name').style.opacity=Math.min(p,o);$('name').style.transform=`translateY(${(1-p)*18}px)`}
+  // Mira pops in just before her first line, out after the second
+  {const m=$('mira');const pin=eb(P(t,M1-.42,M1+.08)),pout=ei(P(t,MOUT,MOUT+.3));const on=t>=M1-.42&&t<MOUT+.3;
+   m.style.display=$('mShadow').style.display=on?'block':'none';
+   const e=env(t),s=Math.max(0,pin*(1-pout)),bob=Math.sin(t*2.4)*4;
+   m.style.transform=`translate(${(1-pin)*-40}px,${-e*14+bob}px) scale(${s*(1+e*.035)},${s*(1+e*.06)})`;
+   $('mShadow').style.opacity=s*.9;$('mShadow').style.transform=`scaleX(${.8+.2*s-e*.05})`;
+   // eyes: closed while she "takes notes" between lines, else blink every ~2.6s
+   const k=(t+.4)%2.6;frame(m,(t>M1+3.6&&t<M1+4.6)||(t>M2+2.2&&t<M2+2.75)?1:(k>2.42&&k<2.54?1:0));
+   const pl=eo(P(t,M1+.05,M1+.45))*(1-P(t,MOUT-.15,MOUT+.05));$('mLab').style.opacity=pl;$('mLab').style.transform=`translateY(${(1-pl)*10}px)`;
+   const pn=eb(P(t,M2+2.6,M2+2.9))*(1-P(t,MOUT-.1,MOUT+.1));$('noted').style.opacity=Math.min(1,pn*1.5);$('noted').style.transform=`scale(${pn})`}
+  // closing lines, big
+  {const B=$('big');const a=46.7,o=1-P(t,END-.05,END+.2);B.style.opacity=eo(P(t,a,a+.3))*o;B.style.transform=`translateY(${(1-eo(P(t,a,a+.4)))*20}px)`;
+   const r1=eo(P(t,46.85,47.25)),r2=eo(P(t,49.4,49.8)),r3=eo(P(t,51.95,52.35));
+   $('b1').style.opacity=r1;$('b1').style.transform=`translateY(${(1-r1)*14}px)`;
+   $('b2').style.opacity=r2;$('b2').style.transform=`translateY(${(1-r2)*14}px)`;
+   $('bRule').style.transform=`scaleX(${eo(P(t,51.7,52.2))})`;$('bRule').style.transformOrigin='0 0';
+   $('b3').style.opacity=r3;$('b3').style.transform=`translateY(${(1-r3)*14}px)`;
+   B.style.display=t>a&&t<END+.25?'block':'none'}
+  renderCaption(t);
+  // end card
+  {const E=$('end');const p=P(t,END,END+.35);E.style.display=p>0?'block':'none';E.style.opacity=p;
+   const m=$('eMira');const pm=eb(P(t,END+.5,END+.95));m.style.transform=`scale(${pm})`;m.style.transformOrigin='50% 100%';const k=t%2.6;frame(m,k>2.3&&k<2.42?1:0);
+   [['eT',END+.25],['eS',END+.7],['eU',END+1.1],['eB',END+1.3]].forEach(([id,a])=>{const q=eo(P(t,a,a+.4));$(id).style.opacity=q;$(id).style.transform=`translateY(${(1-q)*14}px)`});
+   $('eR').style.transform=`scaleX(${eo(P(t,END+.9,END+1.4))})`}
+}
+window.DUR=DUR;
+const q=new URLSearchParams(location.search);
+document.fonts.ready.then(()=>{seek(Number(q.get('t')||0));window.ready=true});
+</script>
+</body></html>
