@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Tacet film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f4f1ea;--sheet:#fbf9f4;--rule:#e2ddd2;--rule2:#cbc4b5;--ink:#22201c;--ink2:#6b665d;--ink3:#9a9488;
+ --sage:#4e6b44;--brick:#a2412e;--ochre:#8f6420;--slate:#56677c;--written:#8a8378;
+ --sans:"Geist",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;--serif:"Newsreader",Georgia,serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper)}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;background:var(--paper)}
+.scene{position:absolute;inset:0;overflow:hidden;display:none}
+.cam{position:absolute;inset:0;transform-origin:50% 50%}
+.abs{position:absolute}
+.mono{font-family:var(--mono)} .serif{font-family:var(--serif);font-weight:400}
+.lab{font-family:var(--mono);font-size:24px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:500;white-space:nowrap}
+.w{display:inline-block;white-space:pre}
+.nw{white-space:nowrap}
+#chrome{position:absolute;left:0;top:0;width:1920px;height:96px;z-index:50}
+.sheet{background:var(--sheet);border:1px solid var(--rule2)}
+.fld .l{font-family:var(--mono);font-size:22px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-weight:500}
+.fld .v{font-size:34px;margin-top:8px;padding-bottom:12px;border-bottom:1px solid var(--rule2);white-space:nowrap;height:58px}
+.fld .v.m{font-family:var(--mono);font-size:32px}
+.plate{background:var(--sheet);border:1px solid var(--rule2)}
+.spr{background-image:url(mira-sprite.png);background-repeat:no-repeat;image-rendering:pixelated}
+</style></head>
+<body><div id="stage">
+
+<div id="chrome">
+  <div class="abs" style="left:120px;top:40px;display:flex;align-items:center;gap:16px;font-weight:600;font-size:32px;letter-spacing:-.02em">
+    <span style="position:relative;width:24px;height:24px;display:block"><i style="position:absolute;inset:0;background:#c9d1bb;transform:translate(6px,-6px)"></i><i style="position:absolute;inset:0;background:var(--sage)"></i></span>Tacet</div>
+  <div id="chap" class="lab abs" style="right:120px;top:46px;color:var(--ink2)"></div>
+</div>
+
+<!-- A: 24 years -->
+<div class="scene" id="sA"><div class="cam">
+  <div class="lab abs" id="aLab" style="left:120px;top:104px">Sabine · Accounts payable · Nordwerk</div>
+  <div class="abs serif" id="aNum" style="left:100px;top:170px;font-size:640px;line-height:1;font-weight:300;letter-spacing:-.04em;width:860px;text-align:right">0</div>
+  <div class="abs serif" id="aYears" style="left:1010px;top:380px;font-size:150px;font-style:italic;font-weight:300;line-height:1">years</div>
+  <div class="abs" id="aSub" style="left:1016px;top:570px;font-size:48px;color:var(--ink2);line-height:1.25">of supplier invoices,<br>booked by hand.</div>
+  <div class="abs" id="aTicks" style="left:120px;top:790px;width:1680px;height:90px"></div>
+  <div class="lab abs" id="aTickLab" style="left:120px;top:890px;font-size:22px">2002 &nbsp;&#8594;&nbsp; today</div>
+</div></div>
+
+<!-- B: Friday + half -->
+<div class="scene" id="sB"><div class="cam">
+  <div class="abs sheet" id="bSheet" style="left:120px;top:120px;width:860px;height:790px">
+    <div class="abs lab" style="left:48px;top:40px;color:var(--written)">&#167; The written process · 2019</div>
+    <div class="abs" style="left:48px;top:84px;font-size:46px;font-weight:600;letter-spacing:-.02em">Supplier invoice process</div>
+    <div id="bRows"></div>
+    <div class="abs" id="bGap" style="left:48px;top:560px;width:764px;height:200px;border:2px dashed var(--rule2)"></div>
+    <div class="abs serif" id="bGapT" style="left:80px;top:590px;font-size:50px;font-style:italic;font-weight:300;color:var(--ink2);line-height:1.2;width:700px">What Sabine actually does<br>is not written here.</div>
+    <div class="abs mono" id="bQ" style="left:640px;top:620px;font-size:110px;color:var(--rule2);line-height:1">?</div>
+  </div>
+  <div id="bCal" class="abs" style="left:1060px;top:130px;width:740px">
+    <div class="abs" id="bDays" style="left:0;top:0"></div>
+    <div class="abs serif" id="bFri" style="left:-6px;top:260px;font-size:250px;line-height:1;letter-spacing:-.03em;font-weight:300">Friday.</div>
+    <div class="abs" id="bRet" style="left:0;top:560px;font-size:46px;color:var(--ink2)">She retires. 24 years<br>walk out of the door.</div>
+  </div>
+  <div id="bHalf" class="abs" style="left:1060px;top:130px;width:740px">
+    <div class="abs serif" id="bHalfN" style="left:-10px;top:20px;font-size:520px;line-height:1;font-weight:300">&frac12;</div>
+    <div class="abs" id="bHalfT" style="left:0;top:560px;font-size:56px;line-height:1.2;color:var(--ink)">is all the written process<br>covers.</div>
+  </div>
+</div></div>
+
+<!-- C: ERP guess -->
+<div class="scene" id="sC"><div class="cam" id="cCam">
+  <div class="abs sheet" id="cWin" style="left:100px;top:110px;width:1720px;height:800px">
+    <div class="abs" style="left:0;top:0;width:1718px;height:72px;border-bottom:1px solid var(--rule2);background:var(--paper)">
+      <div class="abs" style="left:56px;top:18px;font-weight:600;font-size:30px;letter-spacing:-.01em">Nordwerk ERP</div>
+      <div class="abs lab" style="left:340px;top:24px;letter-spacing:.04em;text-transform:none;font-size:24px">Accounts payable / Invoices / inv-4471</div>
+    </div>
+    <div class="abs fld" id="cf1" style="left:56px;top:112px;width:520px"><div class="l">Invoice no</div><div class="v m">4471</div></div>
+    <div class="abs fld" id="cf2" style="left:624px;top:112px;width:520px"><div class="l">Invoice date</div><div class="v m">2026-12-27</div></div>
+    <div class="abs fld" id="cf3" style="left:56px;top:232px;width:1088px"><div class="l">Supplier</div><div class="v">Schmidt Antriebstechnik GmbH</div></div>
+    <div class="abs fld" id="cf4" style="left:56px;top:352px;width:1088px"><div class="l">Description</div><div class="v">CNC rotary table RT-320</div></div>
+    <div class="abs fld" id="cf5" style="left:56px;top:472px;width:520px"><div class="l">Net &euro;</div><div class="v m">6,400.00</div></div>
+    <div class="abs fld" id="cf6" style="left:624px;top:472px;width:520px"><div class="l">Gross &euro;</div><div class="v m">7,616.00</div></div>
+    <div class="abs fld" id="cf7" style="left:56px;top:620px;width:640px">
+      <div class="l" style="color:var(--ink)">Cost centre</div>
+      <div id="cCC" class="mono" style="margin-top:10px;height:104px;border:2px solid var(--ink);background:#fff;font-size:60px;padding:18px 24px;line-height:64px;white-space:nowrap"></div>
+    </div>
+    <div id="cCCl" class="abs" style="left:736px;top:664px;font-size:30px;color:var(--ink2);white-space:nowrap;display:none"></div>
+    <!-- Mira's panel -->
+    <div class="abs" id="cPan" style="left:1230px;top:110px;width:432px;height:640px">
+      <div class="abs" style="left:0;top:0;width:1px;height:640px;background:var(--rule2)"></div>
+      <div class="abs lab" style="left:40px;top:14px;color:var(--slate)">&#9676; Mira&rsquo;s guess</div>
+      <div class="abs" id="cMira" style="left:250px;top:56px"></div>
+      <div class="abs mono" id="cGuess" style="left:36px;top:290px;font-size:150px;line-height:1;letter-spacing:-.04em;color:var(--slate)"></div>
+      <div class="abs" id="cGuessL" style="left:40px;top:460px;font-size:32px;color:var(--ink2)">Opex &ndash; Maintenance</div>
+      <div class="abs mono" id="cSeal" style="left:40px;top:520px;font-size:24px;line-height:1.4;color:var(--ink2)">&#9632; written down first,<br>before Sabine decides</div>
+      <div class="abs mono" id="cNeq" style="left:40px;top:610px;font-size:30px;color:var(--ochre);font-weight:500">&#8800; &nbsp;she coded 0400</div>
+    </div>
+    <div class="abs serif" id="cSab" style="left:700px;top:624px;font-size:64px;font-style:italic;font-weight:300;color:var(--ink);line-height:1.1"></div>
+  </div>
+</div></div>
+
+<!-- D: pause -->
+<div class="scene" id="sD"><div class="cam">
+  <div class="abs serif" id="dHead" style="left:120px;top:150px;width:1500px;font-size:136px;line-height:1.02;letter-spacing:-.02em;font-weight:300;height:300px"></div>
+  <div id="dTL" class="abs" style="left:120px;top:470px;width:1680px;height:360px">
+    <div class="lab abs" style="left:0;top:0">Sabine&rsquo;s activity in the form</div>
+    <div class="abs" id="dTicks" style="left:0;top:50px;width:1680px;height:200px"></div>
+    <div class="abs" style="left:0;top:250px;width:1680px;height:2px;background:var(--ink)"></div>
+    <div class="abs" id="dBr" style="left:760px;top:276px;width:760px;height:26px;border:2px solid var(--ochre);border-top:none"></div>
+    <div class="abs lab" id="dBrL" style="left:760px;top:316px;width:760px;text-align:center;color:var(--ochre)">a natural pause</div>
+    <div class="abs" id="dPh" style="left:0;top:34px;width:3px;height:230px;background:var(--ink)"></div>
+    <div class="abs" id="dQ" style="left:1560px;top:-30px;width:3px;height:290px;background:var(--ochre)"></div>
+    <div class="abs mono" id="dQm" style="left:1580px;top:30px;font-size:130px;line-height:1;color:var(--ochre)">?</div>
+  </div>
+  <div class="abs" id="dMira" style="left:1604px;top:560px"></div>
+</div></div>
+
+<!-- E: Q&A -->
+<div class="scene" id="sE"><div class="cam">
+  <div class="abs" id="eMira" style="left:120px;top:300px"></div>
+  <div class="abs lab" id="eLab" style="left:520px;top:210px;color:var(--ochre)">? &nbsp;Mira asks · one question</div>
+  <div class="abs serif" id="eQ" style="left:520px;top:290px;width:1260px;font-size:92px;line-height:1.12;font-weight:300;letter-spacing:-.015em"></div>
+  <div class="abs mono" id="eChip" style="left:520px;top:640px;font-size:30px;color:var(--ink2);border:1px solid var(--rule2);padding:10px 20px;background:var(--sheet)">cost_centre &nbsp;<b style="color:var(--ink);font-weight:500">0400</b></div>
+  <!-- Sabine -->
+  <div class="abs serif" id="eOpen" style="left:100px;top:130px;font-size:380px;line-height:1;color:var(--rule2);font-weight:300">&ldquo;</div>
+  <div class="abs serif" id="eA" style="left:250px;top:250px;width:1500px;font-size:128px;line-height:1.1;letter-spacing:-.025em;font-weight:300"></div>
+  <div class="abs" id="eAuth" style="left:250px;top:700px;display:flex;align-items:center;gap:22px"><div class="mono" style="font-size:26px;letter-spacing:.09em;color:var(--ink2)">SABINE &nbsp;·&nbsp; 24 YEARS IN ACCOUNTS PAYABLE</div></div>
+  <div class="abs" id="eMira2" style="left:1640px;top:690px"></div>
+</div></div>
+
+<!-- F: rule + receipt -->
+<div class="scene" id="sF"><div class="cam"><div class="abs" id="fWorld" style="left:0;top:0;width:3840px;height:1080px">
+  <div class="lab abs" style="left:120px;top:136px;color:var(--sage)">&#10003; &nbsp;Compiled &middot; from what she said</div>
+  <div class="abs plate" id="fPlate" style="left:120px;top:200px;width:1100px;height:430px;border-left:4px solid var(--sage)">
+    <div class="abs mono" id="fRid" style="left:44px;top:34px;font-size:30px;color:var(--sage);font-weight:500">R1 &nbsp;&#10003; stated</div>
+    <div class="abs mono nw" id="fL1" style="left:44px;top:110px;font-size:48px;line-height:1">if &nbsp;inv.category == <b style="font-weight:500">'equipment'</b></div>
+    <div class="abs mono nw" id="fL2" style="left:44px;top:192px;font-size:48px;line-height:1">and inv.net_eur &gt; <span style="color:var(--ochre);border-bottom:3px solid var(--ochre)">T_capex</span></div>
+    <div class="abs mono nw" id="fL3" style="left:44px;top:292px;font-size:56px;line-height:1;font-weight:500"><span style="color:var(--sage)">&#8594;</span> cost_center = <span style="color:var(--sage)">0400</span></div>
+  </div>
+  <div class="abs serif" id="fQuote" style="left:120px;top:690px;width:1100px;font-size:40px;line-height:1.25;font-style:italic;font-weight:300;color:var(--ink2)">&ldquo;Equipment over five thousand net is always capex.&rdquo; <span class="mono" style="font-style:normal;font-size:24px;letter-spacing:.08em;color:var(--ink3)">&nbsp;SABINE</span></div>
+  <div class="abs" id="fCurve" style="left:1300px;top:150px;width:520px;height:560px">
+    <div class="lab" style="color:var(--ochre)">T_capex &nbsp;·&nbsp; what Tacet believes</div>
+    <svg width="520" height="480" viewBox="0 0 520 480" style="position:absolute;left:0;top:60px"><path id="fCurvePath" fill="none" stroke="#22201c" stroke-width="3"/><line id="fCurveMean" x1="260" x2="260" y1="40" y2="400" stroke="#4e6b44" stroke-width="2" stroke-dasharray="6 6"/><line x1="0" x2="520" y1="400" y2="400" stroke="#cbc4b5" stroke-width="2"/>
+      <g class="mono" font-size="22" fill="#9a9488" text-anchor="middle"><text x="10" y="436" text-anchor="start">3,000</text><text x="140" y="436">4,000</text><text x="260" y="436" fill="#4e6b44">5,000 &euro;</text><text x="390" y="436">6,000</text><text x="510" y="436" text-anchor="end">7,000</text></g></svg>
+  </div>
+  <div class="abs mono" id="fCurveN" style="left:1300px;top:690px;font-size:26px;color:var(--ink2);line-height:1.4">belief tightens with every case</div>
+  <!-- receipt page -->
+  <div class="abs" id="fRc" style="left:1920px;top:0;width:1920px;height:1080px">
+    <div class="abs lab" style="left:160px;top:136px">Learning receipt &middot; rc1</div>
+    <div class="abs mono" style="left:160px;top:182px;font-size:30px;color:var(--ink2)">cost_center &nbsp;&middot;&nbsp; inv-4471</div>
+    <div class="abs" id="fTag" style="left:1440px;top:140px;border:3px solid var(--sage);color:var(--sage);padding:10px 22px;font-family:var(--mono);font-size:34px;font-weight:500;letter-spacing:.1em">&#10003; LEARNED</div>
+    <div class="abs mono" id="fB" style="left:160px;top:290px;font-size:290px;line-height:1;letter-spacing:-.05em;color:var(--slate)">4711</div>
+    <div class="abs" id="fStrike" style="left:150px;top:420px;height:12px;background:var(--brick);width:0"></div>
+    <div class="abs mono" id="fArr" style="left:870px;top:290px;font-size:200px;line-height:1.1;color:var(--ink3)">&#8594;</div>
+    <div class="abs mono" id="fA" style="left:1100px;top:290px;font-size:290px;line-height:1;letter-spacing:-.05em;color:var(--sage);font-weight:500">0400</div>
+    <div class="abs" id="fBl" style="left:160px;top:610px;font-size:30px;color:var(--ink2);line-height:1.35"><span class="mono" style="color:var(--written)">&#167; D3</span> &nbsp;the 2019 doc</div>
+    <div class="abs" id="fAl" style="left:1104px;top:610px;font-size:30px;color:var(--ink2);line-height:1.35"><span class="mono" style="color:var(--sage)">&#10003; R1</span> &nbsp;Sabine&rsquo;s rule, in her words</div>
+    <div class="abs mono" id="fFoot" style="left:160px;top:770px;font-size:28px;color:var(--ink2);line-height:1.5"><span style="color:var(--sage)">&#10003;</span> replayed against 9 earlier decisions: held &nbsp;&nbsp;&middot;&nbsp;&nbsp; map v0 &#8594; v1</div>
+  </div>
+</div></div></div>
+
+<!-- G: sealed test -->
+<div class="scene" id="sG"><div class="cam">
+  <div class="abs serif" id="gProof" style="left:0;top:330px;width:1920px;text-align:center;font-size:200px;line-height:1;font-weight:300;letter-spacing:-.03em;font-style:italic"></div>
+  <div id="gMain">
+    <div class="abs mono" id="gHead" style="left:120px;top:118px;font-size:22px;letter-spacing:.07em;color:var(--ink3);white-space:nowrap"></div>
+    <div id="gRows"></div>
+    <div class="abs lab" id="gRL" style="left:1220px;top:128px;color:var(--ink)">&#9632; Sealed before any label</div>
+    <div class="abs mono" id="gHash" style="left:1220px;top:190px;font-size:44px;line-height:54px;letter-spacing:.02em;white-space:pre"></div>
+    <div class="abs lab" id="gHashL" style="left:1220px;top:416px;font-size:22px;text-transform:none;letter-spacing:.04em">sha256 &middot; 11 predictions frozen</div>
+    <div class="abs mono" id="gNo" style="left:1220px;top:470px;font-size:26px;color:var(--ink2)">labels &nbsp;&#9675; none yet</div>
+    <div class="abs" id="gCur" style="left:1220px;top:560px;width:560px;height:330px">
+      <div class="lab" style="color:var(--ochre);font-size:22px">every label also teaches</div>
+      <svg width="560" height="270" viewBox="0 0 560 270" style="position:absolute;left:0;top:50px"><path id="gCurP" fill="none" stroke="#22201c" stroke-width="3"/><line x1="280" x2="280" y1="20" y2="210" stroke="#4e6b44" stroke-width="2" stroke-dasharray="6 6"/><line x1="0" x2="560" y1="210" y2="210" stroke="#cbc4b5" stroke-width="2"/></svg>
+    </div>
+  </div>
+  <div id="gBig">
+    <div class="abs serif" id="gNumA" style="left:40px;top:190px;font-size:400px;line-height:1;font-weight:300;letter-spacing:-.05em;width:580px;text-align:right"></div>
+    <div class="abs serif" id="gNumB" style="left:640px;top:190px;font-size:400px;line-height:1;font-weight:300;letter-spacing:-.05em;color:var(--ink3)">/&thinsp;11</div>
+    <div class="abs" id="gCells" style="left:120px;top:700px"></div>
+    <div class="abs mono" id="gBigL" style="left:1380px;top:230px;width:430px;font-size:30px;line-height:1.5;color:var(--ink2)"><span class="lab" style="display:block;color:var(--sage);margin-bottom:14px">&#9632; Sealed test &middot; P1</span>fresh invoices, never seen.<br>Predictions committed<br>before any label.<div class="mono" style="margin-top:26px;font-size:26px;color:var(--ink3);line-height:1.4">sha256<br>2f369d08&hellip;a726874c</div></div>
+  </div>
+</div></div>
+
+<!-- H: Monday / stop -->
+<div class="scene" id="sH"><div class="cam" id="hCam">
+  <div class="abs serif" id="hMon" style="left:0;top:300px;width:1920px;text-align:center;font-size:300px;line-height:1;font-weight:300;letter-spacing:-.03em"></div>
+  <div class="abs lab" id="hMonL" style="left:0;top:640px;width:1920px;text-align:center">Lena &middot; first week</div>
+  <div id="hMain">
+  <div class="abs sheet" style="left:100px;top:110px;width:1020px;height:800px">
+    <div class="abs" style="left:0;top:0;width:1018px;height:72px;border-bottom:1px solid var(--rule2);background:var(--paper)">
+      <div class="abs" style="left:48px;top:18px;font-weight:600;font-size:30px">Nordwerk ERP</div>
+      <div class="abs lab" style="left:330px;top:24px;letter-spacing:.04em;text-transform:none">Invoices / inv-8657</div></div>
+    <div class="abs fld" style="left:48px;top:104px;width:430px"><div class="l">Invoice no</div><div class="v m">8657</div></div>
+    <div class="abs fld" style="left:520px;top:104px;width:450px"><div class="l">Category</div><div class="v">Equipment</div></div>
+    <div class="abs fld" style="left:48px;top:224px;width:922px"><div class="l">Supplier</div><div class="v">Schmidt Antriebstechnik GmbH</div></div>
+    <div class="abs fld" style="left:48px;top:344px;width:430px"><div class="l">Net &euro;</div><div class="v m">5,468.19</div></div>
+    <div class="abs fld" style="left:520px;top:344px;width:450px"><div class="l">Gross &euro;</div><div class="v m">6,507.15</div></div>
+    <div class="abs fld" style="left:48px;top:476px;width:560px"><div class="l" style="color:var(--ink)">Cost centre</div>
+      <div id="hCC" class="mono" style="margin-top:10px;height:104px;border:2px solid var(--ink);background:#fff;font-size:60px;padding:18px 24px;line-height:64px;white-space:nowrap"></div></div>
+    <div class="abs mono" id="hLena" style="left:640px;top:520px;font-size:24px;letter-spacing:.06em;color:var(--ink2);border:1px solid var(--rule2);padding:6px 14px;background:var(--paper)">LENA &middot; typing</div>
+    <div class="abs" id="hSave" style="left:48px;top:680px;width:220px;height:80px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);font-size:32px;font-weight:500;text-align:center;line-height:76px">Save</div>
+    <div class="abs mono" id="hBlock" style="left:300px;top:688px;font-size:26px;line-height:1.25;color:var(--brick);font-weight:500">&#10007; held<br>before save</div>
+  </div>
+  <div class="abs sheet" id="hDoc" style="left:1180px;top:110px;width:640px;height:800px">
+    <div class="abs lab" style="left:40px;top:40px;color:var(--written)">&#167; The 2019 doc</div>
+    <div class="abs" style="left:40px;top:92px;font-size:34px;font-weight:600">Supplier invoice process</div>
+    <div class="abs" style="left:40px;top:170px;font-size:28px;color:var(--ink3);line-height:1.5">&sect;2 Compare with purchase order</div>
+    <div class="abs" id="hDocHi" style="left:20px;top:238px;width:600px;height:150px;background:#ece7da;border-left:4px solid var(--written)"></div>
+    <div class="abs" style="left:40px;top:252px;font-size:30px;line-height:1.35"><span class="mono" style="color:var(--written)">&sect;3</span> Code the cost centre.<br><span style="color:var(--ink2)">Equipment and IT hardware</span><br><span class="mono" style="font-weight:500">&#8594; 4711</span></div>
+    <div class="abs" style="left:40px;top:430px;font-size:28px;color:var(--ink3);line-height:1.5">&sect;4 Set the tax code</div>
+  </div>
+  <div class="abs plate" id="hStop" style="left:1180px;top:110px;width:640px;height:800px;border-left:6px solid var(--brick)">
+    <div class="abs lab" style="left:44px;top:40px;color:var(--brick)">&#10007; &nbsp;Stop &middot; Mira</div>
+    <div class="abs serif" id="hStopH" style="left:44px;top:96px;width:560px;font-size:92px;line-height:1.05;font-style:italic;font-weight:300"></div>
+    <div class="abs lab" id="hStopL" style="left:44px;top:400px;color:var(--ink3);text-transform:none;letter-spacing:.03em">her rule &middot; in her words</div>
+    <div class="abs serif" id="hStopQ" style="left:44px;top:446px;width:560px;font-size:44px;line-height:1.22;font-weight:300"></div>
+    <div class="abs mono" id="hStopR" style="left:44px;top:690px;font-size:30px;line-height:1.35;color:var(--sage);font-weight:500">&#8594; cost centre 0400<br><span style="color:var(--ink2);font-weight:400;font-size:26px">Capex &ndash; Machinery &amp; Equipment</span></div>
+  </div>
+  <div class="abs" id="hMira" style="left:830px;top:670px"></div>
+  </div>
+</div></div>
+
+<!-- I: work map -->
+<div class="scene" id="sI"><div class="cam">
+  <div class="abs sheet" id="iDoc" style="left:120px;top:100px;width:1120px;height:820px">
+    <div class="abs lab" style="left:52px;top:36px;color:var(--sage)">&#10003; Work Map &middot; v8</div>
+    <div class="abs serif" id="iTitle" style="left:52px;top:80px;width:1000px;font-size:60px;line-height:1.05;letter-spacing:-.02em">How Sabine processes<br>a supplier invoice</div>
+    <div id="iRows"></div>
+    <div class="abs" id="iSig" style="left:52px;top:732px;width:1000px;height:70px">
+      <div class="abs" style="left:0;top:62px;width:1010px;height:1px;background:var(--ink)"></div>
+      <div class="abs serif" id="iSigN" style="left:6px;top:0;font-size:56px;font-style:italic;font-weight:300;letter-spacing:.01em;white-space:nowrap;line-height:1"></div>
+      <div class="abs mono" id="iSigL" style="right:0;top:22px;font-size:24px;letter-spacing:.06em;color:var(--sage);font-weight:500">&#10003; SIGNED &middot; SABINE</div>
+    </div>
+  </div>
+  <div class="abs" id="iExp" style="left:1330px;top:100px;width:470px">
+    <div class="lab" style="color:var(--ink)">Export &middot; MCP server</div>
+    <div class="abs serif" id="iAny" style="left:0;top:50px;width:470px;font-size:84px;line-height:1.02;font-weight:300;letter-spacing:-.02em">Any agent<br>can read it.</div>
+    <div id="iTools"></div>
+  </div>
+</div></div>
+
+<!-- J: tagline -->
+<div class="scene" id="sJ"><div class="cam">
+  <div class="abs serif" id="jT" style="left:160px;top:210px;width:1500px;font-size:132px;line-height:1.06;letter-spacing:-.025em;font-weight:300"></div>
+  <div class="abs" id="jMira" style="left:1560px;top:560px"></div>
+  <div class="abs" id="jMark" style="left:160px;top:790px;display:flex;align-items:center;gap:20px;font-weight:600;font-size:44px;letter-spacing:-.02em"><span style="position:relative;width:32px;height:32px;display:block"><i style="position:absolute;inset:0;background:#c9d1bb;transform:translate(8px,-8px)"></i><i style="position:absolute;inset:0;background:var(--sage)"></i></span>Tacet</div>
+</div></div>
+
+</div>
+<script>
+/* ---------- pure-function-of-time helpers ---------- */
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const P=(t,a,b)=>clamp((t-a)/(b-a));
+const eo=x=>x>=1?1:1-Math.pow(2,-10*x);
+const ec=x=>1-Math.pow(1-x,3);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const eb=x=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const L=[0.8,4.3,8.3,11.5,15.4,21.4,26.2,30.0,37.4,39.1,45.2,50.7,55.0,59.3,62.2,67.4,72.0];
+const DUR=77.0;
+function vis(el,v){el.style.display=v?'block':'none'}
+function tf(el,x,y,s,o){el.style.transform=`translate(${x}px,${y}px)`+(s!==undefined&&s!==1?` scale(${s})`:'');if(o!==undefined)el.style.opacity=o}
+function up(el,t,a,d=.55,dy=22,ease=eo){const p=ease(P(t,a,a+d));el.style.opacity=p;el.style.transform=`translateY(${(1-p)*dy}px)`;return p}
+function fade(el,t,a,d=.3){const p=P(t,a,a+d);el.style.opacity=p;return p}
+function typ(el,s,t,a,cps){const n=Math.floor(clamp((t-a)*cps,0,s.length));el.textContent=s.slice(0,n);return n}
+function wipe(el,t,a,d=.5){const p=eo(P(t,a,a+d));el.style.clipPath=`inset(0 ${(1-p)*100}% 0 0)`;el.style.opacity=p>0?1:0;return p}
+function num(el,to,t,a,d,fmt){const p=eo(P(t,a,a+d));el.textContent=fmt?fmt(Math.round(to*p)):Math.round(to*p)}
+function wordify(el,text,cls){el.innerHTML=text.split('\n').map(l=>l.split(' ').map(w=>`<span class="w ${cls||''}">${w}</span>`).join(' ')).join('<br>')}
+function words(el,t,times,d=.28,dy=20){const ws=el.querySelectorAll('.w');ws.forEach((w,i)=>{const p=eo(P(t,times[i]??1e9,(times[i]??1e9)+d));w.style.opacity=p;w.style.transform=`translateY(${(1-p)*dy}px)`})}
+function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+function mira(el,size,frame){ // pixel sprite, cropped to the figure
+  const q=1.34*size,w=size,h=Math.round(1.18*size);
+  el.classList.add('spr');el.style.width=w+'px';el.style.height=h+'px';
+  el.style.backgroundSize=(2*q)+'px '+(2*q)+'px';
+  el._q=q;el._w=w;el._h=h;setFrame(el,frame||0)}
+function setFrame(el,f){const q=el._q,c=f%2,r=Math.floor(f/2);el.style.backgroundPosition=`${-(c*q+.2*q)}px ${-(r*q+.115*q)}px`}
+function blink(el,t,base=0,seed=0){const k=((t+seed)%2.6);setFrame(el,(k>2.4&&k<2.52)?1:base)}
+function hop(el,t,a,amp=26){const p=P(t,a,a+.45);const y=-Math.abs(Math.sin(p*Math.PI))*amp*(1-p*.4);return y}
+function popIn(el,t,a,d=.5){const p=eb(P(t,a,a+d));el.style.opacity=P(t,a,a+.12);return p}
+const gauss=(x,m,s)=>Math.exp(-.5*Math.pow((x-m)/s,2));
+function curvePath(path,w,h,base,mean,sigma,amp){let d='';for(let x=0;x<=w;x+=5){const y=base-amp*gauss(x,mean,sigma);d+=(x?'L':'M')+x+' '+y.toFixed(1)}path.setAttribute('d',d)}
+
+/* ---------- build static pieces ---------- */
+// A ticks (24 years)
+{const c=$('aTicks');let h='';for(let i=0;i<24;i++){const x=i*(1680-3)/23;h+=`<i class="abs" style="left:${x}px;top:${i%5==4?0:22}px;width:3px;height:${i%5==4?90:68}px;background:${i==23?'var(--sage)':'var(--ink)'}"></i>`}c.innerHTML=h}
+// B rows
+{const st=['Open and check the invoice','Compare with purchase order','Code the cost center','Set the tax code','Set the payment date','Post, hold or route'];
+ $('bRows').innerHTML=st.map((s,i)=>`<div class="abs" id="bR${i}" style="left:48px;top:${168+i*64}px;width:764px;height:64px;border-top:1px solid var(--rule);font-size:32px;line-height:63px"><span class="mono" style="color:var(--written);font-size:26px;display:inline-block;width:74px">&sect;${i+1}</span>${s}</div>`).join('')
+ let d='';['MON','TUE','WED','THU','FRI'].forEach((n,i)=>{d+=`<div class="abs" id="bD${i}" style="left:${i*152}px;top:0;width:140px;height:176px;border:1px solid var(--rule2);background:var(--sheet)"><div class="mono abs" style="left:0;top:22px;width:100%;text-align:center;font-size:30px;letter-spacing:.08em;color:${i==4?'var(--ink)':'var(--ink3)'};font-weight:500">${n}</div><div class="abs" id="bX${i}" style="left:24px;top:98px;width:92px;height:8px;background:${i==4?'var(--ink)':'var(--ink3)'}"></div></div>`});
+ $('bDays').innerHTML=d}
+// miras
+mira($('cMira'),168,0);mira($('dMira'),230,0);mira($('eMira'),330,0);mira($('eMira2'),150,0);mira($('hMira'),190,0);mira($('jMira'),300,0);
+// words
+wordify($('eQ'),'You coded it 0400.\nWhat made you do that?');
+wordify($('eA'),'Equipment over\nfive thousand net\nis always capex.');
+wordify($('hStopH'),'Sabine would\nstop here.');
+wordify($('hStopQ'),'Equipment over five thousand net is always capex.');
+wordify($('jT'),'It learns the part of the\njob nobody wrote down.');
+wordify($('dHead'),'It can’t explain that.');
+// D ticks
+{let h='';for(let i=0;i<64;i++){const x=i*(760/64)+6;const ht=30+rnd(i)*150;h+=`<i class="abs" id="dT${i}" style="left:${x}px;top:${200-ht}px;width:3px;height:${ht}px;background:var(--ink)"></i>`}
+ for(let i=0;i<5;i++){const x=1530+i*28;const ht=24+rnd(i+90)*70;h+=`<i class="abs" id="dT${64+i}" style="left:${x}px;top:${200-ht}px;width:3px;height:${ht}px;background:var(--ink)"></i>`}
+ $('dTicks').innerHTML=h}
+// G rows
+const RN=[['8212','Nordwerk CZ','4,862.59','9100'],['8037','Schmidt','4,516.61','4711'],['8842','Schmidt','4,544.98','4711'],['6474','Weber Elektro','3,314.20','4711'],['8657','Schmidt','5,468.19','0400'],['9899','Krämer','7,999.17','4720'],['9841','Schmidt','8,045.98','0400'],['7509','Hansa','9,848.45','0400'],['6095','Schmidt','2,979.59','4711'],['6634','QuickParts','14,998.44','4720'],['9035','Hansa','5,147.31','0400']];
+$('gHead').innerHTML=['INVOICE|0','SUPPLIER|130','NET €|560|r','GUESS|680','LABEL|830'].map(x=>{const a=x.split('|');return `<span class="abs" style="left:${a[1]}px;${a[2]?'width:0;text-align:right':''}">${a[0]}</span>`}).join('');$('gHead').style.width='1040px';
+{let h='';RN.forEach((r,i)=>{const y=168+i*66;h+=`<div class="abs" id="gR${i}" style="left:120px;top:${y}px;width:1040px;height:66px;border-top:1px solid var(--rule);font-size:28px;line-height:64px;white-space:nowrap"><span class="mono abs" style="left:0;color:var(--ink2)">${r[0]}</span><span class="abs" style="left:130px">${r[1]}</span><span class="mono abs" style="left:370px;width:190px;text-align:right">${r[2]}</span><span class="mono abs" id="gP${i}" style="left:680px;color:var(--slate);font-weight:500"></span><span class="mono abs" id="gL${i}" style="left:830px;font-weight:500"></span><span class="mono abs" id="gC${i}" style="left:980px;color:var(--sage);font-weight:500"></span></div>`});$('gRows').innerHTML=h}
+{let h='';for(let i=0;i<11;i++)h+=`<div class="abs" id="gCe${i}" style="left:${i*152}px;top:0;width:128px;height:70px;border:2px solid var(--rule2);text-align:center;line-height:64px;font-family:var(--mono);font-size:38px;color:var(--sage);font-weight:500"></div>`;$('gCells').innerHTML=h}
+// I rows
+const WM=[['S1','Open and check the invoice','','obs'],['S2','Compare with purchase order','','obs'],['S3','Code the cost center','R1 &nbsp;equipment &gt; 5,000 &#8594; 0400','con'],['S4','Set the tax code','R3 &nbsp;EU, not DE &#8594; reverse charge','con'],['S5','Set the payment date','','inf'],['S6','Post, hold or route','G1–G4 &nbsp;guardrails','bin']];
+{let h='';WM.forEach((r,i)=>{const y=262+i*74;const sub=r[2]?`<div class="abs" style="left:260px;top:${y+40}px;font-size:0"></div>`:'';
+ h+=`<div class="abs" id="iR${i}" style="left:52px;top:${y}px;width:1016px;height:74px;border-top:1px solid var(--rule)"><span class="mono abs" style="left:0;top:20px;font-size:24px;color:var(--ink3)">${r[0]}</span><span class="abs" style="left:76px;top:14px;font-size:34px;font-weight:500">${r[1]}</span><span class="mono abs" style="left:560px;top:23px;font-size:22px;color:var(--ink2)">${r[2]}</span><span class="mono abs" id="iM${i}" style="right:0;top:18px;font-size:32px;color:${{obs:'var(--ink)',con:'var(--sage)',inf:'var(--slate)',bin:'var(--brick)'}[r[3]]}">${{obs:'&#9646;',con:'&#10003;',inf:'&#9676;',bin:'&#9632;'}[r[3]]}</span></div>`});
+ $('iRows').innerHTML=h;}
+// I: S3/S6 detail lines sit inside the row via a taller layout: place as separate captions
+{const ex=$('iDoc');ex.insertAdjacentHTML('beforeend',`<div class="abs mono" id="iD3" style="left:128px;top:${262+2*74+52}px;font-size:0"></div>`)}
+{const tools=['list_steps','list_guardrails','check_decision','explain_rule'];
+ $('iTools').innerHTML=tools.map((n,i)=>`<div class="abs mono" id="iT${i}" style="left:0;top:${300+i*92}px;width:470px;height:92px;border-top:1px solid var(--rule2);font-size:34px;line-height:90px;font-weight:500"><span style="color:var(--sage);font-weight:400">&#9654;&nbsp;</span>${n}</div>`).join('')+`<div class="abs" id="iT4" style="left:0;top:${300+4*92}px;width:470px;border-top:1px solid var(--rule2)"></div>`}
+
+/* ---------- chrome ---------- */
+const CHAP=[[8.1,'01 · Capture'],[30,'02 · Map'],[37.4,'03 · Prove'],[55,'04 · Teach'],[67.3,'05 · Export']];
+function chrome(t){let s='';for(const c of CHAP)if(t>=c[0])s=c[1];if(t>=72)s='';$('chap').textContent=s;$('chap').style.opacity=s?1:0;
+  $('chrome').style.opacity=(t<0.3)?P(t,0,.3):1;if(t>=72)$('chrome').style.opacity=1}
+
+/* ---------- scenes ---------- */
+const SC=[
+{id:'sA',t0:0,t1:4.2,fn(t,lt){
+  up($('aLab'),t,.1,.4,10);
+  num($('aNum'),24,t,.15,1.6);
+  up($('aYears'),t,.7,.7,30);
+  up($('aSub'),t,1.2,.7,24);
+  for(let i=0;i<24;i++){const e=$('aTicks').children[i];const p=eo(P(t,.25+i*.06,.25+i*.06+.3));e.style.opacity=p>0?1:0;e.style.transform=`scaleY(${p})`;e.style.transformOrigin='50% 100%'}
+  up($('aTickLab'),t,1.8,.5,8);
+}},
+{id:'sB',t0:4.2,t1:8.1,fn(t,lt){
+  const sh=$('bSheet');up(sh,t,4.25,.55,30);
+  for(let i=0;i<6;i++)up($('bR'+i),t,4.45+i*.1,.4,10);
+  // calendar: days tick
+  const cal=$('bCal'),half=$('bHalf');
+  for(let i=0;i<5;i++){const d=$('bD'+i);up(d,t,4.3+i*.07,.4,16);const x=$('bX'+i);x.style.transform=`scaleX(${i<4?eo(P(t,4.7+i*.12,5.0+i*.12)):eo(P(t,5.3,5.6))})`;x.style.transformOrigin='0 50%'}
+  up($('bFri'),t,4.5,.7,40);up($('bRet'),t,5.1,.6,16);
+  const swap=P(t,5.85,6.05);cal.style.display=swap<1?'block':'none';cal.style.opacity=1-swap;
+  half.style.display=swap>0?'block':'none';
+  up($('bHalfN'),t,6.0,.7,40);up($('bHalfT'),t,6.4,.6,16);
+  // gap region
+  const g=eo(P(t,6.0,6.6));$('bGap').style.opacity=g;$('bGapT').style.opacity=eo(P(t,6.3,6.9));$('bQ').style.opacity=eo(P(t,6.5,7.0));
+  for(let i=3;i<6;i++){$('bR'+i).style.opacity=(t<5.9)?$('bR'+i).style.opacity:Math.max(0,1-P(t,5.9,6.2)*.0)} 
+}},
+{id:'sC',t0:8.1,t1:15.3,fn(t,lt){
+  const win=$('cWin');up(win,t,8.1,.5,30);
+  for(let i=1;i<=7;i++)up($('cf'+i),t,8.25+i*.06,.4,12);
+  // cost centre content: Sabine's value typed at 13.15
+  const cc=$('cCC');const txt=typ(cc,'0400',t,13.15,9);
+  const caret=(Math.floor(t*2)%2==0)&&txt<4;cc.style.borderColor='#22201c';
+  if(txt==0&&caret)cc.textContent='|';
+  // Mira
+  const m=$('cMira');const p=popIn(m,t,8.9);m.style.transform=`translateY(${(1-p)*40+hop(m,t,13.9,18)}px)`;blink(m,t,0,.4);
+  if(t>=13.95)setFrame(m,(Math.floor((t-13.95)*3)%2)?3:2);
+  up($('cPan'),t,8.7,.4,0);$('cPan').style.opacity=P(t,8.7,9.0);
+  typ($('cGuess'),'4711',t,9.25,6);
+  up($('cGuessL'),t,10.0,.5,12);up($('cSeal'),t,10.4,.5,12);
+  // Sabine
+  const sab=$('cSab');sab.textContent='Capex.';const sp=up(sab,t,11.6,.5,16);
+  if(t>=13.0){sab.textContent='Capex.';}
+  $('cSab').style.opacity=sp*(1-P(t,13.7,14.0));
+  const cl=$('cCCl');cl.style.display=t>=13.7?'block':'none';cl.style.opacity=P(t,13.7,14.1);cl.textContent='Capex – Machinery & Equipment';
+  const nq=$('cNeq');nq.style.opacity=eo(P(t,14.0,14.3));
+  $('cGuess').style.textDecoration=t>=14.0?'line-through':'none';$('cGuess').style.textDecorationThickness='8px';$('cGuess').style.color=t>=14.0?'var(--ink3)':'var(--slate)';
+  // camera push into the field
+  const c=eio(P(t,13.9,15.2));const cam=$('cCam');cam.style.transformOrigin='960px 700px';cam.style.transform=`scale(${1+c*.14})`;$('chrome').style.opacity=1-c;
+}},
+{id:'sD',t0:15.3,t1:21.3,fn(t,lt){
+  // headline states
+  const h=$('dHead');
+  const t1=15.4,t2=17.25,t3=19.1;
+  let state=t>=t3?3:t>=t2?2:1;
+  if(h._s!==state){h._s=state;wordify(h,state==1?'It can’t explain that.':state==2?'So it waits\nfor a pause,':'and asks one\nquestion.')}
+  const base=state==1?t1:state==2?t2:t3;
+  const ws=h.querySelectorAll('.w');words(h,t,Array.from(ws,(w,i)=>base+i*.14),.35,28);
+  if(state==3){ws.forEach(w=>{if(w.textContent==='question.')w.style.color='var(--ochre)'})}
+  // timeline
+  up($('dTL'),t,15.4,.4,0);$('dTL').style.opacity=P(t,15.4,15.6);
+  const x=120*0+eo(P(t,15.6,19.1))*1560;$('dPh').style.left=x+'px';
+  for(let i=0;i<69;i++){const e=$('dT'+i);const px=parseFloat(e.style.left);e.style.opacity=(x>=px)?1:0;if(i>=64){e.style.opacity=(x>=px&&t>19.9)?1:0}}
+  const pos=eo(P(t,15.6,19.1));
+  const br=wipe($('dBr'),t,16.9,.7);$('dBrL').style.opacity=eo(P(t,17.3,17.8));
+  $('dQ').style.opacity=fade($('dQ'),t,19.1,.15);$('dQ').style.transform=`scaleY(${eo(P(t,19.1,19.4))})`;$('dQ').style.transformOrigin='50% 100%';
+  const qp=eb(P(t,19.2,19.6));$('dQm').style.opacity=P(t,19.2,19.35);$('dQm').style.transform=`scale(${qp})`;$('dQm').style.transformOrigin='0 100%';
+  const m=$('dMira');const p=popIn(m,t,19.35);m.style.transform=`translateY(${(1-p)*50}px)`;blink(m,t,2,.9);
+}},
+{id:'sE',t0:21.3,t1:30.0,fn(t,lt){
+  const q=P(t,25.9,26.3);// question phase -> answer phase
+  const showQ=t<26.3;
+  ['eMira','eLab','eQ','eChip'].forEach(i=>$(i).style.display=showQ?'block':'none');
+  ['eOpen','eA','eAuth','eMira2'].forEach(i=>$(i).style.display=showQ?'none':'block');
+  if(showQ){
+    const m=$('eMira');const p=popIn(m,t,21.4);m.style.transform=`translateY(${(1-p)*40}px)`;blink(m,t,0,.7);
+    up($('eLab'),t,21.5,.5,10);
+    words($('eQ'),t,[21.55,21.95,22.2,22.6,23.2,23.5,23.75,24.0,24.35],.3,30);
+    up($('eChip'),t,22.5,.5,12);
+    $('eQ').style.opacity=1-P(t,25.8,26.2);$('eChip').style.opacity=Math.min(P(t,22.5,23),1-P(t,25.8,26.2));m.style.opacity=Math.min(P(t,21.4,21.55),1-P(t,25.8,26.2));$('eLab').style.opacity=Math.min(P(t,21.5,21.9),1-P(t,25.8,26.2));
+  }else{
+    const b=26.2;
+    up($('eOpen'),t,b,.5,20);
+    words($('eA'),t,[b+.05,b+.5,b+.85, b+1.15,b+1.5,b+1.8,b+2.05,b+2.45],.3,40);
+    up($('eAuth'),t,b+2.4,.6,12);
+    const m=$('eMira2');const p=popIn(m,t,b+.2);m.style.transform=`translateY(${(1-p)*40}px)`;blink(m,t,0,1.3);
+    // underline "always capex" after it's said
+  }
+}},
+{id:'sF',t0:30.0,t1:37.3,fn(t,lt){
+  const s=30.0;
+  const cam=P(t,s+1.75,s+2.5);const w=$('fWorld');w.style.transform=`translateX(${-1920*eio(cam)}px)`;
+  up($('fPlate'),t,s+.1,.5,20);up($('fRid'),t,s+.3,.4,8);
+  wipe($('fL1'),t,s+.5,.55);wipe($('fL2'),t,s+.95,.55);wipe($('fL3'),t,s+1.35,.5);
+  up($('fQuote'),t,s+.9,.6,12);
+  up($('fCurve'),t,s+.8,.5,0);$('fCurve').style.opacity=P(t,s+.8,s+1.1);
+  const sig=(1-eio(P(t,s+1.0,s+2.2)))*150+26;curvePath($('fCurvePath'),520,480,400,260,sig,330*Math.min(1,(26/sig)*1.0+.18));
+  up($('fCurveN'),t,s+1.6,.5,8);
+  // receipt
+  up($('fB'),t,s+2.85,.5,26);
+  const sp=eo(P(t,s+4.2,s+4.5));$('fStrike').style.width=(sp*660)+'px';$('fStrike').style.left='150px';
+  $('fB').style.color=t>=s+4.25?'var(--ink3)':'var(--slate)';
+  fade($('fArr'),t,s+4.3,.25);
+  const ap=eb(P(t,s+5.3,s+5.8));$('fA').style.opacity=P(t,s+5.3,s+5.45);$('fA').style.transform=`scale(${.9+.1*ap}) translateY(${(1-ap)*30}px)`;$('fA').style.transformOrigin='0 50%';
+  up($('fBl'),t,s+3.2,.5,10);up($('fAl'),t,s+5.7,.5,10);
+  const tg=eb(P(t,s+6.0,s+6.3));$('fTag').style.opacity=P(t,s+6.0,s+6.1);$('fTag').style.transform=`scale(${1.35-.35*tg})`;$('fTag').style.transformOrigin='100% 0';
+  up($('fFoot'),t,s+6.3,.5,10);
+  up($('fRc').children[0],t,s+2.1,.5,10);up($('fRc').children[1],t,s+2.2,.5,10);
+}},
+{id:'sG',t0:37.3,t1:54.9,fn(t,lt){
+  const intro=t<39.0;
+  vis($('gProof'),intro);vis($('gMain'),!intro&&t<50.55);vis($('gBig'),t>=50.55);
+  if(intro){const el=$('gProof');if(!el._w){el._w=1;wordify(el,'Words aren’t proof.')}words(el,t,[37.55,37.95,38.35],.45,40);
+    el.style.opacity=1-P(t,38.75,39.0)}
+  if(!intro&&t<50.55){
+    // table
+    const hd=$('gHead');up(hd,t,39.05,.4,8);
+    RN.forEach((r,i)=>{const e=$('gR'+i);up(e,t,39.15+i*.2,.35,8);
+      const pp=$('gP'+i);typ(pp,r[3],t,39.4+i*.2,14);
+      const lb=$('gL'+i),cc=$('gC'+i);
+      const lt0=45.5+i*.28;
+      typ(lb,r[3],t,lt0,16);
+      cc.textContent=t>=lt0+.3?'✓':'';});
+    // hash
+    const H='2f369d084e1cc8b7cbfe5fabd0b59d97d43168cc1782f824c1a0b8cea726874c';
+    const n=Math.floor(clamp((t-39.4)*17,0,64));const lines=[0,1,2,3].map(i=>H.slice(i*16,Math.min(n,(i+1)*16)).padEnd(0)).filter((s,i)=>n>i*16);
+    $('gHash').textContent=lines.join('\n');
+    up($('gRL'),t,39.2,.4,8);
+    fade($('gHashL'),t,43.2,.4);
+    $('gNo').style.opacity=P(t,43.6,44.0);
+    const lab=t>=45.5;$('gNo').innerHTML=lab?'labels &nbsp;<span style="color:var(--sage)">&#10003;</span> from humans':'labels &nbsp;&#9675; none yet';
+    $('gRL').style.color=t>=45.2?'var(--sage)':'var(--ink)';
+    // curve narrows with each label
+    const cur=$('gCur');cur.style.opacity=P(t,45.2,45.6);
+    const k=clamp((t-45.5)/.28,0,11);const sg=190*Math.pow(.17,eio(k/11))+14;curvePath($('gCurP'),560,270,210,280,sg,170*Math.min(1,(14/sg)*.9+.2));
+    // highlight the correct rows softly: none (clean)
+  }
+  if(t>=50.55){
+    const b=50.7;
+    const a=$('gNumA');const to=11;
+    const p=eo(P(t,b+2.25,b+3.0));const v=Math.round(11*p);
+    a.textContent=(t<b+2.2)?'—':v;a.style.color=(t>=b+2.2)?'var(--sage)':'var(--ink3)';
+    up($('gNumB'),t,b-.1,.6,40);a.style.opacity=P(t,b-.1,b+.2);
+    for(let i=0;i<11;i++){const e=$('gCe'+i);up(e,t,b+.05+i*.04,.3,10);const on=t>=b+2.3+i*.06;e.textContent=on?'✓':'';e.style.background=on?'#e8eddf':'transparent';e.style.borderColor=on?'var(--sage)':'var(--rule2)'}
+    up($('gBigL'),t,b+.6,.5,8);
+  }
+}},
+{id:'sH',t0:54.9,t1:67.3,fn(t,lt){
+  const intro=t<56.1;
+  vis($('hMon'),intro);vis($('hMonL'),intro);vis($('hMain'),!intro);
+  if(intro){const el=$('hMon');if(!el._w){el._w=1;wordify(el,'Monday.')}words(el,t,[55.05],.5,40);$('hMonL').style.opacity=eo(P(t,55.6,56.0))}
+  else{
+    const b=56.1;
+    up($('hMain'),t,b,.35,0);$('hMain').style.opacity=P(t,b,b+.2);
+    typ($('hCC'),'4711',t,57.35,7);
+    $('hLena').style.opacity=P(t,57.0,57.3)*(1-P(t,58.9,59.2));
+    // doc highlight pulse -> then dim
+    const dim=P(t,59.2,59.5);$('hDoc').style.opacity=1-dim;$('hDoc').style.display=dim<1?'block':'none';
+    const sp=$('hStop');sp.style.display=t>=59.3?'block':'none';
+    const sp0=eo(P(t,59.3,59.7));sp.style.opacity=sp0;sp.style.transform=`translateX(${(1-sp0)*60}px)`;
+    words($('hStopH'),t,[59.35,59.75,60.0,60.5],.35,30);
+    // second half: her rule
+    const q=62.2;
+    $('hStopL').style.opacity=eo(P(t,q,q+.4));
+    words($('hStopQ'),t,[q+.5,q+.8,q+1.0,q+1.25,q+1.5,q+1.7,q+1.9,q+2.1],.3,16);
+    up($('hStopR'),t,q+2.1,.5,10);
+    // blocked save
+    const bl=P(t,59.6,59.9);$('hSave').style.opacity=1-bl*.6;$('hSave').style.background=bl>0?'var(--paper)':'var(--ink)';$('hSave').style.color=bl>0?'var(--ink3)':'var(--paper)';$('hSave').style.borderColor=bl>0?'var(--brick)':'var(--ink)';
+    $('hBlock').style.opacity=eo(P(t,59.7,60.0));
+    const cc=$('hCC');cc.style.textDecoration=t>=62.9?'line-through':'none';cc.style.textDecorationColor='var(--brick)';cc.style.textDecorationThickness='6px';cc.style.color=t>=62.9?'var(--ink3)':'var(--ink)';
+    const m=$('hMira');const p=popIn(m,t,59.3);m.style.transform=`translateY(${(1-p)*50+hop(m,t,62.2,0)}px)`;blink(m,t,0,.3);
+  }
+}},
+{id:'sI',t0:67.3,t1:72.0,fn(t,lt){
+  const b=67.4;
+  up($('iDoc'),t,67.3,.5,30);up($('iTitle'),t,67.5,.6,18);
+  for(let i=0;i<6;i++){up($('iR'+i),t,67.8+i*.12,.4,10)}
+  // detail lines
+  const d3=$('iD3');
+  const sigP=P(t,69.4,70.4);
+  const nm=$('iSigN');nm.textContent='Sabine';nm.style.clipPath=`inset(0 ${(1-eo(sigP))*100}% 0 0)`;nm.style.opacity=sigP>0?1:0;
+  $('iSigL').style.opacity=eo(P(t,70.4,70.7));
+  up($('iExp'),t,69.3,.5,0);$('iExp').style.opacity=P(t,69.3,69.55);
+  up($('iAny'),t,69.4,.6,24);
+  for(let i=0;i<4;i++)up($('iT'+i),t,69.9+i*.14,.4,10);
+}},
+{id:'sJ',t0:72.0,t1:77.01,fn(t,lt){
+  const b=72.0;
+  words($('jT'),t,[b+.05,b+.3,b+.5,b+.75,b+.9,b+1.1, b+1.45,b+1.75,b+1.95,b+2.15],.45,34);
+  up($('jMark'),t,b+2.8,.7,10);
+  const m=$('jMira');const p=popIn(m,t,b+.8,.6);m.style.transform=`translateY(${(1-p)*50}px)`;blink(m,t,0,.5);
+}}
+];
+let _last=-1;
+window.seek=function(t){
+  chrome(t);
+  for(const s of SC){const on=t>=s.t0&&t<s.t1;const el=$(s.id);el.style.display=on?'block':'none';
+    if(on){
+      // slow drift for life (not on camera-driven scenes)
+      if(s.id!=='sC'&&s.id!=='sF'){const c=el.querySelector('.cam');const p=(t-s.t0)/(s.t1-s.t0);c.style.transform=`scale(${1+.02*p+.04*(1-eo(clamp((t-s.t0)/.8)))})`}
+      s.fn(t,t-s.t0)}}
+  window.__t=t;
+};
+const Q=new URLSearchParams(location.search);
+(async()=>{
+  try{await Promise.all([document.fonts.load('300 100px Newsreader'),document.fonts.load('italic 300 100px Newsreader'),document.fonts.load('400 30px Geist'),document.fonts.load('600 30px Geist'),document.fonts.load('500 30px "IBM Plex Mono"'),document.fonts.load('400 30px "IBM Plex Mono"')])}catch(e){}
+  await document.fonts.ready;
+  seek(Q.has('t')?parseFloat(Q.get('t')):0);
+  window.ready=true;
+  if(Q.has('play')){const t0=performance.now();const loop=()=>{seek(((performance.now()-t0)/1000)%DUR);requestAnimationFrame(loop)};loop()}
+})();
+</script></body></html>

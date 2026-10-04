@@ -319,8 +319,9 @@
           <figcaption class="film-caption" id="film-caption" hidden></figcaption>
         </figure>
         <div class="film-bar">
-          <span class="film-meta">The product film · 01:15 · one rule learned, from guess to sealed test</span>
+          <span class="film-meta">The product film · 01:17 · one rule learned, from guess to sealed test</span>
           <span class="film-tools">
+            <button class="textbtn" id="film-lang" type="button" hidden aria-label="Switch the film to German">Deutsch</button>
             <button class="textbtn" id="film-sound" type="button" hidden>Sound on</button>
             <button class="textbtn" id="film-play" type="button" hidden>Play film</button>
           </span>
@@ -661,10 +662,32 @@
     }
     video.addEventListener('timeupdate', function () { renderCue(video.currentTime || 0); });
 
-    if (window.fetch) {
-      fetch('assets/film.vtt').then(function (r) { return r.ok ? r.text() : ''; })
+    function loadCues(lang) {
+      if (!window.fetch) return;
+      fetch(lang === 'de' ? 'assets/film.de.vtt' : 'assets/film.vtt').then(function (r) { return r.ok ? r.text() : ''; })
         .then(function (t) { cues = parseVTT(t); })
         .catch(function () { cues = []; });
+    }
+    loadCues('en');
+
+    /* English / German: the same film, dubbed with ElevenLabs; captions follow the audio. */
+    var lang = 'en', langBtn = document.getElementById('film-lang');
+    if (langBtn) {
+      video.addEventListener('loadeddata', function () { langBtn.hidden = false; });
+      langBtn.addEventListener('click', function () {
+        var t = video.currentTime || 0, wasPaused = video.paused;
+        lang = lang === 'en' ? 'de' : 'en';
+        langBtn.textContent = lang === 'en' ? 'Deutsch' : 'English';
+        langBtn.setAttribute('aria-label', lang === 'en' ? 'Switch the film to German' : 'Switch the film to English');
+        video.setAttribute('lang', lang);
+        video.src = lang === 'de' ? 'assets/film.de.mp4' : 'assets/film.mp4';
+        loadCues(lang);
+        video.addEventListener('loadedmetadata', function once() {
+          video.removeEventListener('loadedmetadata', once);
+          try { video.currentTime = Math.min(t, (video.duration || t) - 0.1); } catch (e) {}
+          if (!wasPaused) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+        });
+      });
     }
 
     if (sound) sound.addEventListener('click', function () {
