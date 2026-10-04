@@ -38,12 +38,14 @@ class GenericPack:
         self.id = pack_id or task.id
         self.name = task.name
         self.task = task.task
+        self.goal = task.goal
         self.expert_name = task.expert_name
         self.case_noun = task.case_noun
         self.process_doc = task.process_doc or ""
         self.decision_fields = [FieldSpec(d.name, d.label or d.name, list(d.options) or None, dict(d.option_labels))
                                 for d in task.decision_fields]
         self.actions = task.action_names()
+        self.action_labels = {a.name: (a.label or a.name) for a in task.actions}
         self.action_precedence = task.precedence()
         self.exploration_priors = [set(p) for p in task.exploration_priors]
         # Derived helper keys that move with every perturbation but carry no decision

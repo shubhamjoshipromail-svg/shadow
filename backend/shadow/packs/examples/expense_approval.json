@@ -2,6 +2,7 @@
   "id": "expense_approval",
   "name": "Employee expense approval",
   "task": "approve_expense_claim",
+  "case_noun": "claim",
   "goal": "Decide whether an employee expense claim is reimbursed, who must approve it, and which account it is posted to, so that policy is followed and genuinely risky claims are caught before payment.",
   "expert_name": "Sabine",
   "namespace": "task",

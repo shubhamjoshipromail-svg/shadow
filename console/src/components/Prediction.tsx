@@ -21,7 +21,7 @@ export default function PredictionCard({ snap, caseId }: { snap: Snapshot; caseI
         <div>
           <div className="label">Committed before the expert acts</div>
           <div className="mt-1 text-[15px] font-medium">
-            Invoice <span className="num">{kase?.invoice_no}</span>
+            {kase?.invoice_no ? <>Invoice <span className="num">{kase.invoice_no}</span></> : <span className="num">{caseId}</span>}
             <span className="text-ink-2"> · {kase?.supplier.name}</span>
           </div>
         </div>

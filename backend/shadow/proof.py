@@ -142,7 +142,9 @@ def build(s: Session, param: str | None = None, seed: int | None = None) -> dict
     for i, (bucket, v) in enumerate(items_cases, start=1):
         cid = f"prf{s.proof_round}-{i:02d}"
         v.pop("_probe", None)
-        v.update(id=cid, invoice_no=f"{rng.randint(6000, 9899)}", status="Open", _proof=pid)
+        v.update(id=cid, status="Open", _proof=pid)
+        if "invoice_no" in v:  # only packs whose cases carry a document number get a fresh one
+            v["invoice_no"] = f"{rng.randint(6000, 9899)}"
         v["booking"] = {k: None for k in (v.get("booking") or {})} | {"note": ""}
         pred = run_map(s.wm, pack, v)
         value, source = receipts.field_value(pred, f)

@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from shadow import dsl, llm
+from shadow import compiler, dsl, llm
 from shadow.bayes import Hypothesis, entropy
 from shadow.packs.base import Pack
 from shadow.workmap import Guardrail, Rule, WorkMap, run_map, with_rule
@@ -103,10 +103,15 @@ def _feature_catalog(pack: Pack, case: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-SYSTEM = """You help an AI apprentice understand an expert's unwritten judgment.
+def _system(pack: Pack) -> str:
+    """The proposal prompt, grounded in the pack's own namespace/features (invoice examples for invoices)."""
+    example = compiler.example_expression(pack, as_param=False)
+    ns = compiler.namespace(pack)
+    return f"""You help an AI apprentice understand an expert's unwritten judgment.
 The expert just made a decision that the written process (and the rules learned so far) did not predict.
 Propose 3-5 DIFFERENT candidate explanations, each as a precise rule in a restricted Python-like
-expression language over the listed context names (e.g. `inv.category == 'equipment' and inv.net_eur > 5000`).
+expression language over the listed context names (e.g. `{example}`). The current workflow's namespace
+is `{ns}`; use only the context names listed below.
 Allowed: and/or/not, comparisons, in, arithmetic, numbers, strings, lists, abs/min/max/len.
 Each rule's condition MUST be true for the current case. Prefer simple, general rules an experienced
 professional would plausibly hold, use round-number thresholds, and vary which facts each explanation relies on.
@@ -122,7 +127,7 @@ async def propose(pack: Pack, wm: WorkMap, case: dict[str, Any], field: str, exp
         f"Rules already known:\n" + "\n".join(f"- {r.title}: {r.when}" for r in wm.rules) + "\n\n"
         f"Write each rule so that it explains why `{field}` should be {expert_value!r} here."
     )
-    out = await llm.parse(Proposals, SYSTEM, user, tier="reason", max_tokens=2500)
+    out = await llm.parse(Proposals, _system(pack), user, tier="reason", max_tokens=2500)
     return out.hypotheses
 
 

@@ -25,7 +25,10 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from pydantic import BaseModel
 
 from shadow import config, converse, exports, llm, perception, sim
+from shadow import onboard
 from shadow import proof as proof_mod
+from shadow.packs import register
+from shadow.packs.generic import GenericPack
 from shadow import engine as engine_mod
 from shadow.engine import Session
 from shadow.packs import get_pack
@@ -113,6 +116,10 @@ async def create_session(body: NewSession) -> dict[str, Any]:
     s.simulated = bool(sim_kwargs)
     s.map_source = source
     s.workspace = body.workspace
+    if not s.simulated:
+        s.load_policy()
+    if body.mode == "tutor" and body.trainee and not s.simulated:
+        s.mastery = store.load_mastery(body.workspace, pack.id, body.trainee)  # pick up where they left off
     sessions[sid] = s
     latest.append(sid)
     store.create_session(sid, body.mode, pack.id, expert, {"lang": body.lang, "trainee": body.trainee,
@@ -355,6 +362,44 @@ async def capture_js() -> FileResponse:
                         headers={"Cache-Control": "no-store"})
 
 
+@app.get("/observe.js")
+async def observe_js() -> FileResponse:
+    """Generic page observer: fields, values (safe ones only) and actions on any page, no app cooperation."""
+    return FileResponse(STATIC / "observe.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-store"})
+
+
+class OnboardBody(BaseModel):
+    goal: str
+    demos: list[Any] = []  # Demo dicts, or (events=True) lists of observe.js events
+    events: bool = False
+    pack_id: str | None = None
+    expert: str | None = None
+    workspace: str = config.DEFAULT_WORKSPACE
+
+
+@app.post("/api/onboard")
+async def onboard_task(body: OnboardBody) -> dict[str, Any]:
+    """'Watch me do this': a goal + a few demonstrations become a workflow, and a capture session starts on it."""
+    if not body.demos:
+        raise HTTPException(400, "Show at least one demonstration first.")
+    demos = [onboard.Demo.from_events(d) for d in body.demos] if body.events else [onboard.as_demo(d) for d in body.demos]
+    task = await onboard.propose_task(body.goal, demos, task_id=body.pack_id, save=True)
+    pack = GenericPack(task)
+    register(pack)
+    sid = uuid.uuid4().hex[:10]
+    expert = body.expert or getattr(pack, "expert_name", "expert")
+    s = Session(sid, pack, mode="capture", expert=expert, store=store, lang="en")
+    s.workspace = body.workspace
+    s.map_source = {"kind": "onboarded", "task": pack.id, "version": getattr(task, "version", None)}
+    sessions[sid] = s
+    latest.append(sid)
+    store.create_session(sid, "capture", pack.id, expert, {"onboarded": True, "goal": body.goal,
+                                                           "workspace": body.workspace, "workflow": pack.id,
+                                                           "source": s.source, "simulated": False})
+    return {"task": task.model_dump(mode="json"), "pack_id": pack.id, "session": s.snapshot()}
+
+
 @app.get("/companion/intern.png")
 async def companion_art() -> FileResponse:
     """Sprite sheet for the in-app companion (portrait + blink frame)."""
@@ -413,7 +458,7 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     return {"allow": True}
 
 
-COMPANION_EVENTS = {"ended", "tutor_case", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
+COMPANION_EVENTS = {"ended", "tutor_case", "nudge", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
                     "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
 
 
@@ -606,18 +651,27 @@ async def llm_check() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------- the notebook (console), same origin
-SITE = config.ROOT.parent / "site"  # the public landing page (static)
-if SITE.exists():
-    app.mount("/site", StaticFiles(directory=SITE, html=True), name="site")
+SITE = config.ROOT.parent / "site"  # the public landing page (static), served at /
+
+
+@app.get("/s/{rest:path}", include_in_schema=False)
+async def old_notebook_link(rest: str):
+    """Notebook links from before the product moved under /app keep working."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(f"/app/s/{rest}", status_code=307)
+
 
 if config.CONSOLE_DIST.exists():
-    app.mount("/assets", StaticFiles(directory=config.CONSOLE_DIST / "assets"), name="console-assets")
+    app.mount("/app/assets", StaticFiles(directory=config.CONSOLE_DIST / "assets"), name="console-assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
-    async def console_app(path: str):
-        if path.split("/", 1)[0] in ("api", "ws", "v1"):
-            raise HTTPException(404, "not found")
+    @app.get("/app", include_in_schema=False)
+    @app.get("/app/{path:path}", include_in_schema=False)
+    async def console_app(path: str = ""):
         f = config.CONSOLE_DIST / path
         if path and f.is_file() and config.CONSOLE_DIST in f.resolve().parents:
             return FileResponse(f)
         return FileResponse(config.CONSOLE_DIST / "index.html", headers={"Cache-Control": "no-cache"})
+
+if SITE.exists():
+    app.mount("/site", StaticFiles(directory=SITE, html=True), name="site-legacy")
+    app.mount("/", StaticFiles(directory=SITE, html=True), name="site")  # last: API routes above win

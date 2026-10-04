@@ -363,6 +363,8 @@
   var PAPER = "#fffdf7", INK = "#30362f", MUTED = "#697165", LINE = "#e0e3d8", ACCENT = "#627857";
   var UID = "sc" + Math.random().toString(36).slice(2, 8);
   var ART = API + "/companion/intern.png";
+  // the learner-guide nudge: { level, text, look } from the server (or the harness hook)
+  var NUDGE = { level: 0, text: "", look: [], case_id: null };
 
   var STATES = {
     idle:      { hint: "Here when you need me", status: "Observing", badge: "" },
@@ -436,6 +438,15 @@
     '.switch i{position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid var(--line);transition:transform .18s}' +
     '.switch[aria-checked="true"]{background:var(--accent);border-color:#556b49}' +
     '.switch[aria-checked="true"] i{transform:translateX(14px)}' +
+    // level 1 of the help ladder is only a soft paper dot on the portrait
+    '.nbadge{position:absolute;left:-1px;top:6px;display:none;width:7px;height:7px;border-radius:50%;background:#b49858;border:1px solid var(--paper)}' +
+    '#w.nudged .nbadge{display:block}' +
+    '.card.nudge{padding:12px 15px}' +
+    '.card .look{margin-top:7px;font-size:11.5px;color:var(--muted)}' +
+    '.showcap{max-width:300px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 26px #26321d12;padding:9px 11px;font:italic 12px/1.45 Georgia,"Times New Roman",serif;color:var(--muted)}' +
+    '.stuckrow{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}' +
+    '.linkbtn{all:unset;cursor:pointer;font-size:11px;color:var(--accent);text-decoration:underline}' +
+    '.linkbtn:hover{color:#556b49}' +
     '.caption{width:min(268px,calc(100vw - 56px));background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 26px #26321d12;padding:12px 13px}' +
     '.caption .q{font-size:13px;line-height:1.45;color:var(--ink)}' +
     '.caption .hintline{margin-top:6px;font-size:11px;color:var(--muted)}' +
@@ -486,6 +497,7 @@
             '<button class="btn" id="b-debrief" type="button" hidden>Debrief me</button>' +
             '<button class="btn" id="b-teach" type="button" hidden>Teach ' + NOVICE + '</button>' +
             '<button class="btn" id="b-off" type="button"></button></div>' +
+          '<div class="stuckrow"><button class="linkbtn" id="b-stuck" type="button">I\u2019m stuck</button></div>' +
           '<div class="vst" id="v-st" hidden><span id="v-t"></span></div>' +
         '</div>' +
         '<div class="caption pop" id="cap">' +
@@ -494,9 +506,11 @@
           '<input id="cap-in" placeholder="A short answer is enough\u2026" autocomplete="off">' +
         '</div>' +
         '<div class="toast pop" id="toast"></div>' +
+        '<div class="showcap pop" id="showcap"></div>' +
       '</div>' +
       '<button class="portrait" id="kid" type="button" aria-label="' + NAME + ' companion">' + SVG +
-        '<span class="badge" id="badge" aria-hidden="true"></span></button>' +
+        '<span class="badge" id="badge" aria-hidden="true"></span>' +
+        '<span class="nbadge" id="nbadge" aria-hidden="true"></span></button>' +
       '<span class="hint" id="hint" aria-hidden="true">Here when you need me</span>' +
       '<button class="later" id="later" type="button" title="Ask at the end instead">later</button>' +
     '</div>';
@@ -514,6 +528,11 @@
   $("b-end-yes").addEventListener("click", endSession);
   $("b-end-no").addEventListener("click", cancelEndSession);
   $("b-replays").addEventListener("click", function () { if (REPLAYS.on) stopReplays(); else startReplays(); });
+  $("b-stuck").addEventListener("click", function (e) {
+    e.stopPropagation();
+    send({ type: "help" });
+    toast(["Asked " + NAME + " for a hand."]);
+  });
 
   // headless-harness hook: force one of the seven design states without a server
   var TEST = { state: null, hint: false, motion: true };
@@ -544,6 +563,12 @@
     },
     setConfirmEnd: function (on) { CONFIRM_END = !!on; renderSession(); return true; },
     setReplays: function (on, n) { setReplayMode(on, n); return true; },
+    setNudge: function (level, text, look) {
+      nudge({ level: level, text: text, look: look || [], case_id: lastCase });
+      return true;
+    },
+    setIntervention: function (iv) { overlay(iv || {}); return true; },
+    showMe: function (steps) { replayPath(steps || []); return true; },
     notebook: function () { return SID ? notebookURL() : null; },
     showToast: function (lines) {
       toast(lines || ["Noted: Equipment over 3,600 net is capex", "I'd have said 4711, now 0400"]);
@@ -577,6 +602,7 @@
     if (F.open) cls.push("open");
     if (MODE === "tutor") cls.push("tutor");
     W.className = cls.join(" ");
+    if (NUDGE.level === 1) W.classList.add("nudged");  // level 1: just the soft badge
     if (TEST.hint) W.classList.add("showhint");
     if (!TEST.motion) W.classList.add("still");
     $("hc-t").textContent = MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + EXPERT;
@@ -620,6 +646,130 @@
     });
     el.classList.add("show");
     later("toast", 3500, function () { el.classList.remove("show"); });
+  }
+
+  // ------------------------------------------- learner guide: nudge + show me
+  // The server watches behaviour (backend/shadow/stuck.py) and sends a nudge on
+  // the help ladder. These functions only render it; the words come from the
+  // engine and the actions stay in the page: highlight, or open the panel.
+  function cssEscape(s) {
+    s = String(s == null ? "" : s);
+    if (window.CSS && CSS.escape) return CSS.escape(s);
+    return s.replace(/["\\\]]/g, "\\$&");
+  }
+  function shadowHighlight(name) {
+    try {
+      if (window.shadowERP && window.shadowERP.highlight) { window.shadowERP.highlight(name); return true; }
+    } catch (e) {}
+    return false;
+  }
+  function openPanel(name) {
+    var el = document.querySelector('[data-shadow-panel="' + cssEscape(name) + '"]');
+    if (el && el.click) { el.click(); return true; }
+    return false;
+  }
+  // a field is highlighted; anything else is treated as a panel to open
+  function revealLook(name) {
+    if (!name) return false;
+    if (shadowHighlight(name)) return true;
+    return openPanel(String(name));
+  }
+  function lowerFirst(s) {
+    if (!s) return s;
+    if (/^[A-Z0-9]{2,}\b/.test(s)) return s;  // an acronym or a code keeps its case
+    return s.charAt(0).toLowerCase() + s.slice(1);
+  }
+  function humanName(name) {
+    var field = document.querySelector('[data-shadow-field="' + cssEscape(name) + '"]');
+    if (field) {
+      var label = field.getAttribute("aria-label");
+      if (!label && field.closest) {
+        var wrap = field.closest("label");
+        if (wrap) label = (wrap.textContent || "").trim();
+      }
+      if (!label) label = field.getAttribute("data-shadow-field");
+      if (label) return label;
+    }
+    var panel = document.querySelector('[data-shadow-panel="' + cssEscape(name) + '"]');
+    if (panel) {
+      var pl = panel.getAttribute("aria-label");
+      if (!pl && panel.textContent) pl = (panel.textContent || "").trim();
+      if (!pl) pl = panel.getAttribute("data-shadow-panel");
+      if (pl) return pl;
+    }
+    return String(name).replace(/[_-]+/g, " ");
+  }
+  function showCaption(text) {
+    var el = $("showcap");
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add("show");
+  }
+  function hideCaption() {
+    var el = $("showcap");
+    if (el) el.classList.remove("show");
+  }
+  // replay the expert's attention path in the trainee's own screen, in order,
+  // ~900 ms apart. Values are never filled in.
+  function replayPath(steps) {
+    var path = (steps || []).slice();
+    var i = 0;
+    clearTimeout(T.showme);
+    function step() {
+      if (i >= path.length) {
+        later("showme", 1600, hideCaption);
+        return;
+      }
+      var s = path[i++] || {};
+      var name = s.name;
+      if (s.kind === "panel") openPanel(name); else revealLook(name);
+      showCaption(EXPERT + " looked at the " + lowerFirst(humanName(name)) + "\u2026");
+      later("showme", 900, step);
+    }
+    step();
+  }
+  function nudgeCard(level, text, look, showMe) {
+    var cards = $("cards");
+    if (!cards) return;
+    var el = document.createElement("div");
+    el.className = "card nudge";
+    el.innerHTML = '<h4>' + (level >= 4 ? "Let\u2019s walk through it" : "A question") + '</h4>' +
+      '<div class="say"></div>' +
+      (level >= 3 && look.length ? '<div class="look"></div>' : "") +
+      '<div class="acts">' + (showMe && showMe.length ? '<button class="btn accent" data-k="showme">Show me</button>' : "") +
+      '<button class="btn" data-k="ok">I\u2019ll take it from here</button></div>';
+    el.querySelector(".say").textContent = text || (level >= 4 ? "Take it one step at a time." : "Still with me?");
+    if (level >= 3 && look.length) {
+      el.querySelector(".look").textContent = "Look at: " + look.map(humanName).join(" \u00b7 ");
+    }
+    var smb = el.querySelector('[data-k="showme"]');
+    if (smb) smb.onclick = function () { smb.textContent = "Showing\u2026"; replayPath(showMe); };
+    el.querySelector('[data-k="ok"]').onclick = function () {
+      el.remove(); NUDGE.level = 0; W.classList.remove("nudged");
+    };
+    cards.innerHTML = "";
+    cards.appendChild(el);
+  }
+  function nudge(m) {
+    m = m || {};
+    var level = Math.max(0, Math.min(4, Number(m.level) || 0));
+    var look = m.look || [];
+    NUDGE = { level: level, text: m.text || "", look: look, case_id: m.case_id || lastCase };
+    var cards = $("cards");
+    if (level === 0) {
+      if (cards) cards.innerHTML = "";
+      W.classList.remove("nudged");
+      render();
+      return;
+    }
+    if (level === 1) {  // the cue is only the badge
+      if (cards) cards.innerHTML = "";
+      render();
+      return;
+    }
+    nudgeCard(level, NUDGE.text, look, m.show_me);
+    if (level >= 3) look.forEach(revealLook);  // level 3 points where to look
+    render();
   }
 
   // interactions
@@ -718,6 +868,7 @@
   var _onServer = onServer;
   onServer = function (m) {
     _onServer(m);
+    if (m.type === "nudge") nudge(m);  // learner guide: cue, question, highlight or show me
     if (m.type === "ask" && MODE !== "tutor") say("[[shadow:ask " + m.inquiry.id + "]]");
     if (m.type === "intervene" && m.intervention && m.intervention.id) say("[[shadow:intervene " + m.intervention.id + "]]");
     if (m.type === "tutor_case" && m.prompt) {  // proactive coaching as a case opens: where to look, predict first
@@ -784,20 +935,27 @@
   function overlay(iv) {
     if (!iv) return;
     var cards = $("cards");
+    NUDGE.level = 0; W.classList.remove("nudged");  // the stop card replaces a nudge
     // the hint ladder decides how much to reveal; the expert's words come at their rung, or on request (replay)
     var quote = iv.violation && iv.violation.quote && (!iv.hint || iv.hint.quote) ?
       (iv.violation.quote.translation || iv.violation.quote.text) : null;
+    var showMe = iv.show_me || [];
     var el = document.createElement("div");
     el.className = "card";
     el.innerHTML = '<h4>Shadow stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
-      '<div class="acts">' + (iv.id ? '<button class="btn amber" data-k="replay"></button>' : "") +
+      (showMe.length ? '<div class="look"></div>' : "") +
+      '<div class="acts">' + (showMe.length ? '<button class="btn accent" data-k="showme">Show me</button>' : "") +
+
       '<button class="btn" data-k="ok">Got it</button></div>';
     el.querySelector(".say").textContent = (iv.say || "Let's pause here.") + (iv.hint && iv.hint.text ? " " + iv.hint.text : "");
     if (quote) el.querySelector("q").textContent = quote;
-    var rb = el.querySelector('[data-k="replay"]');
-    if (rb) {
-      rb.textContent = "Show me how " + EXPERT + " did it";
-      rb.onclick = function () { send({ type: "replay_request", intervention_id: iv.id }); rb.textContent = "Replaying\u2026"; };
+    if (showMe.length) el.querySelector(".look").textContent = "Where " + EXPERT + " looked on a case like this.";
+    var sm = el.querySelector('[data-k="showme"]');
+    if (sm) {
+      sm.onclick = function () {
+        sm.textContent = "Showing\u2026";
+        replayPath(showMe);  // in the trainee's own screen, one step at a time
+      };
     }
     el.querySelector('[data-k="ok"]').onclick = function () { el.remove(); };
     cards.innerHTML = "";

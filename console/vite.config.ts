@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 const api = process.env.SHADOW_API ?? 'http://localhost:8000'
 
 export default defineConfig({
+  base: '/app/',
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,

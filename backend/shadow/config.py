@@ -24,7 +24,7 @@ DEFAULT_PACK = os.getenv("SHADOW_PACK", "ap_invoices")
 DEFAULT_WORKSPACE = os.getenv("SHADOW_WORKSPACE", "nordwerk")
 # The notebook (console) is served by this backend once built (console/dist): one origin, one link.
 CONSOLE_DIST = ROOT.parent / "console" / "dist"
-CONSOLE_URL = os.getenv("SHADOW_CONSOLE_URL", "" if CONSOLE_DIST.exists() else "http://localhost:5173")
+CONSOLE_URL = os.getenv("SHADOW_CONSOLE_URL", "" if CONSOLE_DIST.exists() else "http://localhost:5173/app")
 ERP_URL = os.getenv("SHADOW_ERP_URL", "http://localhost:8080")  # the demo workplace
 
 # Inquiry planner knobs

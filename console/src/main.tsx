@@ -10,7 +10,7 @@ import DataPage from './pages/DataPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/s/:sid" element={<Console />} />

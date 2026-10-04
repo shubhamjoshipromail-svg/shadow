@@ -27,7 +27,7 @@
   }
 
   *,*::before,*::after{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
   body{
     margin:0;background:var(--paper);color:var(--ink-1);
     font-family:var(--sans);font-size:16px;line-height:1.55;
@@ -36,6 +36,7 @@
   ::selection{background:#dfe6d6}
   a{color:inherit}
   img{max-width:100%;display:block}
+  video{display:block}
   h1,h2,h3,p,figure,blockquote,ul,ol,dl,dd{margin:0}
   ul,ol{padding:0;list-style:none}
   .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
@@ -45,7 +46,7 @@
   .label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
          text-transform:uppercase;color:var(--ink-3)}
   .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-  .lede{color:var(--ink-2);font-size:clamp(16px,1.55vw,18.5px);line-height:1.6;max-width:62ch}
+  .lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,18px);line-height:1.6;max-width:70ch}
 
   /* ── marks — provenance is glyph + ink, never hue alone ──────────────────── */
   .mk{font-family:var(--mono);display:inline-block;width:1.15em;text-align:center}
@@ -54,7 +55,7 @@
 
   /* ── masthead ────────────────────────────────────────────────────────────── */
   .masthead{border-bottom:1px solid var(--rule)}
-  .masthead .wrap{display:flex;align-items:center;gap:22px;min-height:60px;flex-wrap:wrap}
+  .masthead .wrap{display:flex;align-items:center;gap:22px;min-height:56px;flex-wrap:wrap}
   .wordmark{display:inline-flex;align-items:center;gap:9px;font-weight:600;
             letter-spacing:-.02em;font-size:16px;text-decoration:none}
   .wordmark .mark{position:relative;width:13px;height:13px;flex:none}
@@ -71,7 +72,7 @@
 
   /* ── buttons ─────────────────────────────────────────────────────────────── */
   .btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;
-       padding:9px 15px;border:1px solid var(--rule-strong);border-radius:3px;
+       padding:9px 16px;border:1px solid var(--rule-strong);border-radius:3px;
        background:var(--sheet);color:var(--ink-1);text-decoration:none;
        transition:border-color .16s var(--ease),background .16s var(--ease)}
   .btn:hover{border-color:var(--ink-2)}
@@ -79,141 +80,151 @@
   .btn.primary:hover{background:#3a3732;border-color:#3a3732}
   .btn .ext{font-family:var(--mono);font-size:11px}
 
-  /* ── hero ────────────────────────────────────────────────────────────────── */
-  .hero{padding:clamp(52px,8vw,104px) 0 0}
-  .hero .kicker{display:flex;align-items:center;gap:9px;margin-bottom:26px}
-  h1{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6.6vw,76px);
-     line-height:1.02;letter-spacing:-.025em;max-width:15ch}
-  .hero .lede{margin-top:26px}
-  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-  .trustline{margin-top:20px;display:flex;flex-wrap:wrap;gap:6px 18px;
-             font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
-  .trustline span::before{content:"— ";color:var(--rule-strong)}
+  /* ── hero: tagline · one line · the video · two buttons ──────────────────── */
+  .hero{padding:clamp(30px,4.4vw,58px) 0 0}
+  .hero .kicker{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,5.1vw,62px);
+     line-height:1.03;letter-spacing:-.025em;max-width:15em}
+  .hero .lede{margin-top:16px;max-width:none}
 
   /* ── the video slot (16:9), poster until a real clip is dropped in ───────── */
-  .video-wrap{margin-top:clamp(44px,6vw,72px)}
-  .video-slot{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;
+  .video-wrap{margin-top:clamp(24px,3.2vw,40px);max-width:840px}
+  .video-slot{position:relative;margin:0;aspect-ratio:16/9;width:100%;overflow:hidden;
               border:1px solid var(--rule);border-radius:4px;background:var(--sheet)}
   .video-slot .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .video-slot video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
                     opacity:0;pointer-events:none;transition:opacity .2s var(--ease);background:transparent}
   .video-slot.has-video video{opacity:1;pointer-events:auto}
-  .video-cap{display:flex;justify-content:space-between;gap:16px;margin-top:12px;
-             font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
+  .video-foot{display:flex;align-items:center;justify-content:space-between;gap:14px 22px;
+              margin-top:12px;flex-wrap:wrap}
+  .video-cap{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
   .video-cap b{font-weight:500;color:var(--ink-2)}
+  .actions{display:flex;flex-wrap:wrap;gap:12px}
 
   /* ── sections ────────────────────────────────────────────────────────────── */
-  section{padding:clamp(58px,8vw,104px) 0}
+  section{padding:clamp(36px,5vw,64px) 0}
   .rule-top{border-top:1px solid var(--rule)}
-  .sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px 48px;align-items:end;margin-bottom:clamp(34px,4vw,56px)}
-  .sec-head .label{display:block;margin-bottom:12px}
-  h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,4vw,46px);line-height:1.08;letter-spacing:-.02em;max-width:22ch}
-  .sec-head .lede{max-width:56ch}
+  .sec-bar{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 28px;margin-bottom:26px}
+  .sec-bar .label{display:block;width:100%;margin-bottom:2px}
+  h2{font-family:var(--serif);font-weight:300;font-size:clamp(23px,2.9vw,34px);line-height:1.1;letter-spacing:-.02em;max-width:22ch}
+  .sec-bar .lede{margin-left:auto;max-width:46ch;font-size:15px}
 
-  /* ── three moments: a ledger, separated by 1px rules ─────────────────────── */
-  .moments{border-top:1px solid var(--rule)}
-  .moment{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1.1fr);gap:24px 40px;
-          padding:34px 0;border-bottom:1px solid var(--rule);align-items:start}
-  .moment .idx{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.08em;padding-top:6px}
-  .moment h3{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.5vw,30px);line-height:1.12;letter-spacing:-.015em}
-  .moment p{margin-top:12px;color:var(--ink-2);max-width:46ch;font-size:15.5px}
+  /* ── three moments: one compact row, each with a tiny visual ─────────────── */
+  .moments{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+  .moment{border-top:1px solid var(--rule-strong);padding-top:16px}
+  .moment .idx{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.1em}
+  .moment h3{font-family:var(--serif);font-weight:400;font-size:clamp(19px,1.9vw,23px);
+             line-height:1.15;letter-spacing:-.015em;margin-top:8px}
+  .moment p{margin-top:8px;color:var(--ink-2);font-size:14.5px;line-height:1.5;max-width:36ch}
+  .mini{margin-top:16px;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+  .mini.query{border-left:3px solid var(--query)}
+  .mini.binding{border-left:3px solid var(--binding)}
+  .mini .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+             padding:6px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px}
+  .mini .row:last-child{border-bottom:0;padding-bottom:0}
+  .mini .row span:first-child{color:var(--ink-2)}
+  .mini .guess{color:var(--inferred)}
+  .mini .q{font-family:var(--serif);font-size:16px;line-height:1.28;margin-top:6px}
+  .mini .label{font-size:10px}
+  .sageline{height:2px;background:var(--confirmed);margin-top:1px}
 
-  /* little on-screen moments, built from the same rules and marks */
-  .plate{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:16px 18px}
-  .plate .row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
-              padding:8px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:13px}
-  .plate .row:last-child{border-bottom:0}
-  .plate .row span:first-child{color:var(--ink-2)}
-  .plate .guess{color:var(--inferred)}
-  .plate .strike{color:var(--ink-3);text-decoration:line-through}
-  .plate .binding{border-left:3px solid var(--binding);padding-left:14px}
-  .plate .query{border-left:3px solid var(--query);padding-left:14px}
-  .plate .quote{font-family:var(--serif);font-size:19px;line-height:1.3;margin:6px 0 10px}
-  .plate .attrib{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-  .sageline{height:2px;background:var(--confirmed);margin-top:2px}
-
-  /* ── receipt + sealed test ───────────────────────────────────────────────── */
-  .proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-  .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:22px 24px}
-  .panel .head{display:flex;align-items:center;justify-content:space-between;gap:14px;
-               padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:16px}
-  .panel h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.01em;margin-top:2px}
-  .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-family:var(--mono);font-size:12.5px}
-  .kv dt{color:var(--ink-3);letter-spacing:.04em}
-  .kv dd{margin:0;color:var(--ink-1)}
-  .kv dd .was{color:var(--ink-3);text-decoration:line-through;margin-right:6px}
-  .receipt-quote{font-family:var(--serif);font-size:20px;line-height:1.32;margin:18px 0 8px;padding-left:14px;border-left:3px solid var(--query)}
-  .receipt-attrib{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px}
-  .hash{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);word-break:break-all;
-        background:var(--wash);border:1px solid var(--rule);border-radius:3px;padding:8px 10px;margin:4px 0 16px}
-  .timeline{border-top:1px solid var(--rule)}
-  .timeline li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px}
+  /* ── proof strip: a receipt and a sealed test, one line of eval ──────────── */
+  .proof-strip{display:grid;grid-template-columns:1.1fr 1fr;gap:0;
+               border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule)}
+  .proof-cell{padding:22px 28px 20px}
+  .proof-cell + .proof-cell{border-left:1px solid var(--rule)}
+  .proof-cell:first-child{padding-left:0}
+  .proof-cell:last-child{padding-right:0}
+  .proof-cell h3{font-family:var(--serif);font-weight:400;font-size:19px;letter-spacing:-.01em;margin-top:6px}
+  .rq{font-family:var(--serif);font-size:19px;line-height:1.3;margin:12px 0 6px;
+      padding-left:12px;border-left:3px solid var(--query)}
+  .rattr{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .diff{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 12px;margin-top:14px;
+        font-family:var(--mono);font-size:13px}
+  .diff .was{color:var(--ink-3);text-decoration:line-through}
+  .diff .arrow{color:var(--ink-3)}
+  .diff .now{color:var(--ink-1)}
+  .diff .note{font-size:11px;color:var(--ink-3)}
+  .hash{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin-top:12px;word-break:break-all}
+  .big{font-family:var(--serif);font-weight:400;font-size:clamp(40px,4.6vw,56px);line-height:1;margin:12px 0 4px}
+  .big small{font-family:var(--mono);font-size:.28em;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--ink-3);vertical-align:middle;margin-left:10px}
+  .timeline{margin-top:12px;border-top:1px solid var(--rule)}
+  .timeline li{display:flex;justify-content:space-between;gap:16px;padding:6px 0;
+               border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12px}
   .timeline li span:first-child{color:var(--ink-2)}
   .timeline li b{font-weight:500}
   .allow{color:var(--confirmed)} .block{color:var(--binding)}
-  .eval{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;
-        font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .honest{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+          text-transform:uppercase;color:var(--ink-3)}
+  .eval{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline;
+        font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
   .eval b{color:var(--ink-1);font-weight:500}
   .eval .is{border-bottom:2px solid var(--confirmed);padding-bottom:1px}
 
-  /* ── meet Mira ───────────────────────────────────────────────────────────── */
-  .mira{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:44px;align-items:center}
-  .sprites{display:flex;gap:14px;align-items:flex-end}
-  .sprite{width:clamp(132px,20vw,210px);aspect-ratio:1;flex:none;border:1px solid var(--rule);border-radius:4px;
-          background-image:url("assets/mira-sprite.png");background-size:200% 200%;background-repeat:no-repeat;
-          background-color:var(--sheet);image-rendering:pixelated}
-  .sprite.a{background-position:0 0}
-  .sprite.b{width:clamp(92px,13vw,140px);background-position:100% 0}
-  .sprite small{display:none}
-  .mira-copy p{color:var(--ink-2);margin-top:18px;max-width:54ch}
-  .mira-list{margin-top:22px;border-top:1px solid var(--rule)}
-  .mira-list li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
-  .mira-list li b{font-weight:500;color:var(--ink-1)}
+  /* ── closing CTA ─────────────────────────────────────────────────────────── */
+  .cta{background:var(--sheet);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .cta .inner{padding:clamp(30px,4vw,50px) 0;display:flex;align-items:center;
+              justify-content:space-between;gap:22px;flex-wrap:wrap}
+  .cta h2{max-width:20ch}
+  .cta .fine{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
 
-  /* ── data & privacy ──────────────────────────────────────────────────────── */
-  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
-  .col{border-top:1px solid var(--rule-strong);padding-top:18px}
-  .col .label{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-  .col li{padding:8px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2);line-height:1.5}
+  /* ── privacy: one line → a details section, collapsed by default ─────────── */
+  .privacy{padding:20px 0;border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;
+           align-items:baseline;justify-content:space-between;gap:8px 18px}
+  .privacy p{color:var(--ink-2);font-size:14.5px;max-width:82ch}
+  .privacy .mk{color:var(--written)}
+  .privacy a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--ink-1);text-decoration:none;white-space:nowrap;
+             border-bottom:1px solid var(--rule-strong)}
+  .privacy a:hover{border-color:var(--ink-2)}
+  details.data{border-bottom:1px solid var(--rule)}
+  details.data summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:12px;
+                       padding:14px 0;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+                       text-transform:uppercase;color:var(--ink-2)}
+  details.data summary::-webkit-details-marker{display:none}
+  details.data summary b{font-weight:500;color:var(--ink-1);letter-spacing:.02em;text-transform:none;
+                         font-family:var(--serif);font-size:16px}
+  details.data summary .plus{margin-left:auto;color:var(--ink-3)}
+  details.data summary .plus::before{content:"+"}
+  details.data[open] summary .plus::before{content:"−"}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;padding:4px 0 30px}
+  .col{border-top:1px solid var(--rule-strong);padding-top:14px}
+  .col .label{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .col li{padding:7px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2);line-height:1.5}
   .col li:last-child{border-bottom:0}
   .col li b{font-weight:500;color:var(--ink-1)}
   .col code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;padding:1px 5px;color:var(--ink-1)}
-  .kept{margin-top:26px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
-
-  /* ── CTA ─────────────────────────────────────────────────────────────────── */
-  .cta{background:var(--sheet);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-  .cta .inner{padding:clamp(48px,7vw,88px) 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:end}
-  .cta h2{max-width:20ch}
-  .cta .actions{margin-top:0}
-  .cta .fine{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .kept{margin:0 0 30px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
 
   /* ── footer ──────────────────────────────────────────────────────────────── */
-  footer{padding:40px 0 56px}
-  footer .wrap{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between}
+  footer{padding:30px 0 44px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between}
   footer .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
   footer .glyphs{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.28em}
 
   @media (max-width:900px){
-    .sec-head{grid-template-columns:1fr;align-items:start}
-    .moment{grid-template-columns:44px minmax(0,1fr);gap:12px 20px}
-    .moment .plate{grid-column:2}
-    .proof-grid{grid-template-columns:1fr}
-    .mira{grid-template-columns:1fr;gap:34px}
-    .cols{grid-template-columns:1fr;gap:34px}
-    .cta .inner{grid-template-columns:1fr;align-items:start}
+    .sec-bar{display:block}
+    .sec-bar .lede{margin:10px 0 0;max-width:56ch}
+    .moments{grid-template-columns:1fr;gap:0}
+    .moment{border-top:1px solid var(--rule);padding:18px 0}
+    .moment:first-child{border-top:0;padding-top:0}
+    .moment p{max-width:52ch}
+    .proof-strip{grid-template-columns:1fr}
+    .proof-cell{padding:20px 0}
+    .proof-cell + .proof-cell{border-left:0;border-top:1px solid var(--rule)}
+    .cols{grid-template-columns:1fr;gap:30px}
   }
   @media (max-width:560px){
     body{font-size:15px}
     .nav{display:none}
-    .moment{grid-template-columns:1fr;gap:10px}
-    .moment .idx{padding-top:0}
-    .moment .plate{grid-column:1}
-    .sprites{align-items:center}
-    .video-cap{flex-direction:column;gap:4px}
-    .hero .kicker{margin-bottom:20px}
+    .video-foot{flex-direction:column;align-items:flex-start;gap:14px}
+    .hero .kicker{margin-bottom:14px}
+    .cta .inner{flex-direction:column;align-items:flex-start}
   }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none!important;transition:none!important}
+    html{scroll-behavior:auto}
   }
 </style>
 </head>
@@ -228,17 +239,16 @@
     </a>
     <nav class="nav" aria-label="sections">
       <a href="#moments">The three moments</a>
-      <a href="#proof">Receipt &amp; sealed test</a>
-      <a href="#mira">Meet <span data-brand="character"></span></a>
-      <a href="#data">Data</a>
-      <a href="#start">Start</a>
+      <a href="#proof">Proof</a>
+      <a href="#data" data-open="data">Data</a>
+      <a href="#demo" id="nav-watch">Watch the demo</a>
     </nav>
     <span class="tick" aria-hidden="true" title="capture indicator"></span>
   </div>
 </header>
 
 <main id="main">
-  <!-- ── hero ─────────────────────────────────────────────────────────────── -->
+  <!-- ── 1 · hero: tagline + one line, the video centrepiece, two buttons ──── -->
   <div class="hero wrap" id="top">
     <div class="kicker">
       <span class="mk obs" aria-hidden="true">▮</span>
@@ -246,150 +256,108 @@
     </div>
     <h1>Learns the part of the job nobody wrote down.</h1>
     <p class="lede">
-      <span data-brand="product"></span> sits beside an expert while she works. It predicts every decision before she
-      makes it, and the moment it can't explain what she did, it waits for a pause and asks one question. Her answer
-      becomes a Work Map: executable, checked against later cases, and taught to whoever comes next.
-    </p>
-    <div class="actions">
-      <a class="btn primary" href="https://core-production-c5ac.up.railway.app">Open the product <span class="ext" aria-hidden="true">↗</span></a>
-      <a class="btn" href="https://erp-production-e3b0.up.railway.app">Open the demo ERP <span class="ext" aria-hidden="true">↗</span></a>
-    </div>
-    <p class="trustline">
-      <span>watches in the sandbox ERP</span>
-      <span>asks at a natural pause</span>
-      <span>every answer gets a receipt</span>
+      It predicts each decision before she makes it, and asks one question only when it can't explain her.
     </p>
 
     <!-- 16:9 slot. Drop demo.mp4 in assets/ and it plays; otherwise the poster holds. -->
-    <div class="video-wrap">
+    <div class="video-wrap" id="demo">
       <figure class="video-slot" id="video-slot">
         <img class="poster" src="assets/poster.svg" alt="An invoice with its net amount annotated, and the expert's rule written beside it: equipment over five thousand net is always capex.">
-        <video id="demo" src="assets/demo.mp4" poster="assets/poster.svg" preload="metadata" playsinline muted controls aria-label="Demo: an expert books an invoice and the apprentice asks one question"></video>
+        <video id="video" src="assets/demo.mp4" poster="assets/poster.svg" preload="metadata" playsinline muted controls aria-label="Demo: an expert books an invoice and the apprentice asks one question"></video>
       </figure>
-      <div class="video-cap">
-        <span><b>demo</b> · one rule learned live, from guess to sealed test</span>
-        <span>16:9 · 01:15 · captions on</span>
+      <div class="video-foot">
+        <span class="video-cap"><b>demo</b> · one rule learned live, from guess to sealed test · 16:9 · 01:15</span>
+        <span class="actions">
+          <a class="btn primary" href="/app">Try it <span class="ext" aria-hidden="true">→</span></a>
+          <a class="btn" href="#demo" id="watch-demo">Watch the demo</a>
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- ── the three moments ────────────────────────────────────────────────── -->
-  <section id="moments">
+  <!-- ── 2 · the three moments, one compact row with tiny visuals ──────────── -->
+  <section id="moments" class="rule-top">
     <div class="wrap">
-      <div class="sec-head rule-top" style="padding-top:34px">
-        <div>
-          <span class="label">The whole product, in three moments</span>
-          <h2>It guesses. It asks once. It stops the next person in her words.</h2>
-        </div>
+      <div class="sec-bar">
+        <span class="label">The whole product, in three moments</span>
+        <h2>It guesses. It asks once. It stops the next person in her words.</h2>
         <p class="lede">
-          No workflow to configure first. The apprentice starts from the decisions themselves and only earns the right
-          to be trusted after later cases agree with it.
+          No workflow to configure first. It starts from the decisions themselves, and only earns trust when later
+          cases agree with it.
         </p>
       </div>
 
       <div class="moments">
         <article class="moment">
-          <div class="idx">01</div>
-          <div>
-            <h3>It guesses before she acts.</h3>
-            <p>
-              On every invoice the apprentice writes down the fields and the action it thinks will be taken —
-              <em>before</em> the save. When the guess is wrong, that gap is the only thing it pays attention to.
-            </p>
-          </div>
-          <div class="plate" aria-label="An invoice with a written-before guess">
-            <div class="row"><span>Netto</span><span>6.400,00 €</span></div>
+          <div class="idx">01 · GUESS</div>
+          <h3>It guesses before she acts.</h3>
+          <p>Before every save it writes down the fields and the action it expects. When the guess is wrong, that gap is all it pays attention to.</p>
+          <div class="mini" aria-label="An invoice with a guess written before the save">
+            <div class="row"><span>Netto</span><span class="num">6.400,00 €</span></div>
             <div class="sageline" aria-hidden="true"></div>
             <div class="row"><span>cost centre · guess</span><span class="guess"><span class="mk inf" aria-hidden="true">◌</span> 0400</span></div>
-            <div class="row"><span>written</span><span class="num" style="color:var(--ink-3)">before the save</span></div>
+            <div class="row"><span>written</span><span style="color:var(--ink-3)">before the save</span></div>
           </div>
         </article>
 
         <article class="moment">
-          <div class="idx">02</div>
-          <div>
-            <h3>It asks one question, at a pause.</h3>
-            <p>
-              Not a form, not an interview. The question arrives when her hands stop, in her language, and the answer
-              is compiled into a rule with a threshold and, if she named one, a guardrail.
-            </p>
-          </div>
-          <div class="plate query" aria-label="The apprentice's one question at a pause">
+          <div class="idx">02 · ASK ONCE</div>
+          <h3>It asks one question, at a pause.</h3>
+          <p>Not a form, not an interview. The question arrives when her hands stop, in her language, and the answer compiles to a rule with a threshold.</p>
+          <div class="mini query" aria-label="The apprentice's one question at a pause">
             <span class="label" style="color:var(--query)">? at the pause</span>
-            <p class="quote">“Equipment over €5,000 net is always capex.”</p>
-            <span class="attrib">Sabine · AP · 24 years · asked once</span>
+            <p class="q">“Equipment over €5,000 net is always capex.”</p>
+            <span class="rattr">Sabine · AP · 24 years · asked once</span>
           </div>
         </article>
 
         <article class="moment">
-          <div class="idx">03</div>
-          <div>
-            <h3>It stops the new hire in her words.</h3>
-            <p>
-              When a new hire tries to book something the expert would have held, the save is blocked — and the reason
-              is the expert's own sentence, not a policy document's.
-            </p>
-          </div>
-          <div class="plate binding" aria-label="A blocked save, in the expert's words">
+          <div class="idx">03 · STOP</div>
+          <h3>It stops the new hire in her words.</h3>
+          <p>When a new hire tries to book what the expert would have held, the save is blocked — and the reason is her own sentence, not a policy document.</p>
+          <div class="mini binding" aria-label="A blocked save, in the expert's words">
             <span class="label" style="color:var(--binding)">■ blocked save</span>
-            <p class="quote">“No asset number, no capex booking.”</p>
-            <span class="attrib"><span class="mk bin" aria-hidden="true">■</span> guardrail · behaviour agreed, twice</span>
+            <p class="q">“No asset number, no capex booking.”</p>
+            <span class="rattr"><span class="mk bin" aria-hidden="true">■</span> guardrail · behaviour agreed, twice</span>
           </div>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- ── proof: a receipt and a sealed test ───────────────────────────────── -->
+  <!-- ── 3 · proof strip: a receipt, the sealed test, one line of eval ─────── -->
   <section id="proof" class="rule-top">
     <div class="wrap">
-      <div class="sec-head">
-        <div>
-          <span class="label">Words propose, behaviour disposes</span>
-          <h2>You can't argue with it. Only later cases can move it.</h2>
-        </div>
-        <p class="lede">
-          Every answer produces a receipt: the prediction before, the quote, the rule and its parameter diff. Sealed
-          tests then freeze the map's predictions, hash them, and let a human label fresh cases around the boundary.
-        </p>
-      </div>
-
-      <div class="proof-grid">
-        <div class="panel">
-          <div class="head">
-            <span class="label">Learning receipt</span>
-            <span class="mk con" aria-hidden="true">✓</span>
-          </div>
+      <div class="proof-strip">
+        <div class="proof-cell">
+          <span class="label">Learning receipt · <span class="mk con" aria-hidden="true">✓</span></span>
           <h3>A threshold moves, with provenance</h3>
-          <p class="receipt-quote">“Over two percent I ask purchasing.”</p>
-          <p class="receipt-attrib">Sabine · AP · case HM-2026-0412 · 14:22</p>
-          <dl class="kv">
-            <dt>before</dt><dd><span class="was">€3,600</span> <span class="mk inf" aria-hidden="true">◌</span> inferred from the last case</dd>
-            <dt>after</dt><dd>€4,000 <span class="mk con" aria-hidden="true">✓</span> confirmed by the expert</dd>
-            <dt>rule</dt><dd>skonto_threshold · net &gt; 2% over PO → hold</dd>
-            <dt>provenance</dt><dd>spoken answer · compile v41 · independent checks 6</dd>
-          </dl>
+          <p class="rq">“Equipment over thirty-six hundred net is always capex.”</p>
+          <p class="rattr">Sabine · AP · invoice 4471 · live session</p>
+          <p class="diff">
+            <span class="was">€3,600</span>
+            <span class="arrow" aria-hidden="true">→</span>
+            <span class="now">€4,069</span>
+            <span class="mk con" aria-hidden="true">✓</span>
+            <span class="note">moved by two counterexamples, then held on fresh cases</span>
+          </p>
         </div>
 
-        <div class="panel">
-          <div class="head">
-            <span class="label">Sealed boundary test</span>
-            <span class="mk obs" aria-hidden="true">▮</span>
-          </div>
-          <h3>Predictions frozen before any label</h3>
-          <p class="hash" aria-label="committed hash">sha256 3f9a7c1e…d20b · committed 14:31 · 11 fresh cases</p>
+        <div class="proof-cell">
+          <span class="label">Sealed boundary test · <span class="mk obs" aria-hidden="true">▮</span></span>
+          <p class="hash" aria-label="committed hash">sha256 3f9a7c1e…d20b · committed before any label</p>
+          <p class="big">11 / 11 <small>fresh cases</small></p>
           <ul class="timeline">
-            <li><span>round 1 · 3,600 above / 4,000 below</span><b>9 / 11</b></li>
-            <li><span>both misses inside the learned band</span><b class="block">3,600 – 4,000</b></li>
-            <li><span>T re-fitted from the misses</span><b>3,600 → 4,069</b></li>
-            <li><span>fresh round after restarting from the saved map</span><b class="allow">11 / 11</b></li>
+            <li><span>round 1 · predictions frozen</span><b class="block">9 / 11</b></li>
+            <li><span>T re-fitted from the two misses</span><b>3,600 → 4,069</b></li>
+            <li><span>restarted from the saved map</span><b class="allow">11 / 11</b></li>
           </ul>
-          <p class="label" style="margin-top:16px">labels come from humans only · each label also teaches</p>
+          <p class="honest">labels come from humans only · each label also teaches</p>
         </div>
       </div>
 
       <p class="eval">
-        <span>Simulated held-out eval over the invoice pack:</span>
+        <span><b>simulated</b> held-out eval over the invoice pack:</span>
         <span>doc-only <b>38%</b></span>
         <span>always-ask-why <b>73%</b></span>
         <span class="is">the apprentice <b>98%</b></span>
@@ -398,44 +366,30 @@
     </div>
   </section>
 
-  <!-- ── Meet Mira ────────────────────────────────────────────────────────── -->
-  <section id="mira" class="rule-top">
-    <div class="wrap mira">
-      <div class="sprites">
-        <div class="sprite a" role="img" aria-label="The apprentice, pixel art: glasses, green cardigan, holding a notebook."></div>
-        <div class="sprite b" role="img" aria-label="The apprentice with her eyes closed, listening."></div>
+  <!-- ── closing CTA ──────────────────────────────────────────────────────── -->
+  <section id="start" class="cta">
+    <div class="wrap inner">
+      <div>
+        <span class="label">Start</span>
+        <h2 style="margin-top:10px">Watch it learn a rule nobody wrote down.</h2>
+        <p class="fine">in the sandbox ERP · rehearsal and live modes are always labelled</p>
       </div>
-      <div class="mira-copy">
-        <span class="label">The character</span>
-        <h2 style="margin-top:12px">Meet <span data-brand="character"></span>.</h2>
-        <p>
-          <span data-brand="character"></span> is the apprentice, not the product. She has one notebook and one job:
-          to be invisible until she's needed, then ask the smallest question that unlocks the work. Her sprite is the
-          only illustration on this page — no stock photography, no robot mascot.
-        </p>
-        <ul class="mira-list">
-          <li><b>invisible until wanted</b><span>no panel shouting for attention</span></li>
-          <li><b>one question at a pause</b><span>never during the work</span></li>
-          <li><b>never guesses silently</b><span>every prediction carries its belief</span></li>
-        </ul>
-      </div>
+      <span class="actions">
+        <a class="btn primary" href="/app">Try it <span class="ext" aria-hidden="true">→</span></a>
+        <a class="btn" href="#demo" id="watch-demo-2">Watch the demo</a>
+      </span>
     </div>
   </section>
 
-  <!-- ── data & privacy ───────────────────────────────────────────────────── -->
-  <section id="data" class="rule-top">
-    <div class="wrap">
-      <div class="sec-head">
-        <div>
-          <span class="label">Data &amp; privacy</span>
-          <h2>What it sees, what it scrubs, what it never touches.</h2>
-        </div>
-        <p class="lede">
-          An apprentice that learns from work only needs the work. Here is the whole ledger of what is stored, in plain
-          language, before it is sent anywhere.
-        </p>
-      </div>
+  <!-- ── privacy: one line, then a details section collapsed by default ────── -->
+  <div class="wrap">
+    <div class="privacy">
+      <p><span class="mk wri" aria-hidden="true">§</span> Bank accounts, cards and emails are scrubbed before storage; screen frames never leave the device; nothing is captured when capture is off.</p>
+      <a href="#data" data-open="data">What it sees, scrubs &amp; never touches</a>
+    </div>
 
+    <details class="data" id="data">
+      <summary><span class="label" style="color:inherit">Data &amp; privacy</span> <b>The whole ledger, in plain language.</b> <span class="plus" aria-hidden="true"></span></summary>
       <div class="cols">
         <div class="col">
           <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Collected, per session</span>
@@ -474,23 +428,8 @@
         The Work Map is exportable as data and the session can be deleted. A rule is only trusted once
         <span class="mk con" aria-hidden="true">✓</span> later cases agree with it; until then it says so.
       </p>
-    </div>
-  </section>
-
-  <!-- ── CTA ──────────────────────────────────────────────────────────────── -->
-  <section id="start" class="cta">
-    <div class="wrap inner">
-      <div>
-        <span class="label">Start</span>
-        <h2 style="margin-top:12px">Watch it learn a rule nobody wrote down.</h2>
-        <p class="fine">in the sandbox ERP · AP invoices · rehearsal and live modes are always labelled</p>
-      </div>
-      <div class="actions">
-        <a class="btn primary" href="https://core-production-c5ac.up.railway.app">Open the product <span class="ext" aria-hidden="true">↗</span></a>
-        <a class="btn" href="https://erp-production-e3b0.up.railway.app">Open the demo ERP <span class="ext" aria-hidden="true">↗</span></a>
-      </div>
-    </div>
-  </section>
+    </details>
+  </div>
 </main>
 
 <footer>
@@ -509,25 +448,51 @@
      wordmark, headings, nav, footer, document title and meta description all
      follow. (Names are still undecided — "Shadow" was the working title.)
      ───────────────────────────────────────────────────────────────────────── */
-  const BRAND = { product: 'Tacet', character: 'Mira' };
+  const NAME = { product: 'Tacet', character: 'Mira' };
 
   document.querySelectorAll('[data-brand]').forEach(function (el) {
     var key = el.getAttribute('data-brand');
-    if (BRAND[key]) el.textContent = BRAND[key];
+    if (NAME[key]) el.textContent = NAME[key];
   });
-  document.title = BRAND.product + ' — learns the part of the job nobody wrote down';
+  document.title = NAME.product + ' — learns the part of the job nobody wrote down';
   var desc = document.querySelector('meta[name="description"]');
   if (desc) desc.setAttribute('content',
-    BRAND.product + ' watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
+    NAME.product + ' watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
 
   /* The video is optional: the poster holds until a real clip is present. */
   (function () {
     var slot = document.getElementById('video-slot');
-    var video = document.getElementById('demo');
+    var video = document.getElementById('video');
     if (!slot || !video) return;
-    var reveal = function () { slot.classList.add('has-video'); };
-    video.addEventListener('loadeddata', reveal);
+    video.addEventListener('loadeddata', function () { slot.classList.add('has-video'); });
     video.addEventListener('error', function () { slot.classList.remove('has-video'); });
+  })();
+
+  /* "Watch the demo" scrolls to the video; if the clip is present, start it. */
+  (function () {
+    var slot = document.getElementById('video-slot');
+    var video = document.getElementById('video');
+    var links = [document.getElementById('watch-demo'), document.getElementById('watch-demo-2'),
+                 document.getElementById('nav-watch')];
+    links.forEach(function (a) {
+      if (!a) return;
+      a.addEventListener('click', function () {
+        if (slot && slot.classList.contains('has-video') && video) {
+          var p = video.play();
+          if (p && p.catch) p.catch(function () {});
+        }
+      });
+    });
+  })();
+
+  /* The privacy line opens the collapsed details section. */
+  (function () {
+    document.querySelectorAll('[data-open]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        var target = document.getElementById(a.getAttribute('data-open'));
+        if (target) target.open = true;
+      });
+    });
   })();
 </script>
 </body>

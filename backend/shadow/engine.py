@@ -21,7 +21,8 @@ from typing import Any, Awaitable, Callable
 import numpy as np
 
 from shadow import compiler as compiler_mod
-from shadow import coach, dsl, hypotheses, llm, novice, questions, receipts
+from shadow import coach, dsl, hypotheses, llm, novice, paths, questions, receipts
+from shadow.stuck import StuckDetector
 from shadow import proof as proof_mod
 from shadow.activity import ActivityTracker
 from shadow.bayes import ThresholdPosterior, bald_discrete, entropy, posterior_update
@@ -69,6 +70,7 @@ class Episode:
     source_inquiry: str | None = None
     scored: bool = True  # False if the prediction wasn't committed before the decision arrived
     evaluation: bool = False  # self-exam answer: scored, never learned from
+    trail: list[dict[str, Any]] = field(default_factory=list)  # where the expert looked on the way, in order
 
     def to_json(self) -> dict[str, Any]:
         return dict(self.__dict__)
@@ -80,6 +82,7 @@ class DecisionPoint:
     opened_at: float
     prediction: MapPrediction | None = None
     attention: list[str] = field(default_factory=list)
+    trail: list[dict[str, Any]] = field(default_factory=list)  # ordered attention path with times
     field_moments: dict[str, dict[str, Any]] = field(default_factory=dict)
     task: asyncio.Task | None = None
     committed_at: float | None = None
@@ -133,6 +136,9 @@ class Session:
         self.last_learn: asyncio.Task | None = None
         self.tutor_attempted: set[str] = set()
         self.tutor_tries: dict[str, int] = {}  # save attempts per case: drives the hint ladder
+        self.stuck = StuckDetector()  # learner mode: behavioural "looks stuck" signals, never faces or emotions
+        self.nudged: dict[str, int] = {}  # highest nudge level already given per case
+        self.briefs: dict[str, dict[str, Any]] = {}
         self.teachback_text: str | None = None
         self.teachback_confirmed = False
         self.mastery: dict[str, dict[str, Any]] = {}
@@ -229,6 +235,11 @@ class Session:
     # ------------------------------------------------------------ capture events
     async def on_event(self, evt: dict[str, Any]) -> dict[str, Any] | None:
         kind = evt.get("type")
+        if self.mode == "tutor" and kind in ("input", "field_changed", "panel_opened", "case_opened", "help"):
+            self.stuck.observe({**evt, "t": self.now(), "case_id": evt.get("case_id") or self.current_case})
+            if kind == "help":
+                await self._maybe_nudge(force_level=4)
+                return None
         if kind in ("input", "key", "mouse", "scroll"):
             self.activity.input(evt.get("kind", kind))
             return None
@@ -246,6 +257,7 @@ class Session:
                 if q.phase == "live":
                     q.phase = "debrief"
             self.planner.lam *= 1.3  # this expert wants fewer live questions
+            self._save_policy()
             await self.emit("inquiry_deferred", {"lambda": round(self.planner.lam, 3)})
             return None
         if kind == "replay_request":
@@ -268,11 +280,13 @@ class Session:
                 dp.field_moments[evt["field"]] = {"ts": self.now(), "before": evt.get("before"),
                                                   "after": evt.get("after"), "frame_id": evt.get("frame_id")}
                 dp.attention.append(f"booking.{evt['field']}")
+                dp.trail.append({"kind": "field", "name": evt["field"], "t": self.now()})
             await self.emit("screen_event", {"event": evt})
         elif kind == "panel_opened":
             dp = self.dps.get(self.current_case or "")
             if dp:
                 dp.attention.append(f"panel.{evt.get('panel')}")
+                dp.trail.append({"kind": "panel", "name": evt.get("panel"), "t": self.now()})
             await self.emit("screen_event", {"event": evt})
         elif kind == "decision":
             if self.mode == "tutor":
@@ -341,7 +355,7 @@ class Session:
         predicted = {k: fp.value for k, fp in pred.fields.items()}
         predicted["action"] = pred.action.value if pred.action else None
         ep = Episode(id=f"ep{len(self.episodes) + 1}", case_id=case_id, ts=self.now(), expert=expert,
-                     predicted=predicted, scored=scored)
+                     predicted=predicted, scored=scored, trail=[dict(s) for s in dp.trail])
         self.episodes.append(ep)
         self.activity.boundary()
         self._ledger("decisions", {"episode_id": ep.id, "case_id": case_id, "via": via,
@@ -356,6 +370,8 @@ class Session:
         before, bases_before = self.wm.model_copy(deep=True), dict(self.param_quantity)
         self._record_evidence(ep, case)
         self._observe_thresholds(case, expert, weight=1.0)
+        if self.mode != "tutor":  # the way to a decision is learned from the expert, never from a trainee
+            self.wm.paths = paths.mine([(e.expert, e.trail) for e in self.episodes if not e.synthetic and e.trail])
         await self._behavior_receipt(ep, case, before, bases_before)
         for f, val in expert.items():
             if val is None:
@@ -373,9 +389,15 @@ class Session:
                  "map": self.wm.model_dump()} if self.posteriors else {}
         await self.emit("episode", {"episode": ep.to_json(), "metrics": self.metrics(), **extra})
         for gap in ep.gaps:
-            if gap["type"] == "structural":
+            if gap["type"] != "structural":
+                continue
+            # judged against the map BEFORE this decision: the contradiction itself may already have demoted the rule
+            node = self._confirmed_contradiction(before, case, gap["field"], gap["expert"], expert)
+            if node is not None and self.mode == "capture":
+                self._deviation_question(case, gap, node, ep)  # "teach me what changed", never "you're wrong"
+            else:
                 self._quick_question(case, gap)  # ask now; don't wait for the LLM's explanations
-                self.spawn(self.analyze_gap(ep, case, gap))
+            self.spawn(self.analyze_gap(ep, case, gap))
         self._maybe_guardrail_question(case, ep)
         self._save_map()
 
@@ -392,6 +414,24 @@ class Session:
                                       "expert": self.expert, "source": self.source, **row})
         except Exception:  # noqa: BLE001
             log.exception("ledger write failed")
+
+    @property
+    def policy_key(self) -> str:
+        return f"{self.workspace}/{self.pack.id}/{self.expert}"
+
+    def _save_policy(self) -> None:
+        """How to interview this expert (which question types pay off, how often to interrupt) improves across sessions."""
+        if self.store and not self.simulated:
+            try:
+                self.store.save_policy(self.policy_key, {"bandit": self.planner.bandit.state(), "lam": self.planner.lam})
+            except Exception:  # noqa: BLE001
+                log.exception("policy save failed")
+
+    def load_policy(self) -> None:
+        st = self.store.load_policy(self.policy_key) if self.store else None
+        if st:
+            self.planner.bandit.load(st.get("bandit") or {})
+            self.planner.lam = float(st.get("lam", self.planner.lam))
 
     def _save_map(self) -> None:
         """Persist the map for 'continue from saved map'. Rehearsal maps were taught by the simulator: never saved."""
@@ -482,6 +522,33 @@ class Session:
         rc["before"]["committed"] = ep.predicted.get(f)
         rc["provenance"]["compiler"] = "none: learned from the decision itself"
         await self._publish_receipt(rc)
+
+    def _confirmed_contradiction(self, wm: WorkMap, case: dict[str, Any], f: str, value: Any,
+                                 expert: dict[str, Any]) -> Rule | Guardrail | None:
+        """A confirmed learned node that fires on this case but disagrees with what the expert just did."""
+        ctx = {**self.pack.derive(case), "params": wm.params, "booking": expert}
+        for n in [*wm.rules, *wm.guardrails]:
+            if n.origin == "doc" or n.belief.status != "confirmed" or not dsl.holds(n.when, ctx):
+                continue
+            target = n.action if isinstance(n, Guardrail) else n.then.get(f)
+            if (f == "action" or isinstance(n, Rule)) and target is not None and target != value:
+                return self.wm.node(n.id)
+        return None
+
+    def _deviation_question(self, case: dict[str, Any], gap: dict[str, Any], node: Rule | Guardrail,
+                            ep: Episode) -> None:
+        dp = self.dps.get(case["id"])
+        f = gap["field"]
+        q = Inquiry(id=self.planner.new_id(), type="deviation", case_id=case["id"], field=f,
+                    text=questions.template(self.pack, "deviation", case=case, field=f, node_title=node.title),
+                    evoi=0.9, impact=0.9, guardrail_gap=1.0 if f == "action" else 0.0, phase="live",
+                    gap_id=gap["id"], target_node=node.id, expert_value=gap["expert"],
+                    predicted_value=gap["predicted"],
+                    screen_moment=(dp.field_moments.get(f) if dp else None) or {"ts": dp.opened_at if dp else self.now()},
+                    reason=f"contradicted the confirmed rule {node.id}: exception, change, or slip?")
+        q.source_episode = ep.id  # type: ignore[attr-defined]
+        self.planner.enqueue(q)
+        self.spawn(self.emit("inquiry", {"inquiry": q.to_json()}))
 
     def _record_evidence(self, ep: Episode, case: dict[str, Any]) -> None:
         self._judge(case, ep.expert, ep.id, "live")
@@ -675,6 +742,8 @@ class Session:
         prior = [q for q in [*self.planner.queue, *self.planner.history] if q.gap_id == hs.gap_id]
         if any(q.status in ("asked", "answered") for q in prior):
             return  # already asked; its answer will collapse these hypotheses
+        if any(q.type == "deviation" for q in prior):
+            return  # a contradicted confirmed rule: "exception, change or slip?" is already the right question
         for q in prior:
             if q in self.planner.queue:
                 self.planner.queue.remove(q)  # replace the provisional open question with a planned one
@@ -767,6 +836,9 @@ class Session:
         if sig != getattr(self, "_last_activity", None):
             self._last_activity = sig
             await self.emit("activity", {"activity": state})
+        if self.mode == "tutor" and not self.off_record:
+            await self._maybe_nudge()
+            return None
         if self.mode != "capture" or self.awaiting or self.off_record:
             return None
         q = self.planner.release(state["paused"] or force, self.current_case, ignore_budget=force)
@@ -868,7 +940,9 @@ class Session:
             return
         quote = Quote(text=compiled.key_quote, speaker=self.expert, ts=self.now(), lang=self.lang,
                       translation=compiled.translation_en, inquiry_id=q.id)
+        src_dp = self.dps.get(q.case_id or "")
         moment = ScreenMoment(**{k: v for k, v in (q.screen_moment or {}).items() if k in ("ts", "frame_id")},
+                              path=[dict(s) for s in src_dp.trail] if src_dp and src_dp.trail else None,
                               entity=q.case_id, field=q.field)
         changes: list[dict[str, Any]] = []
 
@@ -914,6 +988,15 @@ class Session:
         if q.type == "teachback":
             await self._handle_teachback_answer(compiled, changes)
 
+        if q.type == "deviation" and q.target_node and not new_nodes and not compiled.threshold:
+            # "just a slip": the contradicting decision isn't evidence against the rule after all
+            n = self.wm.node(q.target_node)
+            src = getattr(q, "source_episode", None)
+            if n is not None and src:
+                n.evidence = [e for e in n.evidence if not (e.episode_id == src and not e.agrees)]
+                n.refresh_belief()
+                changes.append({"kind": "slip", "node": n.id})
+
         # retroactive validation over the whole episode log
         retro = self._retro_replay(new_nodes)
         for p in list(self.posteriors):
@@ -933,6 +1016,7 @@ class Session:
         if hasattr(q, "bandit_ctx") and q.type in self.planner.bandit.arms:
             secs = max(3.0, len(transcript.split()) / 2.5)
             self.planner.bandit.update(q.type, np.array(q.bandit_ctx), float(info_gain) / secs * 10)
+            self._save_policy()
         await self.emit("learned", {
             "inquiry_id": q.id, "quote": quote.model_dump(), "changes": changes, "retro": retro,
             "info_gain_bits": round(float(info_gain), 3), "map": self.wm.model_dump(),
@@ -1515,10 +1599,37 @@ class Session:
         self.dps[case_id].prediction = pred
         self.dps[case_id].map_version = self.wm.version
         brief = coach.brief(self.wm, self.pack, self.cases[case_id], self.mastery)
+        self.briefs[case_id] = brief
         if brief.get("worked_example") and (brief.get("focus") or {}).get("node_id") not in self.mastery:
             brief["worked_example"] = None  # first exposure: let them try first (the stop teaches); examples after a miss
         await self.emit("tutor_case", {"case_id": case_id, "expected": pred.model_dump(), "brief": brief,
                                        "prompt": self._coach_line(brief)})
+
+    async def _maybe_nudge(self, force_level: int | None = None) -> None:
+        """Learner guide mode: climb the ladder only as far as the behaviour says (silent → cue → question → look → show)."""
+        cid = self.current_case
+        if not cid or cid not in self.cases:
+            return
+        level = force_level or self.stuck.score(self.now(), cid).get("level", 0)
+        if level <= self.nudged.get(cid, 0):
+            return
+        self.nudged[cid] = level
+        brief = self.briefs.get(cid) or coach.brief(self.wm, self.pack, self.cases[cid], self.mastery)
+        fired = [f for f in brief.get("fields", []) if f.get("fires")]
+        focus = self.wm.node((brief.get("focus") or {}).get("node_id") or "")
+        msg: dict[str, Any] = {"case_id": cid, "level": level, "text": "", "look": []}
+        if level == 2:
+            msg["text"] = "What makes this one different from a routine case? " + (brief.get("predict") or "")
+        elif level == 3:
+            msg["look"] = [f["field"] for f in fired[:2]]
+            names = " and the ".join(f["label"].lower() for f in fired[:2])
+            msg["text"] = f"Have a look at the {names}." if names else "Have another look at the details first."
+        elif level >= 4:
+            msg["look"] = [f["field"] for f in fired[:2]]
+            msg["show_me"] = focus.screen_moment.path if focus and focus.screen_moment else None
+            msg["text"] = (f"Want me to show you where {self.expert} looked on one like this?" if msg["show_me"]
+                           else f"Let's work it out together: {brief.get('predict') or 'what would you do?'}")
+        await self.emit("nudge", msg)
 
     def _coach_line(self, brief: dict[str, Any]) -> str:
         """What the tutor says as a case opens: where to look, never the answer (unless a worked example is due)."""
@@ -1545,6 +1656,13 @@ class Session:
         self._ledger("learner_attempts", {"learner": self.trainee, "case_id": case_id, "booking": booking,
                                           "action": action, "allowed": not violations, "independent": first_attempt,
                                           "violations": [v.model_dump() for v in violations]})
+        skipped = paths.missing(self.wm.paths, {**self.pack.normalize(case, booking), "action": action},
+                                self.dps[case_id].trail if case_id in self.dps else [])
+        if skipped and not violations:  # right answer, but she'd have looked first: a gentle nudge, not a stop
+            c = skipped[0]
+            await self.emit("nudge", {"case_id": case_id, "level": 3, "look": [s["name"] for s in skipped],
+                                      "text": f"Right call. {self.expert} always looks at the {c['name']} first "
+                                              f"on cases like this. Worth a look next time."})
         if not violations:
             for nid in relevant:
                 if first_attempt:
@@ -1556,6 +1674,7 @@ class Session:
             return {"allow": True}
         v = violations[0]
         tries = self.tutor_tries[case_id] = self.tutor_tries.get(case_id, 0) + 1
+        self.stuck.observe({"type": "save_blocked", "t": self.now(), "case_id": case_id})
         node_for = self.wm.node(v.node_id)
         mode = coach.fade((self.mastery.get(v.node_id) or {}).get("p"), guardrail=isinstance(node_for, Guardrail))
         level = min(4, {"coach": 1, "check": 1, "silent": 2}[mode] + tries - 1)  # each retry reveals one rung more
@@ -1574,6 +1693,9 @@ class Session:
             "all": [x.model_dump() for x in violations],
             "say": f"{self.expert} would stop here. Why do you think?",
             "explain": " And ".join(parts), "hint": hint, "attempt": tries,
+            # "Show me": where the expert looked before deciding, replayed in the trainee's own screen
+            "show_me": (node_for.screen_moment.path if node_for and node_for.screen_moment else None) or None,
+            "look": [c["name"] for c in skipped],
             "screen_moment": v.screen_moment.model_dump() if v.screen_moment else None,
             "node": node.model_dump() if node else None,
         }
@@ -1599,6 +1721,11 @@ class Session:
         m["p"] = round(cond + (1 - cond) * p_t, 3)
         m["opportunities"] += 1
         m["status"] = "mastered" if m["p"] >= 0.85 else ("shaky" if m["p"] >= 0.5 else "practice")
+        if self.store and self.trainee and not self.simulated:  # a learner's progress outlives the session
+            try:
+                self.store.save_mastery(self.workspace, self.pack.id, self.trainee, node_id, m)
+            except Exception:  # noqa: BLE001
+                log.exception("mastery save failed")
 
     def _note_assisted(self, node_id: str) -> None:
         node = self.wm.node(node_id)

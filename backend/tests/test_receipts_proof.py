@@ -233,3 +233,95 @@ def test_end_session_and_inventory():
         assert "erp_url" in cfg and "console_url" in cfg
     finally:
         main.sessions.pop("end1", None)
+
+
+def test_show_me_path_and_mastery_persist(tmp_path):
+    async def run():
+        store = Store(f"sqlite:///{tmp_path}/shadow.db")
+        s = new_session("sm")
+        await s.open_case("inv-4471")
+        await s.on_event({"type": "panel_opened", "panel": "po"})
+        await s.on_event({"type": "field_changed", "case_id": "inv-4471", "field": "cost_center", "after": "0400"})
+        await s.on_decision("inv-4471", booking_for(s.cases["inv-4471"]), "post")
+        await s.drain()
+        await s.tick(force=True)
+        await s.on_utterance("Equipment over three thousand net is always capex.")
+        await s.drain()
+        rule = next(r for r in s.wm.rules if r.origin != "doc")
+        assert [p["name"] for p in rule.screen_moment.path] == ["po", "cost_center"]
+        t = Session("tu1", PACK, mode="tutor", use_llm=False, wm=s.wm, store=store, trainee="Lena")
+        await t.open_case("inv-5120")
+        v = await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        assert [p["name"] for p in v["intervention"]["show_me"]] == ["po", "cost_center"]
+        saved = store.load_mastery(t.workspace, PACK.id, "Lena")
+        assert rule.id in saved and saved[rule.id]["opportunities"] == 1
+
+    asyncio.run(run())
+
+
+def test_path_constraints_learned_from_expert_and_nudged_in_tutor():
+    from shadow import paths
+    eps = [({"action": "hold"}, [{"kind": "panel", "name": "history"}, {"kind": "field", "name": "cost_center"}]),
+           ({"action": "hold"}, [{"kind": "panel", "name": "po"}, {"kind": "panel", "name": "history"}]),
+           ({"action": "post"}, [{"kind": "panel", "name": "po"}])]
+    cons = paths.mine(eps)
+    assert [(c["value"], c["name"]) for c in cons] == [("hold", "history")], "only what she ALWAYS did, with support ≥ 2"
+    assert paths.missing(cons, {"action": "hold"}, [{"kind": "panel", "name": "po"}])
+    assert not paths.missing(cons, {"action": "post"}, [])
+
+    async def run():
+        s = new_session("pc")
+        for cid in ("inv-4471", "inv-4473"):
+            await s.open_case(cid)
+            await s.on_event({"type": "panel_opened", "panel": "po"})
+            await s.on_decision(cid, booking_for(s.cases[cid]), "post")
+        assert any(c["name"] == "po" and c["value"] == "post" for c in s.wm.paths)
+        t = Session("pt", PACK, mode="tutor", use_llm=False, wm=s.wm, trainee="Lena")
+        got = []
+        t.listeners.add(lambda m: _append(got, m))
+        await t.open_case("inv-5122")
+        await t.before_save("inv-5122", {"cost_center": "4711"}, "post")
+        assert any(m["type"] == "nudge" and "po" in m["look"] for m in got)
+
+    asyncio.run(run())
+
+
+async def _append(out, m):
+    out.append(m)
+
+
+class SlipCompiler(SpokenCompiler):
+    async def __call__(self, pack, wm, inquiry, transcript, case):
+        if inquiry["type"] == "deviation":
+            return Compiled(answers_question=True, key_quote=transcript)  # "that was a slip": no new rule
+        return await super().__call__(pack, wm, inquiry, transcript, case)
+
+
+def test_contradicting_a_confirmed_rule_asks_exception_change_or_slip():
+    async def run():
+        s = Session("dv", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=SlipCompiler())
+        await teach(s)
+        base = s.cases["inv-4471"]
+        for i, net in enumerate((5200, 6100), start=1):  # behaviour agrees twice: the rule becomes confirmed
+            c = PACK.threshold_variant(base, "amount", "net", net)
+            c.update(id=f"inv-80{i}")
+            s.cases[c["id"]] = c
+            await s.open_case(c["id"])
+            await s.on_decision(c["id"], {"cost_center": "0400", "tax_code": "V19"}, "post")
+        rule = next(r for r in s.wm.rules if r.origin != "doc")
+        assert rule.belief.status == "confirmed", rule.belief
+        c = PACK.threshold_variant(base, "amount", "net", 5800)
+        c.update(id="inv-899")
+        s.cases["inv-899"] = c
+        await s.open_case("inv-899")
+        await s.on_decision("inv-899", {"cost_center": "4711", "tax_code": "V19"}, "post")
+        await s.drain()
+        q = next(q for q in s.planner.queue if q.case_id == "inv-899")
+        assert q.type == "deviation" and q.target_node == rule.id
+        assert "wrong" not in q.text.lower() and "mistake" not in q.text.lower()
+        s.awaiting = s.planner.mark_asked(q)
+        await s.on_utterance("Oh, that was just a slip, it should be capex.")
+        await s.drain()
+        assert rule.belief.status == "confirmed", "a slip must not erode the rule"
+
+    asyncio.run(run())

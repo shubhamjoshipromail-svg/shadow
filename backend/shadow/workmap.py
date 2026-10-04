@@ -46,6 +46,8 @@ class ScreenMoment(BaseModel):
     entity: str | None = None
     field: str | None = None
     label: str | None = None
+    # where the expert looked before deciding, in order: [{"kind": "panel"|"field", "name": ..., "t": ...}]
+    path: list[dict[str, Any]] | None = None
 
 
 class Evidence(BaseModel):
@@ -163,6 +165,7 @@ class WorkMap(BaseModel):
     rules: list[Rule] = Field(default_factory=list)
     guardrails: list[Guardrail] = Field(default_factory=list)
     params: dict[str, float] = Field(default_factory=dict)
+    paths: list[dict[str, Any]] = Field(default_factory=list)  # learned "always look here first" constraints
 
     def node(self, node_id: str) -> Rule | Guardrail | None:
         for n in [*self.rules, *self.guardrails]:

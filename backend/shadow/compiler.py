@@ -31,7 +31,8 @@ class CompiledRule(BaseModel):
 class ThresholdStatement(BaseModel):
     param: str = Field(description="e.g. T_capex")
     value: float
-    quantity: str = Field(description="The context name it compares against, e.g. inv.net_eur")
+    quantity: str = Field(description="The context quantity it compares against, e.g. 'task.amount_eur' "
+                                      "for a generic task or 'inv.net_eur' for invoices")
     kind: Literal["amount", "pct", "days"] = "amount"
 
 
@@ -50,13 +51,50 @@ class Compiled(BaseModel):
     needs_followup: str | None = Field(None, description="One short clarifying question, only if truly ambiguous")
 
 
-SYSTEM = """You compile an expert's spoken answer into structured, executable knowledge for an AI apprentice.
+def namespace(pack: Pack) -> str:
+    """The pack's rule-language namespace (`inv` for invoices, `task` for generic workflows)."""
+    return getattr(pack, "namespace", None) or "inv"
+
+
+def example_expression(pack: Pack, *, as_param: bool = True) -> str:
+    """A concrete expression in THIS pack's namespace/feature names, for the prompt examples.
+
+    `as_param=False` keeps the invoice pack's original hypotheses example (a literal number);
+    generic workflows always show the `params.T_<name>` form.
+    """
+    ns = namespace(pack)
+    if ns == "inv":
+        # keep the invoice examples exactly as they were for the invoice pack
+        return ("inv.category == 'equipment' and inv.net_eur > params.T_capex" if as_param
+                else "inv.category == 'equipment' and inv.net_eur > 5000")
+    task = getattr(pack, "task_def", None)
+    features = list(getattr(task, "features", []) or [])
+    cat = next((f for f in features if f.type == "cat" and f.options), None)
+    num = next((f for f in features if f.type == "num" and f.threshold_capable), None)
+    num = num or next((f for f in features if f.type == "num"), None)
+    parts = []
+    if cat:
+        parts.append(f"{ns}.{cat.name} == {cat.options[0]!r}")
+    if num:
+        parts.append(f"{ns}.{num.name} > params.{num.param}")
+    if parts:
+        return " and ".join(parts)
+    names = [f.name for f in getattr(pack, "decision_fields", [])]
+    return f"{ns}.{names[0]} == 'x'" if names else f"{ns}.some_fact > 100"
+
+
+def system(pack: Pack) -> str:
+    """The compile prompt, grounded in the pack's own namespace and feature names."""
+    ns = namespace(pack)
+    example = example_expression(pack)
+    return f"""You compile an expert's spoken answer into structured, executable knowledge for an AI apprentice.
 Rules are written in a restricted Python-like expression language over the given context names
-(e.g. `inv.category == 'equipment' and inv.net_eur > params.T_capex`). Write numeric thresholds as
-`params.T_<short_name>` and report the stated number in `threshold`. Limits, holds, escalations and
-"stop and ask someone" behaviors are guardrails (field 'action'). Exceptions to an existing rule use
-kind='exception' with parent_id. Quote the expert verbatim. Do not invent rules the expert did not express;
-if the answer is vague, return no rules and suggest one follow-up question."""
+(e.g. `{example}`). The current workflow's namespace is `{ns}`; use only the context names listed
+below. Write numeric thresholds as `params.T_<short_name>` and report the stated number in `threshold`.
+Limits, holds, escalations and "stop and ask someone" behaviors are guardrails (field 'action').
+Exceptions to an existing rule use kind='exception' with parent_id. Quote the expert verbatim. Do not
+invent rules the expert did not express; if the answer is vague, return no rules and suggest one
+follow-up question."""
 
 
 async def compile_answer(pack: Pack, wm: WorkMap, inquiry: dict[str, Any], transcript: str,
@@ -80,7 +118,7 @@ async def compile_answer(pack: Pack, wm: WorkMap, inquiry: dict[str, Any], trans
         f"Existing guardrails: " + json.dumps([{"id": g.id, "title": g.title, "when": g.when}
                                                 for g in wm.guardrails])
     )
-    out = await llm.parse(Compiled, SYSTEM, user, tier="reason", max_tokens=3000)
+    out = await llm.parse(Compiled, system(pack), user, tier="reason", max_tokens=3000)
     allowed = {f.name: set(f.options) for f in pack.decision_fields if f.options}
     allowed["action"] = set(pack.actions) | {"block"}
     valid = []

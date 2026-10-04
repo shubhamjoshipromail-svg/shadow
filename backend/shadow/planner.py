@@ -19,9 +19,11 @@ import numpy as np
 
 from shadow import config
 
-QType = Literal["cue_probe", "confirm", "comparison", "counterfactual", "boundary", "guardrail", "exam", "teachback"]
+QType = Literal["cue_probe", "confirm", "comparison", "counterfactual", "boundary", "guardrail", "exam", "teachback",
+                "deviation"]
 
 BASE_COST: dict[str, float] = {
+    "deviation": 0.15,
     "confirm": 0.12, "counterfactual": 0.2, "comparison": 0.25, "boundary": 0.2, "guardrail": 0.22,
     "cue_probe": 0.3, "exam": 0.08, "teachback": 0.0,
 }
@@ -86,6 +88,16 @@ class TypeBandit:
             theta = self.rng.multivariate_normal(cov @ self.b[a], 0.05 * cov)
             out[a] = float(theta @ x)
         return out
+
+    def state(self) -> dict:
+        return {"A": {a: m.tolist() for a, m in self.A.items()}, "b": {a: v.tolist() for a, v in self.b.items()}}
+
+    def load(self, state: dict) -> None:
+        """Resume what earlier sessions learned about which question types pay off."""
+        for a in self.arms:
+            if a in state.get("A", {}):
+                self.A[a] = np.array(state["A"][a])
+                self.b[a] = np.array(state["b"][a])
 
     def update(self, arm: str, x: np.ndarray, reward: float) -> None:
         if arm in self.A:

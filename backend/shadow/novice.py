@@ -52,10 +52,12 @@ async def predict(wm: WorkMap, pack: Pack, case: dict[str, Any], use_llm: bool =
         pred.rationale = "Following the written process and the rules learned so far."
         return pred
     schema = _schema_for(pack)
+    goal = getattr(pack, "goal", None)
     system = (
-        f"You are a careful new {pack.name} clerk. You know ONLY the company's written work instruction below "
-        f"and the rules your mentor has confirmed. You do not know any unwritten habits.\n\n"
-        f"WORK INSTRUCTION:\n{pack.process_doc}"
+        f"You are a careful new hire learning this workflow: {pack.name}. You know ONLY the company's written "
+        f"work instruction below and the rules your mentor has confirmed. You do not know any unwritten habits."
+        + (f"\n\nGOAL OF THE WORK:\n{goal}" if goal else "")
+        + f"\n\nWORK INSTRUCTION:\n{pack.process_doc}"
     )
     ctx = pack.derive(case)
     user = (

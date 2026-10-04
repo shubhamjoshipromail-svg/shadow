@@ -136,3 +136,24 @@ def test_tutor_coaches_before_and_escalates_hints():
 
 async def _collect(out, m):
     out.append(m)
+
+
+def test_stuck_learner_gets_nudged_up_the_ladder():
+    async def run():
+        s = Session("cap2", PACK, mode="capture", use_llm=False, proposer=fake_propose, compiler=FakeCompiler())
+        await _capture(s)
+        t = Session("tut2", PACK, mode="tutor", use_llm=False, wm=s.wm, trainee="Lena")
+        seen = []
+        t.listeners.add(lambda m: _collect(seen, m))
+        await t.open_case("inv-5120")
+        for _ in range(2):  # two blocked saves: "highlight where to look"
+            await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        await t.tick()
+        nudges = [m for m in seen if m["type"] == "nudge"]
+        assert nudges and nudges[-1]["level"] >= 3 and nudges[-1]["look"], nudges
+        await t.on_event({"type": "help"})
+        assert [m for m in seen if m["type"] == "nudge"][-1]["level"] == 4
+        await t.tick()  # never repeats or regresses a nudge on the same case
+        assert len([m for m in seen if m["type"] == "nudge"]) == len(nudges) + 1
+
+    asyncio.run(run())

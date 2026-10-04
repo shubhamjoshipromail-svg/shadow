@@ -71,6 +71,18 @@ learner_attempts = Table(  # one new-hire save attempt on an unseen case
     Column("violations", JSON),
 )
 
+mastery = Table(  # a learner's current mastery estimate per rule (BKT), so progress outlives a session
+    "mastery", metadata, Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("workspace", String(64), index=True), Column("workflow", String(64), index=True),
+    Column("learner", String(64), index=True), Column("node_id", String(32)), Column("state", JSON),
+    Column("updated", Float),
+)
+
+policies = Table(  # learned interaction policy per (workspace, workflow, expert): question bandit, interruption cost
+    "policies", metadata, Column("key", String(200), primary_key=True), Column("state", JSON),
+    Column("updated", Float),
+)
+
 LEDGER = {"decisions": decisions, "explanations": explanations, "learner_attempts": learner_attempts}
 
 
@@ -134,6 +146,29 @@ class Store:
     def ledger(self, table: str, row: dict[str, Any]) -> None:
         with self.engine.begin() as c:
             c.execute(insert(LEDGER[table]).values(created=time.time(), **row))
+
+    def save_policy(self, key: str, state: dict[str, Any]) -> None:
+        with self.engine.begin() as c:
+            c.execute(policies.delete().where(policies.c.key == key))
+            c.execute(insert(policies).values(key=key, state=state, updated=time.time()))
+
+    def load_policy(self, key: str) -> dict[str, Any] | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(policies.c.state).where(policies.c.key == key)).first()
+        return dict(row[0]) if row else None
+
+    def save_mastery(self, workspace: str, workflow: str, learner: str, node_id: str, state: dict[str, Any]) -> None:
+        with self.engine.begin() as c:
+            c.execute(mastery.delete().where(mastery.c.workspace == workspace, mastery.c.workflow == workflow,
+                                             mastery.c.learner == learner, mastery.c.node_id == node_id))
+            c.execute(insert(mastery).values(workspace=workspace, workflow=workflow, learner=learner,
+                                             node_id=node_id, state=state, updated=time.time()))
+
+    def load_mastery(self, workspace: str, workflow: str, learner: str) -> dict[str, dict[str, Any]]:
+        q = select(mastery.c.node_id, mastery.c.state).where(
+            mastery.c.workspace == workspace, mastery.c.workflow == workflow, mastery.c.learner == learner)
+        with self.engine.connect() as c:
+            return {n: dict(st) for n, st in c.execute(q)}
 
     def ledger_rows(self, table: str, session_id: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
         t = LEDGER[table]
