@@ -403,6 +403,9 @@
     storeDel(LEARN_KEY); outbox = [];
     WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert;
     pinSession(snap.id, snap.mode); takeMetrics(snap.metrics); reconnect(); render();
+    // same as Start on the ERP: a session on any page comes with Mira's voice (Talk turns it off)
+    try { sessionStorage.setItem("shadow.voice", "on"); } catch (e) {}
+    startVoice();
   }
   function doneShowing() {
     if (!LEARN.demos.length || LEARN.stage === "creating") return;
