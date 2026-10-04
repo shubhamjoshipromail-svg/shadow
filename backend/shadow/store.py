@@ -83,6 +83,12 @@ policies = Table(  # learned interaction policy per (workspace, workflow, expert
     Column("updated", Float),
 )
 
+workflows = Table(  # learned workflows ("watch me do this"): definition + signature, durable across deploys
+    "workflows", metadata, Column("id", String(80), primary_key=True), Column("workspace", String(64), index=True),
+    Column("name", String(200)), Column("version", Integer), Column("definition", JSON), Column("signature", JSON),
+    Column("created", Float), Column("updated", Float),
+)
+
 LEDGER = {"decisions": decisions, "explanations": explanations, "learner_attempts": learner_attempts}
 
 
@@ -146,6 +152,41 @@ class Store:
     def ledger(self, table: str, row: dict[str, Any]) -> None:
         with self.engine.begin() as c:
             c.execute(insert(LEDGER[table]).values(created=time.time(), **row))
+
+    def save_workflow(self, wf_id: str, workspace: str, name: str, definition: dict[str, Any],
+                      signature: dict[str, Any]) -> int:
+        """Insert or bump the version of a learned workflow; returns the version."""
+        now = time.time()
+        with self.engine.begin() as c:
+            row = c.execute(select(workflows.c.version, workflows.c.created).where(workflows.c.id == wf_id)).first()
+            version = (row[0] + 1) if row else 1
+            c.execute(workflows.delete().where(workflows.c.id == wf_id))
+            c.execute(insert(workflows).values(id=wf_id, workspace=workspace, name=name, version=version,
+                                               definition={**definition, "version": version}, signature=signature,
+                                               created=row[1] if row else now, updated=now))
+        return version
+
+    def workflow(self, wf_id: str) -> dict[str, Any] | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(workflows).where(workflows.c.id == wf_id)).first()
+        return dict(row._mapping) if row else None
+
+    def list_workflows(self, workspace: str | None = None) -> list[dict[str, Any]]:
+        q = select(workflows.c.id, workflows.c.workspace, workflows.c.name, workflows.c.version,
+                   workflows.c.signature, workflows.c.updated).order_by(workflows.c.updated.desc())
+        if workspace:
+            q = q.where(workflows.c.workspace == workspace)
+        with self.engine.connect() as c:
+            return [dict(r._mapping) for r in c.execute(q)]
+
+    def latest_map_any(self, pack_id: str) -> dict[str, Any] | None:
+        """Most recent saved map for a workflow from any expert (live sessions only)."""
+        rehearsal = [r["id"] for r in self.list_sessions() if (r["meta"] or {}).get("simulated")]
+        q = (select(maps.c.map, maps.c.version, maps.c.session_id, maps.c.created, maps.c.expert)
+             .where(maps.c.pack_id == pack_id, maps.c.session_id.not_in(rehearsal)).order_by(maps.c.id.desc()).limit(1))
+        with self.engine.connect() as c:
+            row = c.execute(q).first()
+        return dict(row._mapping) if row else None
 
     def save_policy(self, key: str, state: dict[str, Any]) -> None:
         with self.engine.begin() as c:

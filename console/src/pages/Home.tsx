@@ -22,6 +22,9 @@ export default function Home() {
   const [lang, setLang] = useState('en')
   const [busy, setBusy] = useState(false)
   const [continueSaved, setContinueSaved] = useState(false)
+  const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number }[]>([])
+  const [workflow, setWorkflow] = useState('ap_invoices')
+  useEffect(() => { api('/api/workflows').then(setWorkflows).catch(() => {}) }, [])
 
   useEffect(() => {
     api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => {
@@ -48,8 +51,8 @@ export default function Home() {
       const snap = await api('/api/sessions', {
         method: 'POST',
         body: JSON.stringify(mode === 'tutor'
-          ? { mode, trainee: 'Lena', from_session: capture?.id ?? null, simulate: rehearsal }
-          : { mode, lang, simulate: rehearsal, fresh: !continueSaved }),
+          ? { mode, trainee: 'Lena', pack: workflow, from_session: capture && (capture as any).pack === workflow ? capture.id : null, simulate: rehearsal }
+          : { mode, lang, pack: workflow, simulate: rehearsal, fresh: !continueSaved }),
       })
       nav(`/s/${snap.id}`)
     } catch (e) {
@@ -98,8 +101,29 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="mt-10 grid grid-cols-3 gap-x-6 gap-y-4">
-          <div className="label col-span-3">Session settings</div>
+        <section className="mt-10">
+          <div className="label border-b border-rule pb-2">Workflows</div>
+          <div className="divide-y divide-rule">
+            {workflows.map((w) => (
+              <label key={w.id} className="grid cursor-pointer grid-cols-[22px_1fr_auto] items-baseline gap-2 py-2.5 text-[13px]">
+                <input type="radio" name="wf" checked={workflow === w.id} onChange={() => setWorkflow(w.id)} className="accent-[#4e6b44]" />
+                <span>
+                  <span className="text-ink-1">{w.name}</span>
+                  <span className="num ml-2 text-[10.5px] text-ink-3">{w.kind === 'learned' ? `learned · v${w.version}` : 'built in'}</span>
+                </span>
+                <span className="num text-[11px] text-ink-2">
+                  {w.experts.length ? `taught by ${w.experts.join(', ')}` : 'not taught yet'}{w.learners.length ? ` · training ${w.learners.join(', ')}` : ''}
+                </span>
+              </label>
+            ))}
+            {workflows.length === 0 && <div className="py-2.5 text-[12.5px] text-ink-3">Loading workflows…</div>}
+          </div>
+          <div className="mt-2 text-[11.5px] text-ink-3">A new workflow is learned by showing it: turn Mira on in the browser extension on the page where the work happens, then choose “Learn this task”.</div>
+        </section>
+
+        <details className="mt-10">
+          <summary className="label cursor-pointer">Settings</summary>
+        <section className="mt-4 grid grid-cols-3 gap-x-6 gap-y-4">
           <label className="text-[12px] text-ink-2">ElevenLabs interviewer agent
             <input value={interviewer} onChange={(e) => setInterviewer(e.target.value)} onBlur={save} placeholder="agent_…" className={field} />
           </label>
@@ -115,7 +139,7 @@ export default function Home() {
           <div className="col-span-3 flex flex-wrap items-center gap-5 border-t border-rule pt-4 text-[12px]">
             <div className="flex border border-rule-strong">
               <button onClick={() => setRehearsal(false)} className={`px-3 py-1 ${!rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Live</button>
-              <button onClick={() => setRehearsal(true)} className={`border-l border-rule-strong px-3 py-1 ${rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Rehearsal · simulated expert</button>
+              <button onClick={() => setRehearsal(true)} className={`border-l border-rule-strong px-3 py-1 ${rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Practice run · simulated expert</button>
             </div>
             <label className="flex items-center gap-1.5 text-ink-2" title="Capture continues from the last saved Work Map instead of the written process only">
               <input type="checkbox" checked={continueSaved} onChange={(e) => setContinueSaved(e.target.checked)} className="accent-[#4e6b44]" />
@@ -127,12 +151,13 @@ export default function Home() {
             ))}
           </div>
           {error && <div className="col-span-3 text-[12px] text-binding">{error}</div>}
-          <div className="col-span-3 text-[11.5px] text-ink-3">Both voice agents use a Custom LLM pointing at Shadow Core, so Shadow decides what they say. Live learns from real speech; Rehearsal uses a simulated Sabine and costs nothing.</div>
+          <div className="col-span-3 text-[11.5px] text-ink-3">Live sessions learn only from real people. Practice runs use a simulated expert, are labelled everywhere, and never feed a saved Work Map.</div>
         </section>
+        </details>
 
         {sessions.length > 0 && (
           <section className="mt-10">
-            <div className="label border-b border-rule pb-2">Sessions in memory</div>
+            <div className="label border-b border-rule pb-2">Recent sessions</div>
             <div className="divide-y divide-rule">
               {sessions.slice().reverse().map((s) => (
                 <button key={s.id} onClick={() => nav(`/s/${s.id}`)} className="num grid w-full grid-cols-[120px_100px_1fr_auto] py-2 text-left text-[12px] text-ink-2 hover:text-ink-1">

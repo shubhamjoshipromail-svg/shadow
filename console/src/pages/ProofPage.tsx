@@ -55,7 +55,7 @@ export default function ProofPage() {
         <Link to={`/s/${sid}`} className="text-[12px] text-ink-2 hover:text-ink-1">← session</Link>
         <Wordmark />
         <div className="num text-[10.5px] text-ink-3">
-          {snap.simulated ? 'rehearsal session · tests disabled' : 'live session'} · map v{snap.map.version} from {snap.map_source.kind}
+          {snap.simulated ? 'practice run · tests disabled' : 'live session'} · map v{snap.map.version} from {snap.map_source.kind}
           {snap.map_source.session ? ` (${snap.map_source.session}, v${snap.map_source.version})` : ''}
           {snap.pending.compiling && <span className="text-query"> · compiling the last answer…</span>}
         </div>

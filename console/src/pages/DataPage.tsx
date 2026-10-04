@@ -80,7 +80,7 @@ function Source({ row }: { row: { source?: Src; created?: number } }) {
     <div>
       <span className="num inline-flex items-center gap-1 text-[10.5px] text-ink-2">
         <Mark state={live ? 'observed' : 'inferred'} />
-        {live ? 'live' : 'rehearsal'}
+        {live ? 'live' : 'practice'}
       </span>
       <div className="num mt-0.5 text-[9.5px] text-ink-3" title="UTC">{stamp(row.created)}</div>
     </div>
@@ -354,7 +354,7 @@ function Split({ label, c }: { label: string; c?: Record<string, number> }) {
   return (
     <span>
       {label} <span className="text-ink-1">{live} live</span>
-      <span className="text-ink-3"> · {rehearsal} rehearsal</span>
+      <span className="text-ink-3"> · {rehearsal} practice</span>
     </span>
   )
 }

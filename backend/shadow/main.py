@@ -27,7 +27,8 @@ from pydantic import BaseModel
 from shadow import config, converse, exports, llm, perception, sim
 from shadow import onboard
 from shadow import proof as proof_mod
-from shadow.packs import register
+from shadow import workflows as wf
+from shadow.packs import add_loader, register
 from shadow.packs.generic import GenericPack
 from shadow import engine as engine_mod
 from shadow.engine import Session
@@ -40,6 +41,7 @@ log = logging.getLogger("shadow.api")
 
 STATIC = Path(__file__).parent / "static"
 store = Store()
+add_loader(lambda pid: (store.workflow(pid) or {}).get("definition"))  # learned workflows survive restarts
 sessions: dict[str, Session] = {}
 latest: list[str] = []  # most recent session ids, newest last
 
@@ -89,7 +91,10 @@ class NewSession(BaseModel):
 
 @app.post("/api/sessions")
 async def create_session(body: NewSession) -> dict[str, Any]:
-    pack = get_pack(body.pack)
+    try:
+        pack = get_pack(body.pack)
+    except KeyError as e:
+        raise HTTPException(404, f"Unknown workflow '{body.pack}'.") from e
     expert = body.expert or pack.expert_name
     wm = None
     source: dict[str, Any] = {"kind": "seed"}
@@ -98,6 +103,8 @@ async def create_session(body: NewSession) -> dict[str, Any]:
         source = {"kind": "session", "session": body.from_session, "version": wm.version}
     elif body.mode != "capture" or not body.fresh:
         saved = store.latest_map_row(expert, pack.id)
+        if not saved and body.expert is None and body.mode == "tutor":
+            saved = store.latest_map_any(pack.id)  # teach from whichever expert taught this workflow last
         if saved:
             wm = WorkMap(**saved["map"])
             source = {"kind": "saved", "session": saved["session_id"], "version": saved["version"],
@@ -133,7 +140,7 @@ async def create_session(body: NewSession) -> dict[str, Any]:
 
 @app.get("/api/sessions")
 async def list_sessions() -> list[dict[str, Any]]:
-    return [{"id": s.id, "mode": s.mode, "expert": s.expert, "live": True, "metrics": s.metrics()}
+    return [{"id": s.id, "mode": s.mode, "expert": s.expert, "pack": s.pack.id, "live": True, "metrics": s.metrics()}
             for s in sessions.values()]
 
 
@@ -384,20 +391,57 @@ async def onboard_task(body: OnboardBody) -> dict[str, Any]:
     if not body.demos:
         raise HTTPException(400, "Show at least one demonstration first.")
     demos = [onboard.Demo.from_events(d) for d in body.demos] if body.events else [onboard.as_demo(d) for d in body.demos]
-    task = await onboard.propose_task(body.goal, demos, task_id=body.pack_id, save=True)
+    task = await onboard.propose_task(body.goal, demos, task_id=body.pack_id, save=False)
+    version = store.save_workflow(task.id, body.workspace, task.name, task.model_dump(mode="json"),
+                                  wf.demos_signature(demos))  # durable: survives restarts and redeploys
     pack = GenericPack(task)
     register(pack)
     sid = uuid.uuid4().hex[:10]
     expert = body.expert or getattr(pack, "expert_name", "expert")
     s = Session(sid, pack, mode="capture", expert=expert, store=store, lang="en")
     s.workspace = body.workspace
-    s.map_source = {"kind": "onboarded", "task": pack.id, "version": getattr(task, "version", None)}
+    s.map_source = {"kind": "onboarded", "task": pack.id, "version": version}
     sessions[sid] = s
     latest.append(sid)
     store.create_session(sid, "capture", pack.id, expert, {"onboarded": True, "goal": body.goal,
                                                            "workspace": body.workspace, "workflow": pack.id,
                                                            "source": s.source, "simulated": False})
     return {"task": task.model_dump(mode="json"), "pack_id": pack.id, "session": s.snapshot()}
+
+
+def _known_workflows(workspace: str | None = None) -> list[dict[str, Any]]:
+    builtin = get_pack(config.DEFAULT_PACK)
+    out = [{"id": builtin.id, "name": builtin.name, "kind": "built-in", "version": 1,
+            "signature": wf.pack_signature(builtin, config.ERP_URL + "/invoice/1")}]
+    out += [{"id": r["id"], "name": r["name"], "kind": "learned", "version": r["version"], "signature": r["signature"],
+             "workspace": r["workspace"]} for r in store.list_workflows(workspace)]
+    return out
+
+
+@app.get("/api/workflows")
+async def list_workflows(workspace: str | None = None) -> list[dict[str, Any]]:
+    """Every workflow this workspace knows, with who taught it and how many sessions it has."""
+    rows = store.list_sessions()
+    out = []
+    for w in _known_workflows(workspace):
+        mine = [r for r in rows if r["pack_id"] == w["id"] and not (r["meta"] or {}).get("simulated")]
+        experts = sorted({r["expert"] for r in mine if r["mode"] != "tutor"})
+        learners = sorted({(r["meta"] or {}).get("trainee") for r in mine if r["mode"] == "tutor"} - {None})
+        out.append({**w, "experts": experts, "learners": learners, "sessions": len(mine)})
+    return out
+
+
+class MatchBody(BaseModel):
+    url: str = ""
+    fields: list[str] = []
+    actions: list[str] = []
+    workspace: str | None = None
+
+
+@app.post("/api/workflows/match")
+async def match_workflow(body: MatchBody) -> dict[str, Any]:
+    """Is this page a workflow we know (same), maybe (ask the user), or a new one (offer 'watch me')?"""
+    return wf.match(wf.signature(body.url, body.fields, body.actions), _known_workflows(body.workspace))
 
 
 @app.get("/companion/intern.png")

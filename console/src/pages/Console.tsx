@@ -139,7 +139,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           <span>map v{snap.map.version}{snap.map_source.kind === 'saved' ? ` · continued from saved v${snap.map_source.version}` : ''}</span>
           {snap.pending.compiling && <span className="text-query">compiling an answer…</span>}
           {snap.ended && <span className="text-binding">session ended</span>}
-          {snap.simulated && <span className="text-candidate">rehearsal · simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>}
+          {snap.simulated && <span className="text-candidate">practice run · simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           {snap.simulated && <>
@@ -174,7 +174,7 @@ function ConsoleInner({ sid }: { sid: string }) {
             </label>
             {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
             <a href={`${erpUrl}/?shadow=${sid}`} target="nordwerk-erp" className="mt-3 block border-t border-rule pt-2.5 text-[12px] text-inferred hover:underline">
-              Demo: open Nordwerk ERP ↗ <span className="num text-[10.5px] text-ink-3">(pinned to this session)</span>
+              Open Nordwerk ERP ↗ <span className="num text-[10.5px] text-ink-3">(pinned to this session)</span>
             </a>
           </Section>
 
