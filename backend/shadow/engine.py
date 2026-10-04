@@ -342,6 +342,14 @@ class Session:
         case["_source_url"] = self.page_url
         case["booking"] = self.pack.booking_from_decision(case, {k: v for k, v in case["facts"].items()
                                                                if k in decisions})
+        # The expert's open decisions are not facts: no hypothesis may cite an unanswered control.
+        for k in decisions:
+            case["facts"].pop(k, None)
+        # People name a work item by its own id ("SR-4106"), never by our internal page id.
+        ref = next((v for k, v in case["facts"].items() if v not in (None, "")
+                    and k.lower().rsplit("_", 1)[-1] in ("id", "no", "number", "ref", "reference")), None)
+        if ref is not None:
+            case["ref"] = str(ref)
         self.page_case = case["id"]
         self.cases[case["id"]] = case
         self.case_order.append(case["id"])

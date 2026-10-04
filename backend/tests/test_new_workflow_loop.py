@@ -76,11 +76,13 @@ def test_unknown_workflow_learns_and_teaches_through_api(client, monkeypatch):
     event(client, s, page())
     first = s.current_case
     assert s.dps[first].prediction and s.dps[first].committed_at is not None
-    assert s.cases[first]["facts"]["assigned_team"] == "Support"
+    # an open decision control is never a fact; its opening value lives in the booking
+    assert "assigned_team" not in s.cases[first]["facts"]
+    assert s.cases[first]["booking"]["assigned_team"] == "Support"
     event(client, s, {"type": "field_changed", "field": "assigned_team", "before": "Support", "after": "Dispatch"})
     # Reading the opening page again must not replace the frozen guess or leak the answer.
     event(client, s, page(team="Dispatch"))
-    assert s.current_case == first and s.cases[first]["facts"]["assigned_team"] == "Support"
+    assert s.current_case == first and "assigned_team" not in s.cases[first]["facts"]
     assert event(client, s, {"type": "action", "name": "save_ticket"})["allow"]
     event(client, s, {"type": "action", "name": "save_ticket"})
     assert len(s.episodes) == 1 and s.episodes[0].scored
@@ -196,3 +198,17 @@ def test_learning_a_new_task_on_the_same_page_does_not_replace_the_old_one(clien
     finally:
         _REGISTRY.pop(first["pack_id"], None)
         _REGISTRY.pop(second["pack_id"], None)
+
+
+def test_questions_name_the_item_by_its_own_id_and_read_like_speech():
+    from shadow.questions import _lower, case_ref
+    assert _lower("PRIORITY") == "priority" and _lower("Cost center") == "cost center"
+    class P:  # minimal pack: a ticket workflow
+        id, name = "tickets", "Support tickets"
+    import shadow.questions as q
+    noun = q.case_noun
+    q.case_noun = lambda pack: "support ticket"
+    try:
+        assert case_ref(P(), {"id": "page-0cca7ca35fbb", "ref": "SR-4106"}) == "support ticket SR-4106"
+    finally:
+        q.case_noun = noun

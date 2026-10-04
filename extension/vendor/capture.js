@@ -820,7 +820,7 @@
     if (NUDGE.level === 1) W.classList.add("nudged");  // level 1: just the soft badge
     if (TEST.hint) W.classList.add("showhint");
     if (!TEST.motion) W.classList.add("still");
-    $("hc-t").textContent = !SID ? "Tacet \u00b7 " + NAME : (MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + EXPERT);
+    $("hc-t").textContent = !SID ? "Tacet \u00b7 " + NAME : (MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + (!EXPERT || EXPERT === "expert" ? "you" : EXPERT));
     $("hc-s").textContent = meta.status;
     $("m-rl").textContent = M.rules_learned != null ? M.rules_learned : "\u2014";
     $("m-rc").textContent = M.rules_confirmed != null ? M.rules_confirmed : "\u2014";

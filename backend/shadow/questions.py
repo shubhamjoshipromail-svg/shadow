@@ -34,6 +34,8 @@ PAST = {
 
 
 def _lower(label: str) -> str:
+    if label and label.isupper():  # a label scraped from an UPPERCASE heading
+        return label.lower()
     return label[0].lower() + label[1:] if label else label
 
 
@@ -110,6 +112,8 @@ def case_ref(pack: Pack, case: dict[str, Any] | None) -> str:
         return "that one"
     if "invoice_no" in case:
         return f"{noun} {case.get('invoice_no')}"
+    if case.get("ref"):
+        return f"{noun} {case['ref']}"
     if noun == "invoice":
         return str(case.get("id"))  # keep the invoice pack's original fallback
     return f"{noun} {case.get('id')}"
