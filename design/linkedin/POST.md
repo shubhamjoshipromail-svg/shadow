@@ -1,6 +1,6 @@
 # LinkedIn launch: Tacet
 
-Video: `out/tacet-linkedin.mp4` (4:5, 1080x1350, 39.6 s). Shorter cut that ends on the rule: `out_short/tacet-linkedin-short.mp4` (25.5 s).
+Video: `out/tacet-linkedin.mp4` (4:5, 1080x1350, 41.4 s). Shorter cut that ends on the rule: `out_short/tacet-linkedin-short.mp4` (27.3 s).
 Thumbnail: `out/cover.jpg`, the question frame. Upload the video natively; don't post a YouTube link.
 
 ## Post (copy as is)
@@ -17,7 +17,7 @@ On Monday the new hire tries to post a capex booking without an asset number. Ta
 
 The point: what leaves a company when an expert retires isn't data. It's the judgment that was never written down. Tacet is an apprentice that asks for exactly that, and only when it's surprised.
 
-I built it solo for the HackNation × ElevenLabs AI Apprentice challenge. Everything in the video is a real screen recording. Mira's lines are re-voiced from her on-screen text.
+I built it solo for the HackNation × ElevenLabs AI Apprentice challenge. Everything in the video is a real screen recording. Mira's lines are re-voiced from her on-screen text, and my narration is my own cloned ElevenLabs voice.
 
 Try it: https://tacet.up.railway.app
 

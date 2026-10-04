@@ -56,7 +56,7 @@ SHOTS = [
 ]
 if SHORT:
     SHOTS = SHOTS[:4]
-END_DUR = 4.2
+END_DUR = 6.0
 
 
 def shot_len(s: dict) -> float:
@@ -129,7 +129,7 @@ ME_VOICE = os.environ.get("TACET_ME_VOICE", "")
 ME = [  # (id, start, text): each line says what the headline above it says
     ("V1", 0.15, "Every AI demo is a person prompting a machine."),
     ("V2", RULE_T + 0.2, "Her answer is now a rule it can run, with her own words attached."),
-    ("V4", MAIN - 0.1, "Most AI records what experts do. Tacet learns why."),
+    ("V4", MAIN + 0.2, "Most AI records what experts do. Tacet learns why."),
 ]
 if not SHORT:
     ME.insert(2, ("V3", PROOF_T + 0.1, "Then a test it can't fake. Answers sealed before anyone grades them."))
