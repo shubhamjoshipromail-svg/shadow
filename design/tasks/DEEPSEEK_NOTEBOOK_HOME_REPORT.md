@@ -94,3 +94,13 @@ The harness retains local absolute paths; these must be adjusted when run elsewh
 Mocked screenshots include example workflows/sessions and are layout evidence, not
 live product data. Live verification follows deployment. No real session was created
 for the visual review.
+
+## Live deployment verification
+
+Railway Core deployment b2d1d7c4-6f42-49e2-8446-770ee4282868 succeeded.
+Public /app JS and CSS byte-equal the local tested production build. HTTPS200 for
+notebook, health, workflows, config, landing and privacy page. User Chrome shows
+new heading and both start actions, closed diagnostics, and no horizontal overflow
+at1280px. Live screenshot saved in shots/notebook-home-live.jpg. No live session
+creation or voice call was performed; preservation evidence comes from unchanged
+request handlers and the mocked27-check smoke.

@@ -86,3 +86,14 @@ live Chrome confirms German source, unmuted playback, mute/unmute and underline.
 Railway Core deployment d7f16e48-36ac-4d5f-8c6f-7a1afc6c5ba0 is SUCCESS.
 Live page equals local source. SHADOW_PUBLIC_URL now uses tacet.up.railway.app;
 old alias retained for existing integrations. No Git push.
+
+## 2026-10-03 — Notebook home redesign deployed
+
+User requested cohesive /app home proportions, readability and clearer actions.
+Bounded DeepSeek implementation in Home.tsx only; primary refined copy/type/action
+alignment. Existing shared tokens, fonts, session pages and start payloads preserved.
+Workflow selection precedes capture/tutor, visible error/practice state, costs and
+providers moved into closed Settings & diagnostics. Build passes and focused mocked
+smoke27/27; live assets match local build. Deployment
+b2d1d7c4-6f42-49e2-8446-770ee4282868 SUCCESS. Screenshot and reports committed.
+No push, real review session creation or new voice call.
