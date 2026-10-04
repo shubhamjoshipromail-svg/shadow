@@ -5,7 +5,9 @@
  * The film's captions are rendered by the page that plays film.mp4 (the landing parses this file and
  * paints the active cue in the design system), so this file is the single source of caption text.
  *
- *   voiceover.txt        one line per read: "MM:SS Text" (optionally "(Speaker) Text")
+ *   voiceover.txt        one line per read: "MM:SS Text" (optionally "(Speaker) Text"), optionally with
+ *                        inline audio tags like [warmly] or [curious] for eleven_v3 — those are stripped
+ *                        here and never reach the captions
  *   out/film.vtt         WEBVTT cues, each ≤ MAX_LINE chars per line and ≤ MAX_LINES lines per cue;
  *                        a long line is split across consecutive cues inside its own time window.
  *
@@ -103,6 +105,11 @@ export function parseVoiceover(raw) {
   return lines
 }
 
+/** Remove inline ElevenLabs audio tags (`[warmly]`, `[curious]`, …) before a line becomes a caption. */
+export function stripTags(text) {
+  return String(text).replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 /** Greedy word-wrap to the line budget (over-long single words are allowed to overflow). */
 export function wrap(text, maxLine) {
   const words = text.split(/\s+/).filter(Boolean)
@@ -126,7 +133,7 @@ export function buildCues(lines, config) {
   lines.forEach((line, i) => {
     const end = i + 1 < lines.length ? lines[i + 1].start : config.filmSeconds
     const start = line.start
-    const spoken = config.speakers && line.speaker ? `${line.speaker}: ${line.text}` : line.text
+    const spoken = stripTags(config.speakers && line.speaker ? `${line.speaker}: ${line.text}` : line.text)
     const wrapped = wrap(spoken, config.maxLine)
     const groups = []
     for (let j = 0; j < wrapped.length; j += config.maxLines) groups.push(wrapped.slice(j, j + config.maxLines))

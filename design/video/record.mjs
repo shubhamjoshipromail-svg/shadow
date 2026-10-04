@@ -8,7 +8,11 @@
  *   2. opens one browser context, then two pages — the notebook (console) and the ERP;
  *   3. creates a REHEARSAL (simulated-expert) capture session over the HTTP API and advances it
  *      with POST /api/sessions/{sid}/sim/step — the same endpoint the notebook's "step" button uses;
- *   4. for every shot in the storyboard, puts the right state on screen and writes a PNG.
+ *   4. for every shot in the storyboard, puts the right state on screen, injects the capture CSS
+ *      (hides practice/stepper controls and companion action buttons), and writes a PNG cropped to the
+ *      shot's `focus`: a CSS selector (or a list) resolved with its padding, at device scale 2, then
+ *      padded to the smallest 16:9 canvas in the site's paper colour (#f4f1ea). S1.x are the only wide
+ *      establishing shots. assemble.mjs pads again as a no-op safety net.
  *
  * It never touches :8000 (the rule in design/tasks/QUEUE_2026-10-03.md). It refuses a URL whose port
  * is 8000. Point it at the deployed core (default) or at a local core on :8001.
@@ -28,7 +32,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,19 +57,120 @@ const STORYBOARD = join(ROOT, 'design', 'video', 'STORYBOARD.md')
 const VOICEOVER = join(ROOT, 'design', 'video', 'voiceover.txt')
 const FILM_SECONDS = 75
 
+// --------------------------------------------------------------------------- capture hygiene
+// The film must never show the words practice, rehearsal, simulated, step, autoplay. The product
+// prints them on its simulated-expert folio, its stepper controls and its companion cards; the shots
+// crop those out wherever a shot is focused, and this CSS (injected into the page AND into every
+// companion shadow root) removes the rest. Colours/classes come from console/src and
+// backend/shadow/static/capture.js. Nothing here changes the product's behaviour.
+const HIDE_CSS = [
+  '[data-k]',                          // companion overlay action buttons (Show me / Got it / …)
+  '#b-finish',                         // companion "Finish practice"
+  '.text-candidate',                   // console folio "practice run · simulated <expert>"
+  'header .ml-auto > button:nth-child(-n+2)', // console header "step" + "autoplay"
+  '.card h4',                          // companion card headings ("Shadow stepped in", "Practice summary")
+  '.card.nudge',                       // companion "Take it one step at a time."
+  'article.panel > p',                 // Work Map "N steps · …" line
+].join(', ') + ' { display: none !important; }'
+
+// Runs in the page before every capture: inject HIDE_CSS into the document and every shadow root,
+// then hide any short leaf element whose own text still contains a forbidden word (a belt-and-braces
+// pass — the CSS above covers the known controls, this covers product copy added later).
+const CAPTURE_PREP = `(() => {
+  const CSS = ${JSON.stringify(HIDE_CSS)};
+  const BAD = /practice|rehearsal|simulated|autoplay|step/i;
+  const roots = [document];
+  const seen = new Set();
+  (function walk(root) {
+    for (const el of root.querySelectorAll('*')) {
+      if (el.shadowRoot && !seen.has(el.shadowRoot)) { seen.add(el.shadowRoot); roots.push(el.shadowRoot); walk(el.shadowRoot); }
+    }
+  })(document);
+  for (const root of roots) {
+    const head = root === document ? (document.head || document.documentElement) : root;
+    let style = null;
+    try { style = root.getElementById ? root.getElementById('__capture_hide') : null; } catch (e) { style = null; }
+    if (!style) { style = document.createElement('style'); style.id = '__capture_hide'; head.appendChild(style); }
+    style.textContent = CSS;
+  }
+  for (const root of roots) {
+    for (const el of root.querySelectorAll('*')) {
+      if (el.id === '__capture_hide' || (el.children && el.children.length)) continue;
+      const text = (el.textContent || '').trim();
+      if (!text || text.length > 160) continue;
+      if (BAD.test(text)) { el.style.setProperty('display', 'none', 'important'); }
+    }
+  }
+  return roots.length;
+})()`
+
+// ------------------------------------------------------------------- 16:9 paper letterbox
+// The crop above is the focus box; this pads it to the smallest 16:9 canvas that contains it, in the
+// site's paper colour, so every frame is ready for the 1600×900 master. ffmpeg-static is local to
+// design/video; if it is missing the raw crop is kept (assemble.mjs pads it again as a safety net).
+const PAPER = process.env.TACET_PAPER || '0xf4f1ea'
+let _ffmpeg = null
+async function ffmpegBinPath() {
+  if (_ffmpeg === false) return null
+  if (_ffmpeg) return _ffmpeg
+  try { _ffmpeg = (await import('ffmpeg-static')).default } catch { _ffmpeg = false; return null }
+  if (!_ffmpeg || !existsSync(_ffmpeg)) { _ffmpeg = false; return null }
+  return _ffmpeg
+}
+function runFfmpeg(bin, args) {
+  return new Promise((pass, failRun) => {
+    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    let err = ''
+    child.stderr.on('data', (d) => { err += d.toString(); if (err.length > 8000) err = err.slice(-8000) })
+    child.on('error', (e) => failRun(new Error(e.message)))
+    child.on('close', (code) => {
+      if (code === 0) return pass()
+      failRun(new Error(`ffmpeg exited ${code}: ${err.trim().split('\n').slice(-4).join(' ')}`))
+    })
+  })
+}
+/** Smallest 16:9, even-dimension canvas that contains w×h. */
+function canvas169(w, h) {
+  const ratio = 16 / 9
+  let width = w
+  let height = h
+  if (w / h >= ratio) height = (w * 9) / 16
+  else width = (h * 16) / 9
+  const even = (n) => Math.max(2, Math.ceil(n / 2) * 2)
+  return { width: even(width), height: even(height) }
+}
+const PAD_FILTER = `pad=w='ceil(if(gte(in_w/in_h,16/9), in_w, in_h*16/9)/2)*2':h='ceil(if(gte(in_w/in_h,16/9), in_w*9/16, in_h)/2)*2':x='(ow-iw)/2':y='(oh-ih)/2':color=${PAPER}`
+/** Pad a captured crop to 16:9 on paper, in place. Returns the final size, or null if unchanged. */
+async function letterboxFrame(file, cssW, cssH) {
+  const canvas = canvas169(cssW, cssH)
+  if (canvas.width <= cssW && canvas.height <= cssH) return null
+  const bin = await ffmpegBinPath()
+  if (!bin) return null
+  const tmp = `${file}.pad.png`
+  try {
+    await runFfmpeg(bin, ['-y', '-loglevel', 'error', '-i', file, '-vf', PAD_FILTER, tmp])
+    renameSync(tmp, file)
+    return canvas
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch {}
+    log(`    letterbox skipped: ${e.message}`)
+    return null
+  }
+}
+
 // --------------------------------------------------------------------------- shots
 // `apply` moves the product to the state the frame shows; the shot itself is captured by the page
 // named in `page` (or the card applies to the console page). `t`/`dur` come straight from the
 // storyboard; `in`/`out` are derived and cross-checked by --check-storyboard.
 const SHOTS = [
   {
-    id: 'S1.1', phase: 'hook', t: 0, dur: 3, page: 'console',
+    id: 'S1.1', phase: 'hook', t: 0, dur: 3, page: 'console', focus: 'body',
     caption: 'The written process is from 2019.',
     vo: '00:00',
     apply: async (ctx) => { await ctx.pages.console.content(card2019()) },
   },
   {
-    id: 'S1.2', phase: 'hook', t: 3, dur: 5, page: 'erp',
+    id: 'S1.2', phase: 'hook', t: 3, dur: 5, page: 'erp', focus: 'body',
     caption: 'Sabine has done this for 24 years. She retires Friday.',
     vo: '00:00',
     apply: async (ctx) => {
@@ -78,6 +183,7 @@ const SHOTS = [
   },
   {
     id: 'S2.1', phase: 'capture', t: 8, dur: 4, page: 'erp',
+    focus: '[data-shadow-entity^="invoice:"] .grid > div:nth-child(2)',
     caption: 'Before she touches it, Mira writes its guess down.',
     vo: '00:09',
     apply: async (ctx) => {
@@ -89,6 +195,7 @@ const SHOTS = [
   },
   {
     id: 'S2.2', phase: 'capture', t: 12, dur: 4, page: 'erp',
+    focus: '[data-shadow-entity^="invoice:"] .grid > div:nth-child(2)',
     caption: 'She books it to 0400 — capex. The doc said 4711.',
     vo: '00:12',
     apply: async (ctx) => {
@@ -99,6 +206,7 @@ const SHOTS = [
   },
   {
     id: 'S2.3', phase: 'capture', t: 16, dur: 4, page: 'console',
+    focus: 'header + div.grid > div:nth-child(1) > section:nth-of-type(2)',
     caption: "It doesn't interrupt. It waits for a pause.",
     vo: '00:15',
     apply: async (ctx) => {
@@ -110,6 +218,7 @@ const SHOTS = [
   },
   {
     id: 'S2.4', phase: 'capture', t: 20, dur: 6, page: 'console',
+    focus: ['header + div.grid > div:nth-child(2) > div.px-1', 'header + div.grid > div:nth-child(2) > section:nth-of-type(1)'],
     caption: 'Then it asks one question: what made her do that?',
     vo: '00:21',
     apply: async (ctx) => {
@@ -129,12 +238,13 @@ const SHOTS = [
   },
   {
     id: 'S2.5', phase: 'capture', t: 26, dur: 5, page: 'console',
+    focus: 'header + div.grid > div:nth-child(2) > section:nth-of-type(2)',
     caption: "Her answer becomes a rule. Before: 4711. Now: 0400.",
     vo: '00:28',
     apply: async (ctx) => { await ctx.pages.console.scrollToText('Learning receipts'); await sleep(500) },
   },
   {
-    id: 'S2.6', phase: 'capture', t: 31, dur: 3, page: 'erp',
+    id: 'S2.6', phase: 'capture', t: 31, dur: 3, page: 'erp', focus: '#toast',
     caption: 'The before and the after, written down.',
     vo: '00:36',
     apply: async (ctx) => {
@@ -146,6 +256,7 @@ const SHOTS = [
   },
   {
     id: 'S3.1', phase: 'proof', t: 34, dur: 5, page: 'console',
+    focus: 'div.space-y-10 > section:nth-of-type(1)',
     caption: 'Independent test. Pick the threshold she just taught.',
     vo: '00:34',
     apply: async (ctx) => {
@@ -158,6 +269,7 @@ const SHOTS = [
   },
   {
     id: 'S3.2', phase: 'proof', t: 39, dur: 5, page: 'console', requiresProof: true,
+    focus: 'section.panel:has(table) > header > div:last-child',
     caption: '11 unseen invoices, committed with a hash before any label.',
     vo: '00:39',
     apply: async (ctx) => {
@@ -167,18 +279,21 @@ const SHOTS = [
   },
   {
     id: 'S3.3', phase: 'proof', t: 44, dur: 3, page: 'console', requiresProof: true,
+    focus: 'section.panel:has(table) > table', focusHeight: 440,
     caption: 'Two are wrong. Both just under the line.',
     vo: '00:43',
     apply: async (ctx) => { await ctx.pages.console.scrollToText('Unseen invoice'); await sleep(300) },
   },
   {
     id: 'S3.4', phase: 'proof', t: 47, dur: 3, page: 'console', requiresProof: true,
+    focus: 'section.panel:has(table) > header',
     caption: 'Each miss corrects the map. Next round: 11 for 11.',
     vo: '00:48',
     apply: async (ctx) => { await sleep(200) },
   },
   {
     id: 'S4.1', phase: 'tutor', t: 50, dur: 4, page: 'console',
+    focus: 'header + div.grid > div:nth-child(2) > div.panel',
     caption: 'Monday. A new hire gets the same invoices.',
     vo: '00:51',
     apply: async (ctx) => {
@@ -195,12 +310,13 @@ const SHOTS = [
   },
   {
     id: 'S4.2', phase: 'tutor', t: 54, dur: 5, page: 'erp',
-    caption: 'She codes it 4711, as the 2019 doc says.',
+    focus: '[data-shadow-entity^="invoice:"] .grid > div:nth-child(2)',
+    caption: 'She codes it 4711 — exactly what the 2019 doc says.',
     vo: '00:51',
     apply: async (ctx) => { await setField(ctx.pages.erp, 'cost_center', '4711'); await sleep(500) },
   },
   {
-    id: 'S4.3', phase: 'tutor', t: 59, dur: 4, page: 'erp',
+    id: 'S4.3', phase: 'tutor', t: 59, dur: 4, page: 'erp', focus: '.card',
     caption: "Mira stops the save — in Sabine's words.",
     vo: '00:55',
     apply: async (ctx) => {
@@ -213,7 +329,8 @@ const SHOTS = [
   },
   {
     id: 'S4.4', phase: 'tutor', t: 63, dur: 3, page: 'console',
-    caption: 'Then it steps back and lets her work.',
+    focus: 'header + div.grid > div:nth-child(3) > section:nth-of-type(1)',
+    caption: 'Then it goes quiet and lets her work.',
     vo: '01:04',
     apply: async (ctx) => {
       await ctx.pages.console.scrollToText(`mastery`).catch(() => {})
@@ -222,6 +339,7 @@ const SHOTS = [
   },
   {
     id: 'S5.1', phase: 'close', t: 66, dur: 4, page: 'console',
+    focus: 'article.panel', focusHeight: 400, focusBlock: 'start',
     caption: 'The Work Map. Every line links to the moment and her words.',
     vo: '01:04',
     apply: async (ctx) => {
@@ -232,7 +350,7 @@ const SHOTS = [
     },
   },
   {
-    id: 'S5.2', phase: 'close', t: 70, dur: 3, page: 'console',
+    id: 'S5.2', phase: 'close', t: 70, dur: 3, page: 'console', focus: 'pre',
     caption: 'Exportable to agents — as guardrails, not advice.',
     vo: '01:04',
     apply: async (ctx) => {
@@ -241,7 +359,7 @@ const SHOTS = [
     },
   },
   {
-    id: 'S5.3', phase: 'close', t: 73, dur: 2, page: 'console',
+    id: 'S5.3', phase: 'close', t: 73, dur: 2, page: 'console', focus: '.sheet',
     caption: 'Learns the part of the job nobody wrote down.',
     vo: '01:09',
     apply: async (ctx) => { await ctx.pages.console.content(cardTagline()) },
@@ -436,8 +554,83 @@ class Page {
     })()`)
   }
 
-  async screenshot(file) {
-    const { data } = await this.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false })
+  /** Inject the capture CSS (document + every shadow root) and hide any leftover forbidden text. */
+  async prepareCapture() {
+    return this.eval(CAPTURE_PREP).catch((e) => { this.ctx.log(`    capture prep failed: ${e.message}`) })
+  }
+
+  /**
+   * Resolve a shot's `focus` to a viewport crop box. `focus` is a selector or a list of selectors; the
+   * box is the union of every visible match, searched through shadow roots too (the companion lives in
+   * one). Returns { x, y, width, height, pageX, pageY, matched } in CSS px, or null when nothing
+   * matched. `maxHeight` caps a tall document to a readable band; `pad` is added on all sides.
+   */
+  async focusBox(focus, { pad = 24, maxHeight = 0, block = null } = {}) {
+    const selectors = Array.isArray(focus) ? focus : [focus]
+    const anchorBlock = block ?? (maxHeight > 0 ? 'start' : 'center')
+    const found = await this.eval(`(() => {
+      const selectors = ${JSON.stringify(selectors)};
+      const roots = [document];
+      const seen = new Set();
+      (function walk(root) {
+        for (const el of root.querySelectorAll('*')) {
+          if (el.shadowRoot && !seen.has(el.shadowRoot)) { seen.add(el.shadowRoot); roots.push(el.shadowRoot); walk(el.shadowRoot); }
+        }
+      })(document);
+      const seenEls = new Set();
+      const els = [];
+      for (const sel of selectors) {
+        for (const root of roots) {
+          let list = [];
+          try { list = root.querySelectorAll(sel); } catch (e) { continue; }
+          for (const el of list) {
+            if (seenEls.has(el)) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width < 2 || r.height < 2) continue;
+            const cs = getComputedStyle(el);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue;
+            seenEls.add(el); els.push(el);
+          }
+        }
+      }
+      window.__captureFocusEls = els;
+      const anchor = els.find((el) => el !== document.body && el !== document.documentElement);
+      if (anchor) anchor.scrollIntoView({ block: ${JSON.stringify(anchorBlock)}, inline: 'nearest' });
+      return els.length;
+    })()`).catch(() => 0)
+    if (!found) return null
+    await sleep(250) // let the scroll settle before measuring
+    const box = await this.eval(`(() => {
+      const els = window.__captureFocusEls || [];
+      let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity, n = 0;
+      for (const el of els) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) continue;
+        left = Math.min(left, r.left); top = Math.min(top, r.top);
+        right = Math.max(right, r.right); bottom = Math.max(bottom, r.bottom); n++;
+      }
+      if (!n) return null;
+      return { left, top, right, bottom, vw: innerWidth, vh: innerHeight, scrollX: window.scrollX, scrollY: window.scrollY };
+    })()`).catch(() => null)
+    if (!box) return null
+    const cap = maxHeight > 0 ? Math.min(box.bottom - box.top, maxHeight) : box.bottom - box.top
+    let x = box.left - pad
+    let y = box.top - pad
+    const x2 = Math.min(box.vw, box.left + (box.right - box.left) + pad)
+    const y2 = Math.min(box.vh, box.top + cap + pad)
+    x = Math.max(0, x); y = Math.max(0, y)
+    const width = Math.max(1, x2 - x)
+    const height = Math.max(1, y2 - y)
+    return { x, y, width, height, pageX: x + box.scrollX, pageY: y + box.scrollY, matched: found }
+  }
+
+  async screenshot(file, { clip = null } = {}) {
+    const params = { format: 'png', fromSurface: true, captureBeyondViewport: false }
+    if (clip) {
+      params.clip = { x: clip.pageX, y: clip.pageY, width: clip.width, height: clip.height, scale: 1 }
+      params.captureBeyondViewport = true // clip is in page coordinates
+    }
+    const { data } = await this.send('Page.captureScreenshot', params)
     writeFileSync(file, Buffer.from(data, 'base64'))
     return file
   }
@@ -620,9 +813,14 @@ function checkStoryboard() {
   for (const id of doc) if (!code.includes(id)) problems.push(`STORYBOARD.md shot ${id} is not in record.mjs`)
   const total = SHOTS.reduce((n, s) => n + s.dur, 0)
   if (total !== FILM_SECONDS) problems.push(`shot durations sum to ${total}s, expected ${FILM_SECONDS}s`)
+  // The film must never print these words on screen (captions are burned in and the VO is captioned).
+  const BAD = /practice|rehearsal|simulated|autoplay|step/i
   for (const s of SHOTS) {
     if (!s.caption) problems.push(`${s.id} has no caption`)
     if (!s.vo) problems.push(`${s.id} has no voiceover cue`)
+    if (!s.focus || (Array.isArray(s.focus) && !s.focus.length)) problems.push(`${s.id} has no focus selector`)
+    if (s.focus === 'body' && !s.id.startsWith('S1.')) problems.push(`${s.id} is a wide (body) shot — wide establishing frames are only allowed for S1.x`)
+    if (BAD.test(s.caption)) problems.push(`${s.id} caption contains a word the film must not show: “${s.caption}”`)
   }
   console.log(`storyboard shots in doc: ${doc.length}; in record.mjs: ${code.length}; total ${total}s`)
   if (problems.length) { for (const p of problems) console.error(`  ✗ ${p}`); process.exit(1) }
@@ -633,14 +831,16 @@ function checkVoiceover() {
   if (!existsSync(VOICEOVER)) fail(`missing ${VOICEOVER}`)
   const raw = readFileSync(VOICEOVER, 'utf8')
   const narration = raw.split('\n')
-    .map((l) => l.replace(/^\s*\d{2}:\d{2}\s*/, '').replace(/\([^)]*\)/g, ' ').trim())
+    .map((l) => l.replace(/^\s*\d{2}:\d{2}\s*/, '').replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ').trim())
     .filter(Boolean)
     .join(' ')
   const words = narration.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w))
   const rawWords = raw.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w))
   console.log(`voiceover narration words: ${words.length} (limit 170); whole file incl. timings: ${rawWords.length}`)
   if (words.length > 170) fail(`voiceover.txt narration is ${words.length} words (limit 170)`)
-  console.log('✓ voiceover.txt within the 170-word limit')
+  const bad = narration.match(/practice|rehearsal|simulated|autoplay|step/i)
+  if (bad) fail(`voiceover.txt contains a word the film must not show: “${bad[0]}”`)
+  console.log('✓ voiceover.txt within the 170-word limit and free of off-brand words')
 }
 
 // --------------------------------------------------------------------------- planning output
@@ -655,7 +855,10 @@ function planLines(ctx) {
   lines.push(`session   ${ARGS.session ? `existing ${ARGS.session}` : 'new REHEARSAL capture session (simulate:true), then a tutor session from it'}`)
   lines.push(`proof     ${ctx.proofSid ? `existing live session ${ctx.proofSid}` : 'none — S3.2–S3.4 will be skipped (set --proof-session <sid>)'}`)
   lines.push('')
-  for (const s of SHOTS) lines.push(`  ${s.id}  ${mmss(s.in)}–${mmss(s.out)}  ${s.phase.padEnd(8)} ${s.caption}`)
+  for (const s of SHOTS) {
+    lines.push(`  ${s.id}  ${mmss(s.in)}–${mmss(s.out)}  ${s.phase.padEnd(8)} ${s.caption}`)
+    lines.push(`         focus: ${Array.isArray(s.focus) ? s.focus.join('  +  ') : s.focus}${s.focusHeight ? `  (max height ${s.focusHeight}px)` : ''}`)
+  }
   return lines
 }
 
@@ -681,7 +884,9 @@ if (ARGS.help) {
   --phase <name>        hook | capture | proof | tutor | close
   --chrome <path>       Chrome/Chromium binary (default: auto-detect / CHROME_PATH)
   --port <n>            remote debugging port (default 9222)
-  --width --height --scale  viewport (default 1600x900 @2, i.e. 3200x1800 PNGs)
+  --width --height --scale  viewport (default 1600x900 @2). Every shot is cropped to its focus box
+                        (design/video/STORYBOARD.md), captured at the device scale, and padded to the
+                        smallest 16:9 frame in the paper colour #f4f1ea.
   --headed              show the browser
   --no-sandbox          pass --no-sandbox to Chrome (needed in CI/sandboxed shells where Chrome's
                         own sandbox cannot initialise; leave it off on your own machine)
@@ -832,9 +1037,23 @@ try {
     }
     try {
       await shot.apply(ctx)
-      await page.screenshot(file)
+      await page.prepareCapture()
+      const clip = await page.focusBox(shot.focus, { maxHeight: shot.focusHeight || 0, block: shot.focusBlock || null })
+      await page.screenshot(file, { clip })
       entry.file = file
-      log(`${shot.id}  ${mmss(shot.in)}–${mmss(shot.out)}  ✓  ${file.replace(ROOT + '/', '')}`)
+      entry.focus = shot.focus
+      if (clip) {
+        entry.focusBox = { x: Math.round(clip.x), y: Math.round(clip.y), width: Math.round(clip.width), height: Math.round(clip.height) }
+        entry.focusMatched = clip.matched
+        if (shot.focusHeight) entry.focusHeight = shot.focusHeight
+        // pad the 2× crop to the smallest 16:9 canvas in the paper colour, in place
+        const frame = await letterboxFrame(file, Math.round(clip.width * ctx.scale), Math.round(clip.height * ctx.scale))
+        if (frame) entry.frame = { ...frame, paper: PAPER }
+        log(`${shot.id}  ${mmss(shot.in)}–${mmss(shot.out)}  ✓  ${file.replace(ROOT + '/', '')}  [focus ${Math.round(clip.width)}x${Math.round(clip.height)} → frame ${frame ? `${frame.width}x${frame.height}` : `${Math.round(clip.width * ctx.scale)}x${Math.round(clip.height * ctx.scale)}`} ${PAPER}]`)
+      } else {
+        entry.focusFallback = true
+        log(`${shot.id}  ${mmss(shot.in)}–${mmss(shot.out)}  ✓  ${file.replace(ROOT + '/', '')}  [focus ${JSON.stringify(shot.focus)} matched nothing — full viewport]`)
+      }
     } catch (e) {
       entry.error = e.message
       log(`${shot.id}  ✗  ${e.message}`)

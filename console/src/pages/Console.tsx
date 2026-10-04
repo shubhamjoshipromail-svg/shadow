@@ -257,7 +257,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           {mode === 'tutor' ? (
             <Section title={`${snap.trainee}’s mastery`}><Mastery snap={snap} /></Section>
           ) : (
-            <Section title="Has Tacet understood?"><Checklist u={snap.understood} /></Section>
+            <Section title="Has Mira understood?"><Checklist u={snap.understood} /></Section>
           )}
           {posteriors.length > 0 && (
             <Section title="Learned parameters"><div className="space-y-4">{posteriors.map((p) => <Threshold key={p.name} p={p} />)}</div></Section>

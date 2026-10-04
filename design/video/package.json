@@ -7,7 +7,9 @@
   "scripts": {
     "vtt": "node make_vtt.mjs",
     "tts": "node tts.mjs",
-    "assemble": "node assemble.mjs"
+    "assemble": "node assemble.mjs",
+    "dub": "node dub.mjs",
+    "check:storyboard": "node record.mjs --check-storyboard"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0"

@@ -325,3 +325,29 @@ def test_contradicting_a_confirmed_rule_asks_exception_change_or_slip():
         assert rule.belief.status == "confirmed", "a slip must not erode the rule"
 
     asyncio.run(run())
+
+
+class BothRulesCompiler(SpokenCompiler):
+    """One answer that explains two surprises at once (like 'intercompany: 9100 and Keller approves')."""
+    async def __call__(self, pack, wm, inquiry, transcript, case):
+        return Compiled(answers_question=True, key_quote=transcript, rules=[
+            CompiledRule(title="Intercompany goes to 9100", when="inv.intercompany", field="cost_center", value="9100"),
+            CompiledRule(title="Intercompany needs a second approval", when="inv.intercompany", field="action",
+                         value="second_approval", kind="guardrail", guardrail_type="second_approval")])
+
+
+def test_a_question_the_map_now_explains_is_never_asked():
+    async def run():
+        s = Session("ic", PACK, mode="capture", use_llm=False, proposer=no_proposals, compiler=BothRulesCompiler())
+        await s.open_case("inv-4473")
+        await s.on_decision("inv-4473", {"cost_center": "9100", "tax_code": "RC"}, "second_approval")
+        await s.drain()
+        assert len([q for q in s.planner.queue if q.case_id == "inv-4473"]) >= 2  # one per surprise
+        q = await s.tick(force=True)
+        await s.on_utterance("That's our Czech subsidiary: 9100, and Keller always approves it.")
+        await s.drain()
+        left = [x for x in s.planner.queue if x.case_id == "inv-4473" and x.field in ("cost_center", "action")]
+        assert not left, [(x.field, x.text) for x in left]
+        assert any(e["why_silent"] == "explained by a rule learned since" for e in s.silence_log)
+
+    asyncio.run(run())

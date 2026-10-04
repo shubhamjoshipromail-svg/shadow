@@ -1026,6 +1026,8 @@ class Session:
 
         # retroactive validation over the whole episode log
         retro = self._retro_replay(new_nodes)
+        if new_nodes:
+            await self._drop_explained_questions()
         for p in list(self.posteriors):
             self._replay_posterior(p)
         self.wm.version += 1
@@ -1058,6 +1060,27 @@ class Session:
                          screen_moment=q.screen_moment, reason="answer was ambiguous")
             self.planner.enqueue(fq)
             await self.emit("inquiry", {"inquiry": fq.to_json()})
+
+    async def _drop_explained_questions(self) -> None:
+        """A question about a surprise the map now explains is never asked: it would ask what Mira already knows."""
+        for q in list(self.planner.queue):
+            if q.type not in ("cue_probe", "confirm", "comparison") or q.expert_value is None or not q.field:
+                continue
+            case = self.cases.get(q.case_id or "")
+            if case is None or q.probe_case is not None:
+                continue
+            pred = run_map(self.wm, self.pack, case)
+            now = (pred.action.value if pred.action else None) if q.field == "action" else (
+                pred.fields[q.field].value if q.field in pred.fields else None)
+            if now == q.expert_value:
+                self.planner.queue.remove(q)
+                q.status = "silent"
+                q.reason = "explained by a rule learned since"
+                self.planner.history.append(q)
+                entry = {"case_id": q.case_id, "field": q.field, "value": q.expert_value, "why_silent": q.reason}
+                self.silence_log.append(entry)
+                await self.emit("silence", entry)
+                await self.emit("inquiry", {"inquiry": q.to_json(), "note": "no longer needed"})
 
     async def _learn_probe(self, q: Inquiry, answer: str, hs: hypotheses.HypothesisSet | None) -> list[dict[str, Any]]:
         probe = q.probe_case
@@ -1164,6 +1187,11 @@ class Session:
             node = Rule(id=self.wm.next_id("R"), step_id=step.id if step else None, title=cr.title, when=cr.when,
                         then={cr.field: cr.value}, kind="exception" if cr.kind == "exception" else "rule",
                         parent=cr.parent_id, quote=quote, screen_moment=moment)
+        twin = self._same_rule(node)
+        if twin is not None:  # a restatement strengthens the rule it restates; it never creates a copy
+            twin.evidence.append(Evidence(episode_id=q.id, kind="teachback", agrees=True))
+            twin.refresh_belief()
+            return None
         # the live case this answer was about counts as behavioral evidence if the rule explains it
         case = self.cases.get(q.case_id or "")
         if case and q.type not in ("counterfactual", "exam"):
@@ -1179,6 +1207,15 @@ class Session:
         node.refresh_belief()
         self._attach(node)
         return node
+
+    def _same_rule(self, node: Rule | Guardrail) -> Rule | Guardrail | None:
+        norm = lambda w: re.sub(r"\s+", " ", w.strip())  # noqa: E731
+        for n in [*self.wm.rules, *self.wm.guardrails]:
+            if n.origin == "doc" or type(n) is not type(node) or norm(n.when) != norm(node.when):
+                continue
+            if (isinstance(n, Rule) and n.then == node.then) or (isinstance(n, Guardrail) and n.action == node.action):
+                return n
+        return None
 
     def _attach(self, node: Rule | Guardrail) -> None:
         if isinstance(node, Guardrail):

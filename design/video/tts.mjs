@@ -9,6 +9,10 @@
  * this step is optional. Do not run it casually: it spends TTS credits. `--dry-run` lists the plan and
  * calls nothing.
  *
+ * Model: `eleven_v3` by default, because it performs the inline audio tags in voiceover.txt
+ * (`[warmly]`, `[curious]`, …). Override with `--model`. The tags are sent to the API and stripped by
+ * make_vtt.mjs for the captions. One voice per speaker: Mira, Sabine, and the narrator.
+ *
  * Usage (from the repo root):
  *   node design/video/tts.mjs --dry-run
  *   ELEVENLABS_API_KEY=… node design/video/tts.mjs
@@ -24,7 +28,7 @@ const DEFAULTS = {
   voiceover: join(DIR, 'voiceover.txt'),
   outDir: join(DIR, 'out', 'vo'),
   voice: 'cgSgspJ2msm6clMCkdW9',
-  model: 'eleven_multilingual_v2',
+  model: 'eleven_v3',
   stability: 0.4,
   similarity: 0.8,
   api: 'https://api.elevenlabs.io/v1/text-to-speech',
@@ -73,6 +77,7 @@ const config = {
   stability: Number(ARGS.stability || DEFAULTS.stability),
   similarity: Number(ARGS.similarity || DEFAULTS.similarity),
   line: ARGS.line ? Number(ARGS.line) : null,
+  perLineDelayMs: Number(ARGS.perLineDelayMs ?? DEFAULTS.perLineDelayMs),
   force: !!ARGS.force,
 }
 
@@ -117,11 +122,16 @@ const lines = (() => {
 
 const mb = (s) => s.toFixed(2)
 
+// One voice per speaker: Mira (the companion), Sabine (the expert), and the narrator. `--voice` forces
+// a single voice for every line instead.
+const SPEAKER_VOICES = { mira: 'cgSgspJ2msm6clMCkdW9', sabine: 'XrExE9yKIg1WjnnlVkGX', '': 'hpp4J3VqNfWAUOO0d1Us' }
+const voiceFor = (line) => (ARGS.voice ? config.voice : SPEAKER_VOICES[(line.speaker || '').toLowerCase()] || config.voice)
+
 if (ARGS.list || ARGS.dryRun) {
-  console.log(`tts.mjs — ${lines.length} line(s) · voice ${config.voice} · model ${config.model}`)
+  console.log(`tts.mjs — ${lines.length} line(s) · model ${config.model}${ARGS.voice ? ` · voice ${config.voice} (forced)` : ' · voices Mira/Sabine/narrator'}`)
   for (const l of lines) {
     const state = existsSync(l.file) ? 'exists' : 'to render'
-    console.log(`  ${String(l.index).padStart(2, '0')}  ${new Date(l.start * 1000).toISOString().slice(14, 19)}  ${state.padEnd(9)}  ${l.file.replace(DIR + '/', '')}  “${l.text}”`)
+    console.log(`  ${String(l.index).padStart(2, '0')}  ${new Date(l.start * 1000).toISOString().slice(14, 19)}  ${state.padEnd(9)}  ${l.file.replace(DIR + '/', '')}  ${voiceFor(l)}  “${l.text}”`)
   }
 }
 
@@ -134,10 +144,6 @@ if (!apiKey) {
 }
 
 mkdirSync(config.outDir, { recursive: true })
-
-// one voice per speaker: Mira (the companion), Sabine (the expert), and the narrator
-const SPEAKER_VOICES = { mira: 'cgSgspJ2msm6clMCkdW9', sabine: 'XrExE9yKIg1WjnnlVkGX', '': 'hpp4J3VqNfWAUOO0d1Us' }
-const voiceFor = (line) => (ARGS.voice ? config.voice : SPEAKER_VOICES[(line.speaker || '').toLowerCase()] || config.voice)
 
 async function synthOne(line) {
   const tmp = `${line.file}.part`

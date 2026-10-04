@@ -21,12 +21,14 @@
  *   node design/video/assemble.mjs --frames design/video/frames --crf 24 --max-bytes 8000000
  */
 
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
+const PAPER = process.env.TACET_PAPER || '0xf4f1ea' // site paper colour, the letterbox bars
 const DEFAULTS = {
   frames: join(DIR, 'frames'),
   out: join(DIR, 'out'),
@@ -52,7 +54,7 @@ function parseArgs(argv) {
     const eq = a.indexOf('=')
     const key = (eq >= 0 ? a.slice(2, eq) : a.slice(2)).replace(/-([a-z])/g, (_, c) => c.toUpperCase())
     if (eq >= 0) out[key] = a.slice(eq + 1)
-    else if (['dryRun', 'noVo', 'noPoster', 'keepTmp', 'help'].includes(key)) out[key] = true
+    else if (['dryRun', 'noVo', 'noPoster', 'keepTmp', 'checkFrames', 'help'].includes(key)) out[key] = true
     else out[key] = argv[++i]
   }
   return out
@@ -74,10 +76,12 @@ if (ARGS.help) {
   --max-rate <rate>    x264 VBV max bitrate (default ${DEFAULTS.maxRate})
   --max-bytes <n>      hard size ceiling (default ${DEFAULTS.maxBytes})
   --poster-shot <id>   shot used for poster.jpg (default ${DEFAULTS.posterShot})
+  --check-frames       only sample the encoded film; fail if any 0.5 s frame has mean luminance < 10 %
+  --film <path>        film for --check-frames (default <out>/film.mp4)
   --no-vo              ignore out/vo even if the mp3s exist
   --no-poster          skip poster.jpg
   --keep-tmp           keep the per-shot clips in <out>/tmp
-  --dry-run            print the plan; render nothing
+  --dry-run            print the plan; render nothing (checks an existing <out>/film.mp4 for black frames)
   --help`)
   process.exit(0)
 }
@@ -124,6 +128,51 @@ function ffmpeg(bin, args, { label = 'ffmpeg' } = {}) {
   })
 }
 
+let ffmpegBin = null
+/** Resolve the local ffmpeg-static binary once. `required` fails the script when it is missing. */
+async function loadFfmpeg({ required }) {
+  if (ffmpegBin) return ffmpegBin
+  try { ffmpegBin = (await import('ffmpeg-static')).default } catch { ffmpegBin = null }
+  if ((!ffmpegBin || !existsSync(ffmpegBin)) && required) {
+    fail('ffmpeg-static is not installed. Run: cd design/video && npm install')
+  }
+  return ffmpegBin
+}
+
+/**
+ * Sample the encoded film every `interval` seconds and fail if any sampled frame's mean luma (the
+ * signalstats YAVG metadata, 0..255) is below `minLuma` of full scale. An empty/black frame in the
+ * cut is a bug: a missing shot must hold the previous real frame, never go dark.
+ */
+async function checkNoBlackFrames(filmPath, { interval = 0.5, minLuma = 0.10 } = {}) {
+  const bin = await loadFfmpeg({ required: true })
+  const dir = mkdtempSync(join(tmpdir(), 'tacet-luma-'))
+  const metaFile = join(dir, 'luma.txt')
+  try {
+    await ffmpeg(bin, [
+      '-hide_banner', '-y', '-loglevel', 'error',
+      '-i', filmPath,
+      '-vf', `fps=${1 / interval},signalstats,metadata=print:file=${metaFile}`,
+      '-an', '-f', 'null', '-',
+    ], { label: 'black-frame check' })
+    const samples = readFileSync(metaFile, 'utf8').split('\n')
+      .filter((l) => l.startsWith('lavfi.signalstats.YAVG='))
+      .map((l) => Number(l.slice('lavfi.signalstats.YAVG='.length)))
+      .filter((v) => Number.isFinite(v))
+    if (!samples.length) throw new Error(`black-frame check: no luma samples from ${filmPath}`)
+    let min = Infinity, sum = 0, at = 0
+    samples.forEach((v, i) => { if (v < min) { min = v; at = i } sum += v })
+    const pct = (v) => `${((v / 255) * 100).toFixed(1)}%`
+    const label = `${samples.length} samples every ${interval}s · mean luma ${pct(sum / samples.length)} · darkest ${pct(min)} @ ${(at * interval).toFixed(1)}s`
+    if (min < minLuma * 255) {
+      throw new Error(`${label} — below the ${(minLuma * 100).toFixed(0)}% mean-luminance floor`)
+    }
+    return { samples: samples.length, min, mean: sum / samples.length, label }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
 function parseVoiceover(raw) {
   const lines = []
   for (const rawLine of raw.split(/\r?\n/)) {
@@ -134,6 +183,19 @@ function parseVoiceover(raw) {
     lines.push({ start, speaker: spk ? spk[1].trim() : '', text: (spk ? spk[2] : m[2]).trim() })
   }
   return lines
+}
+
+// --check-frames: sample an existing film and fail on a black frame, without rendering anything.
+if (ARGS.checkFrames) {
+  const film = resolve(ARGS.film || join(config.out, 'film.mp4'))
+  if (!existsSync(film)) fail(`--check-frames: missing ${film}`)
+  try {
+    const r = await checkNoBlackFrames(film)
+    console.log(`assemble.mjs: ${r.label} ✓ (floor 10% mean luminance)`)
+  } catch (e) {
+    fail(e.message)
+  }
+  process.exit(0)
 }
 
 // --------------------------------------------------------------------------- plan
@@ -174,25 +236,32 @@ if (ARGS.dryRun) {
   console.log(`assemble.mjs — dry run`)
   console.log(`  frames     ${config.frames}`)
   console.log(`  out        ${config.out}`)
-  console.log(`  output     ${config.width}x${config.height} @${config.fps}fps  ≤ ${mb(config.maxBytes)} MB  (crossfade ${config.crossfade}s, KB ${config.zoom})`)
+  console.log(`  output     ${config.width}x${config.height} @${config.fps}fps  ≤ ${mb(config.maxBytes)} MB  (crossfade ${config.crossfade}s, KB ${config.zoom}, letterbox ${PAPER})`)
   console.log(`  film       ${timecode(total)} (${total}s) · ${shots.length} shots · ${held.length} held`)
   console.log(`  voiceover  ${voTracks.length}/${voiceover.length} mp3(s) in ${config.voDir}${config.noVo ? ' (--no-vo)' : ''}`)
   console.log(`  poster     ${config.noPoster ? 'skipped' : `${hero.id} → poster.jpg`}`)
   for (const s of shots) {
     const tag = s._own ? 'own' : `hold(${s._source.split('/').pop().slice(0, 18)}…)`
-    console.log(`    ${s.id}  ${timecode(s.in)}–${timecode(s.out)}  ${tag}`)
+    const focus = s.focus ? `  focus: ${Array.isArray(s.focus) ? s.focus.join(' + ') : s.focus}` : ''
+    console.log(`    ${s.id}  ${timecode(s.in)}–${timecode(s.out)}  ${tag}${focus}`)
+  }
+  // The acceptance check: if a film already exists, sample it for black frames right here.
+  const existing = join(config.out, 'film.mp4')
+  if (existsSync(existing)) {
+    try {
+      const r = await checkNoBlackFrames(existing)
+      console.log(`  ${r.label} ✓ (floor 10% mean luminance)`)
+    } catch (e) {
+      fail(`existing ${existing}: ${e.message}`)
+    }
+  } else {
+    console.log(`  black-frame check: no ${existing} yet — run without --dry-run`)
   }
   process.exit(0)
 }
 
 // --------------------------------------------------------------------------- ffmpeg
-let ffmpegPath
-try {
-  ffmpegPath = (await import('ffmpeg-static')).default
-} catch {
-  fail('ffmpeg-static is not installed. Run: cd design/video && npm install')
-}
-if (!ffmpegPath || !existsSync(ffmpegPath)) fail('ffmpeg-static did not provide a binary; run: cd design/video && npm install')
+const ffmpegPath = await loadFfmpeg({ required: true })
 
 mkdirSync(config.out, { recursive: true })
 const tmp = join(config.out, 'tmp')
@@ -209,6 +278,10 @@ const scratchH = Math.round(H * 1.5)
 
 console.log(`assemble.mjs — ${timecode(total)} · ${shots.length} shots (${held.length} held) · ${voTracks.length} VO track(s)`)
 
+// Every clip must cut from a real frame: a shot without its own PNG holds the previous real one
+// (computed above), never a black card. Fail loudly if even that is missing.
+for (const s of shots) if (!s._source || !existsSync(s._source)) fail(`shot ${s.id} has no real frame to cut (${s.file || 'no file'})`)
+
 // 1. one clip per shot (duration = shot + crossfade headroom, so every xfade has a full tail)
 const clips = []
 for (let i = 0; i < shots.length; i++) {
@@ -221,11 +294,14 @@ for (let i = 0; i < shots.length; i++) {
   const zExpr = i % 2 === 0
     ? `min(1+${rate}*on,${(1 + Z).toFixed(4)})`
     : `max(${(1 + Z).toFixed(4)}-${rate}*on,1)`
+  // fit the source into the 16:9 scratch frame and pad the rest with the paper colour (letterbox),
+  // so a cropped panel keeps its readable scale instead of being cropped to fill.
   const vf = [
-    `scale=${scratchW}:${scratchH}:force_original_aspect_ratio=increase`,
-    `crop=${scratchW}:${scratchH}`,
+    `scale=${scratchW}:${scratchH}:force_original_aspect_ratio=decrease:force_divisible_by=2`,
+    `pad=${scratchW}:${scratchH}:(ow-iw)/2:(oh-ih)/2:color=${PAPER}`,
+    'setsar=1',
     `zoompan=z='${zExpr}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS}`,
-    'setsar=1', 'format=yuv420p',
+    'format=yuv420p',
   ].join(',')
   const file = join(tmp, `${String(i).padStart(2, '0')}-${s.id}.mp4`)
   await ffmpeg(ffmpegPath, [
@@ -240,7 +316,9 @@ for (let i = 0; i < shots.length; i++) {
   console.log(`  ${s.id}  ${timecode(s.in)}–${timecode(s.out)}  clip ✓  ${s._own ? '' : '(held frame)'}`)
 }
 
-// 2. crossfade the clips at the storyboard boundaries and mux the voiceover
+// 2. crossfade the clips at the storyboard boundaries and mux the voiceover. Every clip above was cut
+// from a real PNG (own or held), so each xfade is between real frames — never into black.
+console.log(`  crossfades: ${Math.max(0, clips.length - 1)} × ${CF}s, all between real frames`)
 const inputs = []
 for (const clip of clips) inputs.push('-i', clip)
 const baseIndex = clips.length
@@ -301,6 +379,10 @@ for (;;) {
   await sleep(200)
 }
 
+// 2b. never show a black/empty frame: sample the encoded film every 0.5 s and fail under 10 % luma
+const luma = await checkNoBlackFrames(filmPath)
+console.log(`  ${luma.label} ✓ (floor 10% mean luminance)`)
+
 // 3. poster from the hero shot
 if (!config.noPoster) {
   if (!hero || !hero._source) fail('no hero frame for poster.jpg')
@@ -308,7 +390,7 @@ if (!config.noPoster) {
   await ffmpeg(ffmpegPath, [
     '-y', '-loglevel', 'error',
     '-i', hero._source,
-    '-vf', `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`,
+    '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=${PAPER}`,
     '-frames:v', '1', '-q:v', '4',
     posterPath,
   ], { label: 'poster.jpg' })

@@ -14,6 +14,7 @@ Read in this order:
 2. [Browser companion proposal](BROWSER_COMPANION_PROPOSAL.md): extension versus native, permissions, session routing, and acceptance criteria.
 3. [Novel-task learning proposal](NOVEL_TASK_LEARNING_PROPOSAL.md): learning with little context, generated scenarios, task representation, and proof requirements.
 4. [Opus handoff](OPUS_HANDOFF.md): recommended sequence, source integration points, and bounded future work packages. These are proposals, not instructions to resume work automatically.
+5. [Extension release strategy](EXTENSION_RELEASE_STRATEGY.md): submission timing, server updates versus packaged code, and the demo installation route.
 
 Evidence:
 
