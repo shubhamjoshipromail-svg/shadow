@@ -32,7 +32,7 @@ Honest scope: the accounts-payable workflow is the deepest; tutor blocking is en
 - **Film**: narration with ElevenLabs text to speech (v4), the music bed with ElevenLabs Music, and a German version voiced directly in Eleven v4.
 
 ## Tech stack
-Python, FastAPI, numpy (engine, Bayesian thresholds, planner); SQLAlchemy with Postgres (Railway) or SQLite; Claude Sonnet 5.5 (compile, reasoning), Claude Haiku 4.5 (fast and spoken turns), GPT-6 Luna (vision); ElevenLabs Agents, Custom LLM, MCP, TTS v4, Music, Speech to Text (checks), Dubbing (earlier cut); React, Vite and TypeScript (console); TanStack Start (ERP sandbox, built with Lovable); vanilla JS companion and observer; Chrome MV3 extension; Railway (us-west2).
+Python, FastAPI, numpy (engine, Bayesian thresholds, planner); SQLAlchemy with Postgres (Railway) or SQLite; Claude Sonnet 5.5 (compile, reasoning), Claude Haiku 4.5 (fast and spoken turns), GPT-6 Luna (vision); ElevenLabs Agents (Expressive mode, Scribe v2 Realtime), Custom LLM, MCP, TTS v4, Music, Speech to Text (checks), Dubbing (earlier cut); React, Vite and TypeScript (console); TanStack Start (ERP sandbox, built with Lovable); vanilla JS companion and observer; Chrome MV3 extension; Railway (us-west2).
 
 ## Links
 - Product, landing and film: https://tacet.up.railway.app

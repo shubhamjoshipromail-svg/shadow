@@ -31,6 +31,8 @@ IDS_FILE = ROOT / ".elevenlabs_agents.json"
 API = "https://api.elevenlabs.io/v1/convai/agents"
 # Jessica: young, bright, warm, conversational — matches the intern companion
 VOICE_ID = os.getenv("SHADOW_VOICE_ID", "cgSgspJ2msm6clMCkdW9")
+ASR_KEYWORDS = ["Skonto", "capex", "opex", "Kostenstelle", "cost center", "reverse charge", "Krämer", "intercompany",
+                "second approval", "Work Map", "Mira", "Tacet", "triage", "escalate"]
 
 PROMPT = (
     "You are Mira, the quiet, curious apprentice inside Tacet. SHADOW_SESSION={{shadow_session}} MODE={{shadow_mode}}\n"
@@ -95,7 +97,9 @@ def payload(role: str, public_url: str, mcp_id: str | None = None) -> dict:
                                                      "params": {"system_tool_type": "skip_turn"}}},
                 },
             },
-            "tts": {"voice_id": VOICE_ID, "model_id": "eleven_v4_turbo"},
+            "tts": {"voice_id": VOICE_ID, "model_id": "eleven_v4_turbo", "expressive_mode": True},
+            # Scribe v2 Realtime, primed with the trade's words so jargon survives transcription
+            "asr": {"provider": "scribe_realtime", "quality": "high", "keywords": ASR_KEYWORDS},
             # the expert is working, not chatting: don't prompt them after silence
             "turn": {"turn_eagerness": "patient", "turn_timeout": 30},
             "conversation": {"max_duration_seconds": 1800},
