@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import type { Snapshot } from '../lib/types'
 import { Mark, Wordmark } from '../components/ui'
 import Mira from '../components/Mira'
 import { AGENTS } from '../lib/voice'
 
 const NEW = '__new_workflow__'
+const SUPPORT = '__support_example__'
 const EXT_README = 'https://github.com/shubhamjoshipromail-svg/shadow/blob/main/extension/README.md'
 const SUPPORT_DEMO = 'https://erp-production-e3b0.up.railway.app/support?tacet=learn'
+
+type Workflow = { id: string; name: string; kind: string; signature?: { path?: string }; compare_experts?: { expert: string; simulated: boolean }[] }
+type SessionSummary = { id: string; mode: string; expert: string; pack: string; simulated?: boolean; metrics: { episodes: number; rules_learned: number } }
+const richestMap = (maps: ExpertMap[]) => maps.slice().sort((a, b) => ((b.rules ?? 0) + (b.guardrails ?? 0)) - ((a.rules ?? 0) + (a.guardrails ?? 0)) || b.created - a.created)[0]
+const isSupport = (w: Workflow) => w.kind === 'learned' && (/^\/support(?:\/|$)/.test(w.signature?.path ?? '') || /support\s*desk|ticket\s*triage/i.test(w.name))
 
 type ExpertMap = { expert: string; version: number; session_id: string; created: number; rules?: number; guardrails?: number }
 
@@ -19,7 +26,7 @@ export default function Home() {
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [sessions, setSessions] = useState<{ id: string; mode: string; expert: string; metrics: any }[]>([])
+  const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [interviewer, setInterviewer] = useState(AGENTS.interviewer())
   const [tutor, setTutor] = useState(AGENTS.tutor())
   const [learnerName, setLearnerName] = useState('Lena')
@@ -29,27 +36,46 @@ export default function Home() {
   const [newName, setNewName] = useState('')
   const [teachFrom, setTeachFrom] = useState('')
   const [busy, setBusy] = useState<'capture' | 'tutor' | null>(null)
-  const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number; compare_experts?: { expert: string; simulated: boolean }[] }[]>([])
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [wfState, setWfState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [workflow, setWorkflow] = useState('ap_invoices')
-  const [certSid, setCertSid] = useState<string | null>(null)
+  const [ownerBusy, setOwnerBusy] = useState<'map' | 'proof' | null>(null)
+  const [ownerError, setOwnerError] = useState<string | null>(null)
+  const supportWorkflow = workflows.find(isSupport)
+  const coldSupport = workflow === SUPPORT
+  const choices = [
+    { id: 'ap_invoices', name: 'Accounts payable – supplier invoices', kind: 'built in · taught by Sabine' },
+    { id: supportWorkflow?.id ?? SUPPORT, name: 'Support desk – ticket triage', kind: supportWorkflow ? 'learned' : 'example' },
+    ...workflows.filter((w) => w.kind === 'learned' && w.id !== supportWorkflow?.id).map((w) => ({ ...w, kind: 'learned' })),
+  ]
 
   useEffect(() => {
     api('/api/workflows')
-      .then((w) => { setWorkflows(w); setWfState('ready') })
+      .then((w: Workflow[]) => {
+        setWorkflows(w)
+        const support = w.find(isSupport)
+        if (support) setWorkflow((current) => current === SUPPORT ? support.id : current)
+        setWfState('ready')
+      })
       .catch(() => setWfState('error'))
   }, [])
 
   useEffect(() => {
-    if (workflow === NEW) { setExperts([]); setTeachFrom(''); return }
+    let off = false
+    setExperts([])
+    setTeachFrom('')
+    setExpertPick('__new__')
+    setError(null)
+    setOwnerError(null)
+    if (workflow === NEW || workflow === SUPPORT) return
     api<ExpertMap[]>(`/api/workflows/${workflow}/experts?simulated=false`)
       .then((e) => {
+        if (off) return
         setExperts(e)
-        const richest = e.slice().sort((a, b) => ((b.rules ?? 0) + (b.guardrails ?? 0)) - ((a.rules ?? 0) + (a.guardrails ?? 0)) || b.created - a.created)[0]
-        setTeachFrom(richest?.expert ?? '')
-        setExpertPick('__new__')
+        setTeachFrom(richestMap(e)?.expert ?? '')
       })
-      .catch(() => { setExperts([]); setTeachFrom('') })
+      .catch(() => { if (!off) { setExperts([]); setTeachFrom('') } })
+    return () => { off = true }
   }, [workflow])
 
   useEffect(() => {
@@ -93,7 +119,7 @@ export default function Home() {
         method: 'POST',
         body: JSON.stringify(mode === 'tutor'
           ? rehearsal
-            ? { mode, trainee: learnerName.trim() || 'Lena', lang: teachLang, pack: workflow, from_session: capture && (capture as any).pack === workflow ? capture.id : null, simulate: true }
+            ? { mode, trainee: learnerName.trim() || 'Lena', lang: teachLang, pack: workflow, from_session: capture && capture.pack === workflow ? capture.id : null, simulate: true }
             : { mode, trainee: learnerName.trim() || 'Lena', lang: teachLang, pack: workflow, expert: teachFrom || undefined }
           : { mode, expert: expertName, pack: workflow, simulate: rehearsal }),
       })
@@ -104,27 +130,48 @@ export default function Home() {
     }
   }
 
-  // Process-owner entries point at live sessions of this workflow (the API serves maps and certifications per live session).
-  const wfSessions = sessions.filter((s) => (s as any).pack === workflow && !(s as any).simulated)
-  const mapSession = wfSessions.find((s) => s.mode !== 'tutor' && s.id === experts[0]?.session_id)?.id
-    ?? wfSessions.slice().reverse().find((s) => s.mode !== 'tutor' && (s.metrics?.rules_learned ?? 0) > 0)?.id ?? null
-  const anySession = wfSessions.length ? wfSessions[wfSessions.length - 1].id : null
-  const wfKey = wfSessions.map((s) => s.id).join(',')
-  useEffect(() => {
-    let off = false
-    setCertSid(null)
-    ;(async () => {
-      for (const s of wfSessions.slice().reverse()) {
-        try {
-          const c = await api<unknown[]>(`/api/sessions/${s.id}/certifications`)
-          if (c.length) { if (!off) setCertSid(s.id); return }
-        } catch { /* ignore */ }
-      }
-    })()
-    return () => { off = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wfKey])
+  const wfSessions = sessions.filter((s) => s.pack === workflow && !s.simulated)
   const compareReady = (workflows.find((w) => w.id === workflow)?.compare_experts?.length ?? 0) >= 2
+
+  const openOwner = async (page: 'map' | 'proof') => {
+    const richest = richestMap(experts)
+    if (!richest || ownerBusy) return
+    setOwnerBusy(page)
+    setOwnerError(null)
+    try {
+      if (page === 'proof') {
+        // Certifications persist across restarts, unlike the in-memory sessions.
+        const histories = await Promise.all(experts.map((e) => api<{ sessions: { id: string; meta?: { simulated?: boolean } }[] }>(
+          `/api/history?pack=${encodeURIComponent(workflow)}&expert=${encodeURIComponent(e.expert)}`,
+        )))
+        const ids = [...new Set(histories.flatMap((h) => h.sessions.filter((s) => !s.meta?.simulated).map((s) => s.id)))]
+        const lists = await Promise.all(ids.map((id) => api<{ session: string; created: number }[]>(`/api/sessions/${id}/certifications`)))
+        const latest = lists.flat().sort((a, b) => b.created - a.created)[0]
+        if (latest) { nav(`/s/${latest.session}/agent`); return }
+      }
+      const candidates = [...new Set([richest.session_id, ...wfSessions.slice().reverse()
+        .filter((s) => s.mode !== 'tutor' && s.expert === richest.expert).map((s) => s.id)])]
+      for (const id of candidates) {
+        try {
+          const snap = await api<Snapshot>(`/api/sessions/${id}`)
+          if (!snap.simulated && snap.pack.id === workflow && snap.expert === richest.expert && snap.map.version >= richest.version) {
+            nav(`/s/${id}/${page}`)
+            return
+          }
+        } catch { /* A saved map may belong to a session lost on restart. */ }
+      }
+      const snap = await api<Snapshot>('/api/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'capture', pack: workflow, expert: richest.expert, fresh: false }),
+      })
+      setSessions((current) => [...current, { id: snap.id, mode: snap.mode, expert: snap.expert, pack: snap.pack.id, simulated: snap.simulated, metrics: snap.metrics }])
+      nav(`/s/${snap.id}/${page}`)
+    } catch (e) {
+      setOwnerError(`Couldn’t open ${page === 'map' ? 'the Work Map' : 'agent permissions'}. ${String(e)}`)
+    } finally {
+      setOwnerBusy(null)
+    }
+  }
   const picked = experts.find((e) => e.expert === (expertPick === '__new__' ? newName.trim() : expertPick))
   const from = experts.find((e) => e.expert === teachFrom)
   const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`
@@ -164,24 +211,19 @@ export default function Home() {
             <div>
               {wfState === 'loading' && <span className="text-[14px] text-ink-3">Loading…</span>}
               {wfState === 'error' && <span className="text-[14px] text-ink-3">Couldn’t load workflows. Using the default.</span>}
-              {workflows.length > 4 && (
-                <select value={workflow} onChange={(e) => setWorkflow(e.target.value)} className="block w-full max-w-[520px] rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-2 text-[14px] text-ink-1 outline-none focus:border-ink-2">
-                  {workflows.map((w) => <option key={w.id} value={w.id}>{w.name}{w.kind === 'learned' ? ' · learned' : ''}</option>)}
+              {choices.length > 4 && (
+                <select aria-label="Workflow" value={workflow} onChange={(e) => setWorkflow(e.target.value)} className="block w-full max-w-[520px] rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-2 text-[14px] text-ink-1 outline-none focus:border-ink-2">
+                  {choices.map((w) => <option key={w.id} value={w.id}>{w.name} · {w.kind}</option>)}
                   <option value={NEW}>+ New workflow</option>
                 </select>
               )}
-              {workflows.length > 0 && workflows.length <= 4 && (
+              {choices.length <= 4 && (
                 <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                  {workflows.map((w) => (
+                  {choices.map((w) => (
                     <label key={w.id} className={`flex cursor-pointer items-center gap-2 border-b-2 py-1 text-[15px] ${workflow === w.id ? 'border-confirmed text-ink-1' : 'border-transparent text-ink-2'}`}>
                       <input type="radio" name="wf" checked={workflow === w.id} onChange={() => setWorkflow(w.id)} className="accent-[#4e6b44]" />
                       {w.name}
-                      <span className="num text-[11px] text-ink-3">{w.kind === 'learned' ? 'learned' : 'built in'}</span>
-                      {(w.compare_experts?.length ?? 0) >= 2 && (
-                        <Link to={`/w/${w.id}/compare`} onClick={(e) => e.stopPropagation()} className="text-[13px] text-inferred hover:underline">
-                          compare experts →
-                        </Link>
-                      )}
+                      <span className="num text-[11px] text-ink-3">{w.kind}</span>
                     </label>
                   ))}
                   <label className={`flex cursor-pointer items-center gap-2 border-b-2 py-1 text-[15px] ${workflow === NEW ? 'border-confirmed text-ink-1' : 'border-transparent text-ink-2'}`}>
@@ -195,19 +237,39 @@ export default function Home() {
         </section>
 
         {workflow === NEW ? (
-        <section className="border-b border-rule py-9">
-          <h2 className="testimony m-0 text-[28px] leading-[1.1] tracking-[-0.01em]">Teach Mira a new workflow</h2>
-          <p className="mb-0 mt-3 max-w-[62ch] text-[16px] leading-relaxed text-ink-2">
-            On any web app: turn Mira on in the Tacet browser extension (Chrome), open the page where the work happens, choose <span className="text-ink-1">Learn this task</span>, then do the task 2–3 times.
-          </p>
-          <p className="mb-0 mt-3 max-w-[62ch] text-[16px] leading-relaxed text-ink-2">
-            Or try it now on our sample Support desk. Mira has not seen it before.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13.5px]">
-            <a href={SUPPORT_DEMO} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 font-medium text-sheet hover:bg-[#3a3732]">Open the Support desk</a>
-            <a href={EXT_README} target="_blank" rel="noreferrer" className="text-inferred hover:underline">Install the extension →</a>
+        <section className="grid grid-cols-1 items-center gap-8 border-b border-rule py-9 md:grid-cols-2">
+          <div>
+            <h2 className="testimony m-0 text-[28px] leading-[1.1] tracking-[-0.01em]">Teach Mira a new workflow</h2>
+            <p className="mb-0 mt-3 max-w-[62ch] text-[16px] leading-relaxed text-ink-2">
+              On any web app: turn Mira on in the Tacet browser extension (Chrome), open the page where the work happens, choose <span className="text-ink-1">Learn this task</span>, then do the task 2–3 times.
+            </p>
+            <p className="mb-0 mt-3 max-w-[62ch] text-[16px] leading-relaxed text-ink-2">
+              Or try it now on our sample Support desk.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13.5px]">
+              <a href={SUPPORT_DEMO} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 font-medium text-sheet hover:bg-[#3a3732]">Open the Support desk</a>
+              <a href={EXT_README} target="_blank" rel="noreferrer" className="text-inferred hover:underline">Install the extension →</a>
           </div>
           <p className="mb-0 mt-4 text-[13px] text-ink-3">Once Mira has learned it, the workflow appears in the list above.</p>
+          </div>
+          <div className="flex justify-center border-t border-rule pt-8 md:border-l md:border-t-0 md:py-5">
+            <Mira role="learn" height={200} />
+          </div>
+        </section>
+        ) : coldSupport ? (
+        <section className="border-b border-rule py-9">
+          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
+            <div>
+              <h2 className="testimony m-0 text-[28px] leading-[1.1]">Mira hasn’t learned this yet.</h2>
+              <p className="mb-0 mt-3 text-[16px] leading-relaxed text-ink-2">Show her: open the Support desk.</p>
+              <div className="mt-5 flex flex-wrap items-center gap-4">
+                <a href={SUPPORT_DEMO} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 text-[13.5px] font-medium text-sheet hover:bg-[#3a3732]">Open the Support desk</a>
+                <button disabled className="inline-flex h-11 items-center rounded-[3px] border border-rule-strong px-5 text-[13.5px] text-ink-1 opacity-40" aria-describedby="support-teach-help">Start teaching</button>
+              </div>
+              <p id="support-teach-help" className="mb-0 mt-4 text-[13px] text-ink-3">Teach a new hire once an expert has shown Mira this workflow.</p>
+            </div>
+            <div className="flex justify-center border-t border-rule pt-8 md:border-l md:border-t-0 md:py-5"><Mira role="learn" height={160} /></div>
+          </div>
         </section>
         ) : (
         <section className="border-b border-rule py-9">
@@ -311,37 +373,27 @@ export default function Home() {
           <section className="border-b border-rule py-8">
             <div className="label">For the process owner</div>
             <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-3">
-              <div>
+              <button onClick={() => openOwner('map')} disabled={ownerBusy !== null}
+                className="group -m-3 flex flex-col items-start p-3 text-left hover:bg-sheet focus-visible:outline focus-visible:outline-1 focus-visible:outline-ink-2 disabled:opacity-50" aria-busy={ownerBusy === 'map'}>
                 <h2 className="m-0 text-[15px] font-medium text-ink-1">Work Map</h2>
                 <p className="mb-0 mt-1.5 text-[13.5px] leading-relaxed text-ink-2">Everything Mira learned, step by step, in the expert’s words. Sign it off.</p>
-                <div className="mt-2 text-[13px]">
-                  {mapSession
-                    ? <Link to={`/s/${mapSession}/map`} className="text-inferred hover:underline">Open the Work Map →</Link>
-                    : <span className="text-ink-3">Opens from a live session. Start one above.</span>}
-                </div>
-              </div>
-              <div>
+                <span className="mt-2 block text-[13px] text-inferred group-hover:underline">{ownerBusy === 'map' ? 'Opening…' : 'Open the Work Map →'}</span>
+              </button>
+              <Link to={`/w/${workflow}/compare`} className="group -m-3 flex flex-col items-start p-3 text-left hover:bg-sheet focus-visible:outline focus-visible:outline-1 focus-visible:outline-ink-2">
                 <h2 className="m-0 text-[15px] font-medium text-ink-1">Where experts differ</h2>
                 <p className="mb-0 mt-1.5 text-[13.5px] leading-relaxed text-ink-2">Mira ran each expert’s map on the same cases. Choose which differences she should ask about.</p>
-                <div className="mt-2 text-[13px]">
-                  {compareReady
-                    ? <Link to={`/w/${workflow}/compare`} className="text-inferred hover:underline">Compare experts →</Link>
-                    : <span className="text-ink-3">Needs two experts’ maps. {experts.length} so far.</span>}
-                </div>
-              </div>
-              <div>
+                <span className="mt-2 block text-[13px] text-inferred group-hover:underline">Compare experts →</span>
+                {!compareReady && <span className="mt-1 block text-[12px] text-ink-3">Needs two experts’ maps. {experts.length} so far.</span>}
+              </Link>
+              <button onClick={() => openOwner('proof')} disabled={ownerBusy !== null}
+                className="group -m-3 flex flex-col items-start p-3 text-left hover:bg-sheet focus-visible:outline focus-visible:outline-1 focus-visible:outline-ink-2 disabled:opacity-50" aria-busy={ownerBusy === 'proof'}>
                 <h2 className="m-0 text-[15px] font-medium text-ink-1">What an agent may do alone</h2>
                 <p className="mb-0 mt-1.5 text-[13.5px] leading-relaxed text-ink-2">An outside AI agent takes the same sealed test. It earns permission rule by rule; everything else stays with people.</p>
-                <div className="mt-2 text-[13px]">
-                  {certSid
-                    ? <Link to={`/s/${certSid}/agent`} className="text-inferred hover:underline">See agent permissions →</Link>
-                    : <>
-                        <div className="text-ink-3">No agent certified yet. Start from a sealed test.</div>
-                        {anySession && <Link to={`/s/${anySession}/proof`} className="mt-1 inline-block text-inferred hover:underline">Open sealed tests →</Link>}
-                      </>}
-                </div>
-              </div>
+                <span className="mt-2 block text-[13px] text-inferred group-hover:underline">{ownerBusy === 'proof' ? 'Opening…' : 'See agent permissions →'}</span>
+                <span className="mt-1 block text-[12px] text-ink-3">If no agent is certified yet, begin with a sealed test.</span>
+              </button>
             </div>
+            {ownerError && <p role="alert" className="mt-5 border-l-[3px] border-binding pl-3 text-[13px] text-binding">{ownerError}</p>}
           </section>
         )}
 

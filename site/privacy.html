@@ -141,6 +141,23 @@
     *,*::before,*::after{animation:none!important;transition:none!important}
     html{scroll-behavior:auto}
   }
+
+  /* Contact: one small sheet, using the document's existing type and rules. */
+  button{font-family:inherit;cursor:pointer}
+  .contact-trigger{color:inherit}
+  .contact-inline{padding:0;border:0;border-bottom:1px solid var(--rule-strong);background:none;font-size:inherit;line-height:inherit;text-align:left}
+  .contact-panel{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--rule-strong);border-radius:3px;background:var(--sheet);color:var(--ink-1)}
+  .contact-panel::backdrop{background:rgba(244,241,234,.8)}
+  .contact-head{display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .contact-head h2{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1;margin:0}
+  .contact-close{padding:5px 0;border:0;background:none;color:var(--ink-2);font-size:12px}
+  .contact-panel p{margin:14px 0 0;font-size:14px;color:var(--ink-2)}
+  .contact-address{display:block;margin-top:20px;padding:14px 0;border-block:1px solid var(--rule);font-family:var(--mono);font-size:13px;overflow-wrap:anywhere;user-select:all}
+  .contact-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .contact-panel .contact-fallback{display:inline-block;margin-top:16px;font-size:13px;color:var(--inferred)}
+  .contact-panel .contact-status{font-family:var(--mono);font-size:11px;color:var(--confirmed)}
+  .contact-panel .contact-status:empty{display:none}
+  .contact-trigger:focus-visible,.contact-panel button:focus-visible,.contact-panel a:focus-visible{outline:1px solid var(--ink-1);outline-offset:4px}
 </style>
 </head>
 <body>
@@ -161,7 +178,7 @@
     </nav>
     <span class="mast-actions">
       <a class="btn" href="/">Back to Tacet</a>
-      <a class="btn primary" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Contact us</a>
+      <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false" class="contact-trigger btn primary" >Contact us</button>
     </span>
   </div>
 </header>
@@ -331,7 +348,7 @@
       <ul>
         <li><span class="mk con" aria-hidden="true">✓</span><span><b>Turn Mira off per site.</b> The popup lists every site she is on for; turning one off removes Chrome's access to that site immediately and stops collection there.</span></li>
         <li><span class="mk con" aria-hidden="true">✓</span><span><b>End a session.</b> Ending a session in the companion stops capture for that session on the page.</span></li>
-        <li><span class="mk con" aria-hidden="true">✓</span><span><b>Delete what was stored.</b> Write to <a href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">shubhamjoshipro.mail@gmail.com</a> with the session identifier and the Tacet Core you used to request deletion. For a self-hosted core, contact its operator.</span></li>
+        <li><span class="mk con" aria-hidden="true">✓</span><span><b>Delete what was stored.</b> Write to <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false"  class="contact-inline">shubhamjoshipro.mail@gmail.com</button> with the session identifier and the Tacet Core you used to request deletion. For a self-hosted core, contact its operator.</span></li>
         <li><span class="mk con" aria-hidden="true">✓</span><span><b>Export before you leave.</b> A Work Map can be exported as data, so the rules you taught can be kept without the session.</span></li>
       </ul>
     </div>
@@ -342,7 +359,7 @@
       <h3>Contact</h3>
       <p>
         Questions about this policy, a correction, or a deletion request:
-        <a href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">shubhamjoshipro.mail@gmail.com</a>. This policy describes the
+        <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false"  class="contact-inline">shubhamjoshipro.mail@gmail.com</button>. This policy describes the
         product as built on 2026-10-03; when the product changes in a way that changes what
         it reads or keeps, this page changes with it and the date above moves.
       </p>
@@ -353,9 +370,73 @@
 <footer>
   <div class="wrap">
     <span class="meta">Tacet · learns the part of the job nobody wrote down</span>
-    <span class="meta">© 2026 Tacet · <a href="/" style="text-decoration:none;border-bottom:1px solid var(--rule-strong)">Home</a> · <a href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team" style="text-decoration:none;border-bottom:1px solid var(--rule-strong)">shubhamjoshipro.mail@gmail.com</a></span>
+    <span class="meta">© 2026 Tacet · <a href="/" style="text-decoration:none;border-bottom:1px solid var(--rule-strong)">Home</a> · <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false"  style="text-decoration:none;border-bottom:1px solid var(--rule-strong)" class="contact-inline">shubhamjoshipro.mail@gmail.com</button></span>
     <span class="glyphs" aria-label="provenance marks: observed, inferred, confirmed, binding">▮ ◌ ✓ ■</span>
   </div>
 </footer>
+
+<dialog id="contact-panel" class="contact-panel" aria-labelledby="contact-title" aria-describedby="contact-description">
+  <div class="contact-head">
+    <h2 id="contact-title">Talk to us</h2>
+    <button type="button" class="contact-close" data-contact-close aria-label="Close contact panel">Close</button>
+  </div>
+  <p id="contact-description">A question, a pilot or a deletion request. Write to us directly.</p>
+  <span class="contact-address">shubhamjoshipro.mail@gmail.com</span>
+  <div class="contact-actions">
+    <button type="button" class="btn" data-contact-copy>Copy</button>
+    <a class="btn primary" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=shubhamjoshipro.mail@gmail.com&amp;su=Tacet%20%E2%80%94%20pilot%20for%20our%20team" target="_blank" rel="noopener noreferrer">Open in Gmail</a>
+  </div>
+  <a class="contact-fallback" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Open in your email app →</a>
+  <p class="contact-status" role="status" aria-live="polite"></p>
+</dialog>
+
+<script>
+  (function () {
+    var panel = document.getElementById('contact-panel');
+    var copy = panel.querySelector('[data-contact-copy]');
+    var status = panel.querySelector('[role="status"]');
+    var trigger = null;
+    var generation = 0;
+    document.querySelectorAll('[data-contact]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        trigger = button;
+        generation++;
+        copy.textContent = 'Copy';
+        status.textContent = '';
+        button.setAttribute('aria-expanded', 'true');
+        panel.showModal();
+      });
+    });
+    panel.querySelector('[data-contact-close]').addEventListener('click', function () { panel.close(); });
+    panel.addEventListener('click', function (event) {
+      var rect = panel.getBoundingClientRect();
+      if (event.target === panel && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) panel.close();
+    });
+    // Native dialog handles Escape, focus trapping, and an inert background.
+    panel.addEventListener('close', function () {
+      generation++;
+      if (trigger) { trigger.setAttribute('aria-expanded', 'false'); trigger.focus(); }
+    });
+    copy.addEventListener('click', async function () {
+      var current = generation;
+      var email = 'shubhamjoshipro.mail@gmail.com';
+      var copied = false;
+      try { await navigator.clipboard.writeText(email); copied = true; } catch (_) {
+        // Older browsers and blocked clipboard permissions still allow a manual copy.
+        var field = document.createElement('textarea');
+        field.value = email;
+        field.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        panel.appendChild(field);
+        field.select();
+        try { copied = document.execCommand('copy'); } catch (_) {}
+        field.remove();
+        copy.focus();
+      }
+      if (current !== generation) return;
+      copy.textContent = copied ? 'Copied' : 'Copy';
+      status.textContent = copied ? 'Email address copied.' : 'Select the email address above to copy it.';
+    });
+  })();
+</script>
 </body>
 </html>

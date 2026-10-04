@@ -311,6 +311,23 @@
     *,*::before,*::after{animation:none!important;transition:none!important}
     html{scroll-behavior:auto}
   }
+
+  /* Contact: one small sheet, using the document's existing type and rules. */
+  button{font-family:inherit;cursor:pointer}
+  .contact-trigger{color:inherit}
+  .contact-inline{padding:0;border:0;border-bottom:1px solid var(--rule-strong);background:none;font-size:inherit;line-height:inherit;text-align:left}
+  .contact-panel{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--rule-strong);border-radius:3px;background:var(--sheet);color:var(--ink-1)}
+  .contact-panel::backdrop{background:rgba(244,241,234,.8)}
+  .contact-head{display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .contact-head h2{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1;margin:0}
+  .contact-close{padding:5px 0;border:0;background:none;color:var(--ink-2);font-size:12px}
+  .contact-panel p{margin:14px 0 0;font-size:14px;color:var(--ink-2)}
+  .contact-address{display:block;margin-top:20px;padding:14px 0;border-block:1px solid var(--rule);font-family:var(--mono);font-size:13px;overflow-wrap:anywhere;user-select:all}
+  .contact-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .contact-panel .contact-fallback{display:inline-block;margin-top:16px;font-size:13px;color:var(--inferred)}
+  .contact-panel .contact-status{font-family:var(--mono);font-size:11px;color:var(--confirmed)}
+  .contact-panel .contact-status:empty{display:none}
+  .contact-trigger:focus-visible,.contact-panel button:focus-visible,.contact-panel a:focus-visible{outline:1px solid var(--ink-1);outline-offset:4px}
 </style>
 </head>
 <body>
@@ -331,7 +348,7 @@
     </nav>
     <span class="mast-actions">
       <a class="btn primary" href="/app">Open <span data-brand="product"></span></a>
-      <a class="btn" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Talk to us</a>
+      <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false" class="contact-trigger btn" >Talk to us</button>
     </span>
     <span class="tick" aria-hidden="true" title="capture indicator"></span>
   </div>
@@ -423,7 +440,7 @@
       </div>
       <div class="scope">
         <p><b>Priced per workspace and per workflow.</b> A pilot is one workflow, one expert, two new hires. Any knowledge-driven desk work fits.</p>
-        <a class="btn primary" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Run a pilot on one workflow</a>
+        <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false" class="contact-trigger btn primary" >Run a pilot on one workflow</button>
       </div>
     </div>
   </section>
@@ -644,7 +661,7 @@
       </div>
       <span class="actions">
         <a class="btn primary" href="/app">Open <span data-brand="product"></span> <span class="ext" aria-hidden="true">→</span></a>
-        <a class="btn" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Run a pilot on one workflow</a>
+        <button type="button" data-contact aria-haspopup="dialog" aria-controls="contact-panel" aria-expanded="false" class="contact-trigger btn" >Talk to us</button>
       </span>
     </div>
   </section>
@@ -1062,6 +1079,70 @@
         var target = document.getElementById(a.getAttribute('data-open'));
         if (target) target.open = true;
       });
+    });
+  })();
+</script>
+
+<dialog id="contact-panel" class="contact-panel" aria-labelledby="contact-title" aria-describedby="contact-description">
+  <div class="contact-head">
+    <h2 id="contact-title">Talk to us</h2>
+    <button type="button" class="contact-close" data-contact-close aria-label="Close contact panel">Close</button>
+  </div>
+  <p id="contact-description">A question, a pilot or a deletion request. Write to us directly.</p>
+  <span class="contact-address">shubhamjoshipro.mail@gmail.com</span>
+  <div class="contact-actions">
+    <button type="button" class="btn" data-contact-copy>Copy</button>
+    <a class="btn primary" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=shubhamjoshipro.mail@gmail.com&amp;su=Tacet%20%E2%80%94%20pilot%20for%20our%20team" target="_blank" rel="noopener noreferrer">Open in Gmail</a>
+  </div>
+  <a class="contact-fallback" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Open in your email app →</a>
+  <p class="contact-status" role="status" aria-live="polite"></p>
+</dialog>
+
+<script>
+  (function () {
+    var panel = document.getElementById('contact-panel');
+    var copy = panel.querySelector('[data-contact-copy]');
+    var status = panel.querySelector('[role="status"]');
+    var trigger = null;
+    var generation = 0;
+    document.querySelectorAll('[data-contact]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        trigger = button;
+        generation++;
+        copy.textContent = 'Copy';
+        status.textContent = '';
+        button.setAttribute('aria-expanded', 'true');
+        panel.showModal();
+      });
+    });
+    panel.querySelector('[data-contact-close]').addEventListener('click', function () { panel.close(); });
+    panel.addEventListener('click', function (event) {
+      var rect = panel.getBoundingClientRect();
+      if (event.target === panel && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) panel.close();
+    });
+    // Native dialog handles Escape, focus trapping, and an inert background.
+    panel.addEventListener('close', function () {
+      generation++;
+      if (trigger) { trigger.setAttribute('aria-expanded', 'false'); trigger.focus(); }
+    });
+    copy.addEventListener('click', async function () {
+      var current = generation;
+      var email = 'shubhamjoshipro.mail@gmail.com';
+      var copied = false;
+      try { await navigator.clipboard.writeText(email); copied = true; } catch (_) {
+        // Older browsers and blocked clipboard permissions still allow a manual copy.
+        var field = document.createElement('textarea');
+        field.value = email;
+        field.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        panel.appendChild(field);
+        field.select();
+        try { copied = document.execCommand('copy'); } catch (_) {}
+        field.remove();
+        copy.focus();
+      }
+      if (current !== generation) return;
+      copy.textContent = copied ? 'Copied' : 'Copy';
+      status.textContent = copied ? 'Email address copied.' : 'Select the email address above to copy it.';
     });
   })();
 </script>
