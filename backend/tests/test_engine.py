@@ -149,6 +149,9 @@ def test_stuck_learner_gets_nudged_up_the_ladder():
         for _ in range(2):  # two blocked saves: "highlight where to look"
             await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
         await t.tick()
+        assert not [m for m in seen if m["type"] == "nudge"], "no nudge talks over a fresh stop card"
+        t.t0 -= 31  # half a minute later, still stuck
+        await t.tick()
         nudges = [m for m in seen if m["type"] == "nudge"]
         assert nudges and nudges[-1]["level"] >= 3 and nudges[-1]["look"], nudges
         await t.on_event({"type": "help"})

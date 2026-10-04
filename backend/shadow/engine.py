@@ -138,6 +138,7 @@ class Session:
         self.tutor_tries: dict[str, int] = {}  # save attempts per case: drives the hint ladder
         self.stuck = StuckDetector()  # learner mode: behavioural "looks stuck" signals, never faces or emotions
         self.nudged: dict[str, int] = {}  # highest nudge level already given per case
+        self.stopped_at: dict[str, float] = {}  # when Shadow last stopped a save, per case
         self.briefs: dict[str, dict[str, Any]] = {}
         self.teachback_text: str | None = None
         self.teachback_confirmed = False
@@ -1610,6 +1611,8 @@ class Session:
         cid = self.current_case
         if not cid or cid not in self.cases:
             return
+        if not force_level and self.now() - self.stopped_at.get(cid, -1e9) < 30:
+            return  # a stop card is already teaching on this case; a nudge would talk over it
         level = force_level or self.stuck.score(self.now(), cid).get("level", 0)
         if level <= self.nudged.get(cid, 0):
             return
@@ -1674,6 +1677,7 @@ class Session:
             return {"allow": True}
         v = violations[0]
         tries = self.tutor_tries[case_id] = self.tutor_tries.get(case_id, 0) + 1
+        self.stopped_at[case_id] = self.now()
         self.stuck.observe({"type": "save_blocked", "t": self.now(), "case_id": case_id})
         node_for = self.wm.node(v.node_id)
         mode = coach.fade((self.mastery.get(v.node_id) or {}).get("p"), guardrail=isinstance(node_for, Guardrail))
