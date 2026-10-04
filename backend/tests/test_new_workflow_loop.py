@@ -314,9 +314,9 @@ def test_provider_outage_never_closes_the_observer(client, monkeypatch):
         ws.send_json({"type": "field_changed", "field": "assigned_team", "before": "Support", "after": "Dispatch",
                       "session": s.id})
         ws.send_json({"type": "action", "name": "save_ticket", "session": s.id})
-        ws.send_json({"type": "hello", "session": s.id})  # still open: the server answers
-        for _ in range(50):
-            if ws.receive_json()["type"] == "session":
-                break
+        seen = []
+        while "episode" not in seen and len(seen) < 50:  # the save after the failed call still arrives
+            seen.append(ws.receive_json()["type"])
+        assert "episode" in seen
     assert s.current_case and s.dps[s.current_case].prediction is not None
     assert len(s.episodes) == 1

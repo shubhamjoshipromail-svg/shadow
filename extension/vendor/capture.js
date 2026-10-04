@@ -260,6 +260,7 @@
   function pinSession(sid, mode) {
     if (!sid) return;
     PINNED = SID = sid;
+    ensureObserver();
     if (mode) MODE = mode;
     storeSet(SESSION_KEY, sid);
   }
@@ -376,7 +377,7 @@
       keepLearning(); renderLearning();
       // one example opens the Work Map; from then on she watches live, predicts and asks out loud, like on the ERP
       if (LEARN.demos.length === 1 && !LEARN.current.length && evt.type === "action" && evt.terminal) doneShowing();
-    } else if (SID && LEARN.stage === "idle" && !F.off) send(evt);
+    } else if (SID && !F.off) send(evt);  // a live session owns the page even if an old demo is still stored
   }
   function wireObserver() {
     if (!GENERIC_PAGE || !window.shadowObserve || window.__shadowObserverConnected) return;
@@ -386,13 +387,20 @@
     else if (LEARN.stage === "watching") window.shadowObserve.refresh();
     render();
   }
+  // A session started from the notebook (Start learning / Start teaching) lands on a page Mira has never
+  // seen: load the observer here too, not only from "Learn this task", or she sees no case and no save.
+  function ensureObserver() {
+    if (!GENERIC_PAGE || window.shadowObserve || document.getElementById("shadow-observe")) return;
+    var obs = document.createElement("script"); obs.id = "shadow-observe"; obs.src = API + "/observe.js";
+    document.head.appendChild(obs);  // fires shadow-observer-ready -> wireObserver
+  }
   window.__shadowWireObserver = wireObserver;
   window.addEventListener("shadow-observer-ready", wireObserver);
   function learnTask() {
     if (SID) return;
     F.open = true; LEARN.stage = "matching"; LEARN.error = ""; render();
     if (!window.shadowObserve) {
-      var obs = document.createElement("script"); obs.src = API + "/observe.js";
+      var obs = document.createElement("script"); obs.id = "shadow-observe"; obs.src = API + "/observe.js";
       obs.onload = matchPage; obs.onerror = function () { LEARN.error = "The page observer could not load. Try again when Tacet is connected."; renderLearning(); };
       document.head.appendChild(obs);
     } else matchPage();
@@ -1318,6 +1326,7 @@
   }
 
   render();
+  if (PINNED) ensureObserver();
   wireObserver();
   if (PINNED) api("/api/sessions/" + PINNED).then(function (snap) {
     if (snap.ended) { unpinSession(); return; }
