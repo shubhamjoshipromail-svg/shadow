@@ -69,7 +69,7 @@ export interface Metrics {
 
 export interface Snapshot {
   id: string; mode: 'capture' | 'debrief' | 'tutor'; expert: string; trainee: string | null; lang: string; expert_lang?: string | null; learner_lang?: string; interventions?: Intervention[]
-  pack: { id: string; name: string; fields: { name: string; label: string; options: string[] | null; option_labels: Record<string, string> }[]; actions: string[] }
+  pack: { id: string; name: string; fields: { name: string; label: string; options: string[] | null; option_labels: Record<string, string> }[]; actions: string[]; home?: string | null }
   map: WorkMap; current_case: string | null; cases: CaseT[]
   predictions: Record<string, Prediction>; episodes: Episode[]; hypotheses: Record<string, HypSet>
   inquiries: Inquiry[]; posteriors: Record<string, Posterior>

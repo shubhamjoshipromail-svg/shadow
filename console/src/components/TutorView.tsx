@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API, api, mmss } from '../lib/api'
+import { API, api, appUrl, mmss } from '../lib/api'
 import type { Intervention, ShadowEvent, Snapshot } from '../lib/types'
 import { Btn, Dot, Section, Testimony, Wordmark } from './ui'
 import Mastery from './Mastery'
@@ -67,8 +67,8 @@ export default function TutorView(p: {
         <div className="scroll-thin flex min-h-0 flex-col gap-5 lg:overflow-y-auto">
           <Section title={`${learner}’s screen`}>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <a href={`${p.erpUrl}/?shadow=${sid}`} target="nordwerk-erp">
-                <Btn tone="primary">Open the ERP as {learner} ↗</Btn>
+              <a href={appUrl(p.erpUrl, snap.pack.home, sid)} target="nordwerk-erp">
+                <Btn tone="primary">Open {snap.pack.home ? snap.pack.name : 'the ERP'} as {learner} ↗</Btn>
               </a>
               <button onClick={p.shareScreen} className="text-[12.5px] text-inferred hover:underline">
                 {p.sharing ? `Sharing ${learner}’s screen` : `or share ${learner}’s screen`}
