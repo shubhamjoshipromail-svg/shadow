@@ -109,8 +109,31 @@ async def main() -> None:
     ap.add_argument("--expert", default="Klaus")
     ap.add_argument("--first", default="Sabine", help="seeded (simulated) only if nobody by this name has a map yet")
     ap.add_argument("--db", default=None, help="database URL (default: the backend's)")
+    ap.add_argument("--base", default=None, metavar="EXPERT",
+                    help="build Klaus from this expert's newest live Work Map (same training, his own habits) "
+                         "instead of a separate simulated run, so the comparison shows only where they really part")
     args = ap.parse_args()
     store = Store(args.db or config.DATABASE_URL)
+    if args.base:
+        row = store.latest_map_row(args.base, PACK_ID)
+        if not row:
+            sys.exit(f"no live Work Map for {args.base}")
+        wm = WorkMap(**row["map"])
+        wm.expert = args.expert
+        for n in [*wm.rules, *wm.guardrails]:
+            if n.quote and n.quote.speaker == args.base:
+                n.quote = n.quote.model_copy(update={"speaker": args.expert})
+        changes = klaus_habits(wm)
+        sid = "seed-" + uuid.uuid4().hex[:6]
+        store.create_session(sid, "capture", PACK_ID, args.expert,
+                             {"simulated": True, "workflow": PACK_ID, "source": "rehearsal",
+                              "workspace": config.DEFAULT_WORKSPACE, "note": "; ".join(changes),
+                              "based_on": row["session_id"], "seeded_by": "scripts/seed_second_expert.py"})
+        store.save_map(args.expert, PACK_ID, sid, wm.version, wm.model_dump())
+        print(f"seeded {args.expert} from {args.base}'s map ({row['session_id']} v{row['version']}): session {sid}")
+        for c in changes:
+            print("  -", c)
+        return
     known = {m["expert"] for m in store.expert_maps(PACK_ID, include_simulated=True)}
 
     if args.first not in known:
