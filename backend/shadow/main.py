@@ -155,6 +155,9 @@ async def create_session(body: NewSession) -> dict[str, Any]:
     s = Session(sid, pack, mode=body.mode, expert=expert, wm=wm, store=store, lang=body.lang, trainee=body.trainee,
                 use_llm=not body.simulate, **sim_kwargs)
     s.simulated = bool(sim_kwargs)
+    if body.mode == "tutor" and not s.simulated and not s.wm.rules and not s.wm.guardrails:
+        raise HTTPException(409, f"{expert}'s Work Map for this workflow has no rules yet, so the tutor would have "
+                                 "nothing to check. Teach it first with Learn from an expert.")
     s.map_source = source
     s.workspace = body.workspace
     if not s.simulated:

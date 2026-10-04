@@ -288,3 +288,12 @@ def test_one_voice_per_session_handoff_reaches_the_companion(client):
             if m["type"] == "voice_owner":
                 break
         assert m["type"] == "voice_owner" and m["token"] == "abc"
+
+
+def test_tutor_refuses_a_work_map_with_nothing_learned(client, monkeypatch):
+    """Recorded live: tutoring from 'v0, 0 rules, 0 guardrails' let every save through without a word."""
+    s = start(client)
+    assert not s.wm.rules and not s.wm.guardrails
+    monkeypatch.setattr(llm, "available", lambda: True)  # API guard only
+    r = client.post("/api/sessions", json={"mode": "tutor", "pack": s.pack.id, "from_session": s.id})
+    assert r.status_code == 409 and "no rules yet" in r.text

@@ -174,6 +174,8 @@ export default function Home() {
   }
   const picked = experts.find((e) => e.expert === (expertPick === '__new__' ? newName.trim() : expertPick))
   const from = experts.find((e) => e.expert === teachFrom)
+  // a map with nothing learned can't tutor: the trainee would get no stop and no word on every save
+  const emptyMap = !!from && from.rules != null && from.rules + (from.guardrails ?? 0) === 0
   const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`
   const mapWords = (e: ExpertMap) => `v${e.version}${e.rules != null ? `, ${n(e.rules, 'rule')}, ${n(e.guardrails ?? 0, 'guardrail')}` : ''}`
 
@@ -348,13 +350,14 @@ export default function Home() {
                   </label>
                 )}
                 <p className="m-0 text-[13px] leading-snug text-ink-2">
-                  {from ? <>Taught from {from.expert}’s Work Map ({mapWords(from)}).</>
+                  {from && emptyMap ? <>{from.expert}’s Work Map for this workflow has no rules yet ({mapWords(from)}), so Mira would have nothing to check. Teach it first with “Learn from an expert”{experts.length > 1 ? ', or pick a map with rules above' : ''}.</>
+                    : from ? <>Taught from {from.expert}’s Work Map ({mapWords(from)}).</>
                     : rehearsal ? <>Practice run: taught from a simulated expert.</>
                     : <>Mira hasn’t learned this workflow yet. Have an expert show it first.</>}
                 </p>
               </div>
               <div className="mt-6 md:mt-auto md:pt-6">
-                <button disabled={busy !== null || (!from && !rehearsal)} onClick={() => start('tutor')}
+                <button disabled={busy !== null || (!from && !rehearsal) || (emptyMap && !rehearsal)} onClick={() => start('tutor')}
                   className="inline-flex h-11 items-center rounded-[3px] border border-rule-strong px-5 text-[13.5px] font-medium text-ink-1 hover:border-ink-2 disabled:opacity-40">
                   {busy === 'tutor' ? 'Starting…' : 'Start teaching'}
                 </button>
