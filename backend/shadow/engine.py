@@ -21,7 +21,7 @@ from typing import Any, Awaitable, Callable
 import numpy as np
 
 from shadow import compiler as compiler_mod
-from shadow import dsl, hypotheses, llm, novice, questions, receipts
+from shadow import coach, dsl, hypotheses, llm, novice, questions, receipts
 from shadow import proof as proof_mod
 from shadow.activity import ActivityTracker
 from shadow.bayes import ThresholdPosterior, bald_discrete, entropy, posterior_update
@@ -132,6 +132,7 @@ class Session:
         self.teachback_pending = False
         self.last_learn: asyncio.Task | None = None
         self.tutor_attempted: set[str] = set()
+        self.tutor_tries: dict[str, int] = {}  # save attempts per case: drives the hint ladder
         self.teachback_text: str | None = None
         self.teachback_confirmed = False
         self.mastery: dict[str, dict[str, Any]] = {}
@@ -1186,7 +1187,8 @@ class Session:
                             probe_delta=self.pack.describe_delta(base or probe, probe), target_node=f"{a.id}|{b.id}",
                             hypotheses=[{"id": a.id, "title": a.title, "p": 0.5}, {"id": b.id, "title": b.title, "p": 0.5}],
                             reason=f"conflict: {a.id} says {va}, {b.id} says {vb}", text="")
-                q.text = (f"Two of your rules collide on one case: same invoice, but {q.probe_delta.rstrip('. ')}. "
+                noun = getattr(self.pack, "case_noun", "invoice")
+                q.text = (f"Two of your rules collide on one case: same {noun}, but {q.probe_delta.rstrip('. ')}. "
                           f"'{a.title}' says {va}, '{b.title}' says {vb}. Which one wins?")
                 self.planner.enqueue(q)
 
@@ -1230,23 +1232,25 @@ class Session:
         """Unknown unknowns: facts on the case that no learned rule mentions yet.
 
         Divergence-driven questions only cover what the expert happened to do. A hidden guardrail
-        (e.g. a new supplier whose bank details just changed) never shows up if no such case came by,
+        (e.g. "new counterparty AND details just changed") never shows up if no such case came by,
         and guardrails are often conjunctions. So Shadow changes one or two unreferenced facts on a
         case it saw and asks whether its decision would still hold. Pairs come first: a "no" there
         still gets narrowed down by the follow-up question.
         """
+        ns = getattr(self.pack, "namespace", "inv")  # the pack's rule-language namespace (invoices: inv.)
         referenced: set[str] = set()
         for n in [*self.wm.rules, *self.wm.guardrails]:
             if n.origin != "doc":
                 try:
-                    referenced |= {r.split(".", 1)[1] for r in dsl.fields_referenced(n.when) if r.startswith("inv.")}
+                    referenced |= {r.split(".", 1)[1] for r in dsl.fields_referenced(n.when) if r.startswith(f"{ns}.")}
                 except dsl.DSLError:
                     continue
-        noise = {"id", "supplier_id", "supplier_name", "day", "month", "dup_days", "days_to_skonto", "n_lines",
-                 "categories", "net", "gross", "net_eur", "gross_eur", "vat_rate", "supplier_country", "domestic"}
+        noise = set(getattr(self.pack, "derive_noise", None) or {
+            "id", "supplier_id", "supplier_name", "day", "month", "dup_days", "days_to_skonto", "n_lines",
+            "categories", "net", "gross", "net_eur", "gross_eur", "vat_rate", "supplier_country", "domestic"})
 
         def novel_change(base: dict[str, Any], v: dict[str, Any]) -> tuple[set[str], set[str]]:
-            b, x = self.pack.derive(base)["inv"], self.pack.derive(v)["inv"]
+            b, x = self.pack.derive(base)[ns], self.pack.derive(v)[ns]
             changed = {k for k in x if x[k] != b.get(k)} - noise
             return changed, changed - referenced
 
@@ -1510,8 +1514,22 @@ class Session:
         pred = run_map(self.wm, self.pack, self.cases[case_id], TRUSTED)
         self.dps[case_id].prediction = pred
         self.dps[case_id].map_version = self.wm.version
-        await self.emit("tutor_case", {"case_id": case_id, "expected": pred.model_dump(),
-                                       "prompt": "What do you think happens to this one?"})
+        brief = coach.brief(self.wm, self.pack, self.cases[case_id], self.mastery)
+        if brief.get("worked_example") and (brief.get("focus") or {}).get("node_id") not in self.mastery:
+            brief["worked_example"] = None  # first exposure: let them try first (the stop teaches); examples after a miss
+        await self.emit("tutor_case", {"case_id": case_id, "expected": pred.model_dump(), "brief": brief,
+                                       "prompt": self._coach_line(brief)})
+
+    def _coach_line(self, brief: dict[str, Any]) -> str:
+        """What the tutor says as a case opens: where to look, never the answer (unless a worked example is due)."""
+        fired = [f["label"] for f in brief.get("fields", []) if f.get("fires")]
+        look = f" Look closely at the {' and the '.join(l.lower() for l in fired[:2])}." if fired else ""
+        line = f"Before you book this one:{look} {brief.get('predict') or 'What would you do, and why?'}"
+        ex = brief.get("worked_example")
+        if ex and ex.get("quote"):
+            q = ex["quote"]
+            line += f" Remember, {self.expert} said: “{q.get('translation') or q.get('text')}”"
+        return line
 
     async def before_save(self, case_id: str, booking: dict[str, Any], action: str) -> dict[str, Any]:
         """Save intercept. In tutor mode, catch guardrail breaks before they're saved."""
@@ -1537,6 +1555,11 @@ class Session:
                                          "independent": first_attempt})
             return {"allow": True}
         v = violations[0]
+        tries = self.tutor_tries[case_id] = self.tutor_tries.get(case_id, 0) + 1
+        node_for = self.wm.node(v.node_id)
+        mode = coach.fade((self.mastery.get(v.node_id) or {}).get("p"), guardrail=isinstance(node_for, Guardrail))
+        level = min(4, {"coach": 1, "check": 1, "silent": 2}[mode] + tries - 1)  # each retry reveals one rung more
+        hint = coach.hint_ladder(self.wm, self.pack, case, booking, action, level)
         if first_attempt:
             for viol in violations:
                 self._bkt(viol.node_id, correct=False)
@@ -1550,7 +1573,7 @@ class Session:
             "id": iid, "case_id": case_id, "violation": v.model_dump(), "field": v.field,
             "all": [x.model_dump() for x in violations],
             "say": f"{self.expert} would stop here. Why do you think?",
-            "explain": " And ".join(parts),
+            "explain": " And ".join(parts), "hint": hint, "attempt": tries,
             "screen_moment": v.screen_moment.model_dump() if v.screen_moment else None,
             "node": node.model_dump() if node else None,
         }
@@ -1589,6 +1612,9 @@ class Session:
         for n in trusted:
             m = self.mastery.get(n.id)
             report.append({"id": n.id, "title": n.title, "status": m["status"] if m else "not seen yet",
-                           "p": m["p"] if m else None})
+                           "p": m["p"] if m else None,
+                           "fade": coach.fade(m["p"] if m else None, guardrail=isinstance(n, Guardrail))})
         weakest = min((r for r in report if r["p"] is not None), key=lambda r: r["p"], default=None)
-        return {"rules": report, "practice_next": weakest}
+        unseen = [self.cases[c] for c in self.case_order if c not in self.tutor_attempted]
+        nxt = coach.next_case(self.wm, self.pack, self.mastery, self.tutor_attempted, unseen) if unseen else None
+        return {"rules": report, "practice_next": weakest, "next_case": nxt["id"] if nxt else None}

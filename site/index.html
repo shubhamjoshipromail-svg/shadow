@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learns the part of the job nobody wrote down.</title>
+<meta name="description" content="An AI apprentice watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23f4f1ea'/%3E%3Crect x='3' y='3' width='7' height='7' fill='%23c9d1bb'/%3E%3Crect x='6' y='6' width='7' height='7' fill='%234e6b44'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300&display=swap" rel="stylesheet">
+<style>
+  /* ── design tokens — "the knowledge document" (design/DESIGN.md) ─────────── */
+  :root{
+    --paper:#f4f1ea; --sheet:#fbf9f4; --wash:#efebe2;
+    --rule:#e2ddd2; --rule-strong:#cbc4b5;
+    --ink-1:#22201c; --ink-2:#6b665d; --ink-3:#9a9488;
+    --observed:#22201c; --inferred:#56677c; --confirmed:#4e6b44; --binding:#a2412e;
+    --query:#8f6420; --candidate:#6f5a7e; --written:#8a8378;
+    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+    --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --pad:clamp(20px,5vw,44px);
+    --maxw:1180px;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink-1);
+    font-family:var(--sans);font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  ::selection{background:#dfe6d6}
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  h1,h2,h3,p,figure,blockquote,ul,ol,dl,dd{margin:0}
+  ul,ol{padding:0;list-style:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+
+  /* type roles: serif = expert words + page titles; sans = interface; mono = evidence */
+  .serif{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
+  .label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+         text-transform:uppercase;color:var(--ink-3)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .lede{color:var(--ink-2);font-size:clamp(16px,1.55vw,18.5px);line-height:1.6;max-width:62ch}
+
+  /* ── marks — provenance is glyph + ink, never hue alone ──────────────────── */
+  .mk{font-family:var(--mono);display:inline-block;width:1.15em;text-align:center}
+  .mk.obs{color:var(--observed)} .mk.inf{color:var(--inferred)} .mk.con{color:var(--confirmed)}
+  .mk.bin{color:var(--binding)} .mk.que{color:var(--query)} .mk.wri{color:var(--written)}
+
+  /* ── masthead ────────────────────────────────────────────────────────────── */
+  .masthead{border-bottom:1px solid var(--rule)}
+  .masthead .wrap{display:flex;align-items:center;gap:22px;min-height:60px;flex-wrap:wrap}
+  .wordmark{display:inline-flex;align-items:center;gap:9px;font-weight:600;
+            letter-spacing:-.02em;font-size:16px;text-decoration:none}
+  .wordmark .mark{position:relative;width:13px;height:13px;flex:none}
+  .wordmark .mark i{position:absolute;inset:0;display:block}
+  .wordmark .mark i:first-child{transform:translate(3px,-3px);background:#c9d1bb}
+  .wordmark .mark i:last-child{background:var(--confirmed)}
+  .nav{margin-left:auto;display:flex;align-items:center;gap:20px}
+  .nav a{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+         color:var(--ink-2);text-decoration:none}
+  .nav a:hover{color:var(--ink-1)}
+  .tick{width:6px;height:6px;background:var(--confirmed);display:inline-block;
+        animation:tick 2.4s ease-in-out infinite}
+  @keyframes tick{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* ── buttons ─────────────────────────────────────────────────────────────── */
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;
+       padding:9px 15px;border:1px solid var(--rule-strong);border-radius:3px;
+       background:var(--sheet);color:var(--ink-1);text-decoration:none;
+       transition:border-color .16s var(--ease),background .16s var(--ease)}
+  .btn:hover{border-color:var(--ink-2)}
+  .btn.primary{background:var(--ink-1);border-color:var(--ink-1);color:var(--paper)}
+  .btn.primary:hover{background:#3a3732;border-color:#3a3732}
+  .btn .ext{font-family:var(--mono);font-size:11px}
+
+  /* ── hero ────────────────────────────────────────────────────────────────── */
+  .hero{padding:clamp(52px,8vw,104px) 0 0}
+  .hero .kicker{display:flex;align-items:center;gap:9px;margin-bottom:26px}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6.6vw,76px);
+     line-height:1.02;letter-spacing:-.025em;max-width:15ch}
+  .hero .lede{margin-top:26px}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .trustline{margin-top:20px;display:flex;flex-wrap:wrap;gap:6px 18px;
+             font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
+  .trustline span::before{content:"— ";color:var(--rule-strong)}
+
+  /* ── the video slot (16:9), poster until a real clip is dropped in ───────── */
+  .video-wrap{margin-top:clamp(44px,6vw,72px)}
+  .video-slot{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;
+              border:1px solid var(--rule);border-radius:4px;background:var(--sheet)}
+  .video-slot .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .video-slot video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+                    opacity:0;pointer-events:none;transition:opacity .2s var(--ease);background:transparent}
+  .video-slot.has-video video{opacity:1;pointer-events:auto}
+  .video-cap{display:flex;justify-content:space-between;gap:16px;margin-top:12px;
+             font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
+  .video-cap b{font-weight:500;color:var(--ink-2)}
+
+  /* ── sections ────────────────────────────────────────────────────────────── */
+  section{padding:clamp(58px,8vw,104px) 0}
+  .rule-top{border-top:1px solid var(--rule)}
+  .sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px 48px;align-items:end;margin-bottom:clamp(34px,4vw,56px)}
+  .sec-head .label{display:block;margin-bottom:12px}
+  h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,4vw,46px);line-height:1.08;letter-spacing:-.02em;max-width:22ch}
+  .sec-head .lede{max-width:56ch}
+
+  /* ── three moments: a ledger, separated by 1px rules ─────────────────────── */
+  .moments{border-top:1px solid var(--rule)}
+  .moment{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1.1fr);gap:24px 40px;
+          padding:34px 0;border-bottom:1px solid var(--rule);align-items:start}
+  .moment .idx{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.08em;padding-top:6px}
+  .moment h3{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.5vw,30px);line-height:1.12;letter-spacing:-.015em}
+  .moment p{margin-top:12px;color:var(--ink-2);max-width:46ch;font-size:15.5px}
+
+  /* little on-screen moments, built from the same rules and marks */
+  .plate{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:16px 18px}
+  .plate .row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+              padding:8px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:13px}
+  .plate .row:last-child{border-bottom:0}
+  .plate .row span:first-child{color:var(--ink-2)}
+  .plate .guess{color:var(--inferred)}
+  .plate .strike{color:var(--ink-3);text-decoration:line-through}
+  .plate .binding{border-left:3px solid var(--binding);padding-left:14px}
+  .plate .query{border-left:3px solid var(--query);padding-left:14px}
+  .plate .quote{font-family:var(--serif);font-size:19px;line-height:1.3;margin:6px 0 10px}
+  .plate .attrib{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .sageline{height:2px;background:var(--confirmed);margin-top:2px}
+
+  /* ── receipt + sealed test ───────────────────────────────────────────────── */
+  .proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:22px 24px}
+  .panel .head{display:flex;align-items:center;justify-content:space-between;gap:14px;
+               padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:16px}
+  .panel h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.01em;margin-top:2px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-family:var(--mono);font-size:12.5px}
+  .kv dt{color:var(--ink-3);letter-spacing:.04em}
+  .kv dd{margin:0;color:var(--ink-1)}
+  .kv dd .was{color:var(--ink-3);text-decoration:line-through;margin-right:6px}
+  .receipt-quote{font-family:var(--serif);font-size:20px;line-height:1.32;margin:18px 0 8px;padding-left:14px;border-left:3px solid var(--query)}
+  .receipt-attrib{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px}
+  .hash{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);word-break:break-all;
+        background:var(--wash);border:1px solid var(--rule);border-radius:3px;padding:8px 10px;margin:4px 0 16px}
+  .timeline{border-top:1px solid var(--rule)}
+  .timeline li{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px}
+  .timeline li span:first-child{color:var(--ink-2)}
+  .timeline li b{font-weight:500}
+  .allow{color:var(--confirmed)} .block{color:var(--binding)}
+  .eval{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;
+        font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .eval b{color:var(--ink-1);font-weight:500}
+  .eval .is{border-bottom:2px solid var(--confirmed);padding-bottom:1px}
+
+  /* ── meet Mira ───────────────────────────────────────────────────────────── */
+  .mira{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:44px;align-items:center}
+  .sprites{display:flex;gap:14px;align-items:flex-end}
+  .sprite{width:clamp(132px,20vw,210px);aspect-ratio:1;flex:none;border:1px solid var(--rule);border-radius:4px;
+          background-image:url("assets/mira-sprite.png");background-size:200% 200%;background-repeat:no-repeat;
+          background-color:var(--sheet);image-rendering:pixelated}
+  .sprite.a{background-position:0 0}
+  .sprite.b{width:clamp(92px,13vw,140px);background-position:100% 0}
+  .sprite small{display:none}
+  .mira-copy p{color:var(--ink-2);margin-top:18px;max-width:54ch}
+  .mira-list{margin-top:22px;border-top:1px solid var(--rule)}
+  .mira-list li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+  .mira-list li b{font-weight:500;color:var(--ink-1)}
+
+  /* ── data & privacy ──────────────────────────────────────────────────────── */
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .col{border-top:1px solid var(--rule-strong);padding-top:18px}
+  .col .label{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .col li{padding:8px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2);line-height:1.5}
+  .col li:last-child{border-bottom:0}
+  .col li b{font-weight:500;color:var(--ink-1)}
+  .col code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;padding:1px 5px;color:var(--ink-1)}
+  .kept{margin-top:26px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
+
+  /* ── CTA ─────────────────────────────────────────────────────────────────── */
+  .cta{background:var(--sheet);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .cta .inner{padding:clamp(48px,7vw,88px) 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:end}
+  .cta h2{max-width:20ch}
+  .cta .actions{margin-top:0}
+  .cta .fine{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+  /* ── footer ──────────────────────────────────────────────────────────────── */
+  footer{padding:40px 0 56px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between}
+  footer .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  footer .glyphs{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.28em}
+
+  @media (max-width:900px){
+    .sec-head{grid-template-columns:1fr;align-items:start}
+    .moment{grid-template-columns:44px minmax(0,1fr);gap:12px 20px}
+    .moment .plate{grid-column:2}
+    .proof-grid{grid-template-columns:1fr}
+    .mira{grid-template-columns:1fr;gap:34px}
+    .cols{grid-template-columns:1fr;gap:34px}
+    .cta .inner{grid-template-columns:1fr;align-items:start}
+  }
+  @media (max-width:560px){
+    body{font-size:15px}
+    .nav{display:none}
+    .moment{grid-template-columns:1fr;gap:10px}
+    .moment .idx{padding-top:0}
+    .moment .plate{grid-column:1}
+    .sprites{align-items:center}
+    .video-cap{flex-direction:column;gap:4px}
+    .hero .kicker{margin-bottom:20px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<a class="label" href="#main" style="position:absolute;left:-9999px">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="#top" aria-label="home">
+      <span class="mark" aria-hidden="true"><i></i><i></i></span>
+      <span data-brand="product"></span>
+    </a>
+    <nav class="nav" aria-label="sections">
+      <a href="#moments">The three moments</a>
+      <a href="#proof">Receipt &amp; sealed test</a>
+      <a href="#mira">Meet <span data-brand="character"></span></a>
+      <a href="#data">Data</a>
+      <a href="#start">Start</a>
+    </nav>
+    <span class="tick" aria-hidden="true" title="capture indicator"></span>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ── hero ─────────────────────────────────────────────────────────────── -->
+  <div class="hero wrap" id="top">
+    <div class="kicker">
+      <span class="mk obs" aria-hidden="true">▮</span>
+      <span class="label">An AI apprentice for accounts payable</span>
+    </div>
+    <h1>Learns the part of the job nobody wrote down.</h1>
+    <p class="lede">
+      <span data-brand="product"></span> sits beside an expert while she works. It predicts every decision before she
+      makes it, and the moment it can't explain what she did, it waits for a pause and asks one question. Her answer
+      becomes a Work Map: executable, checked against later cases, and taught to whoever comes next.
+    </p>
+    <div class="actions">
+      <a class="btn primary" href="https://core-production-c5ac.up.railway.app">Open the product <span class="ext" aria-hidden="true">↗</span></a>
+      <a class="btn" href="https://erp-production-e3b0.up.railway.app">Open the demo ERP <span class="ext" aria-hidden="true">↗</span></a>
+    </div>
+    <p class="trustline">
+      <span>watches in the sandbox ERP</span>
+      <span>asks at a natural pause</span>
+      <span>every answer gets a receipt</span>
+    </p>
+
+    <!-- 16:9 slot. Drop demo.mp4 in assets/ and it plays; otherwise the poster holds. -->
+    <div class="video-wrap">
+      <figure class="video-slot" id="video-slot">
+        <img class="poster" src="assets/poster.svg" alt="An invoice with its net amount annotated, and the expert's rule written beside it: equipment over five thousand net is always capex.">
+        <video id="demo" src="assets/demo.mp4" poster="assets/poster.svg" preload="metadata" playsinline muted controls aria-label="Demo: an expert books an invoice and the apprentice asks one question"></video>
+      </figure>
+      <div class="video-cap">
+        <span><b>demo</b> · one rule learned live, from guess to sealed test</span>
+        <span>16:9 · 01:15 · captions on</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── the three moments ────────────────────────────────────────────────── -->
+  <section id="moments">
+    <div class="wrap">
+      <div class="sec-head rule-top" style="padding-top:34px">
+        <div>
+          <span class="label">The whole product, in three moments</span>
+          <h2>It guesses. It asks once. It stops the next person in her words.</h2>
+        </div>
+        <p class="lede">
+          No workflow to configure first. The apprentice starts from the decisions themselves and only earns the right
+          to be trusted after later cases agree with it.
+        </p>
+      </div>
+
+      <div class="moments">
+        <article class="moment">
+          <div class="idx">01</div>
+          <div>
+            <h3>It guesses before she acts.</h3>
+            <p>
+              On every invoice the apprentice writes down the fields and the action it thinks will be taken —
+              <em>before</em> the save. When the guess is wrong, that gap is the only thing it pays attention to.
+            </p>
+          </div>
+          <div class="plate" aria-label="An invoice with a written-before guess">
+            <div class="row"><span>Netto</span><span>6.400,00 €</span></div>
+            <div class="sageline" aria-hidden="true"></div>
+            <div class="row"><span>cost centre · guess</span><span class="guess"><span class="mk inf" aria-hidden="true">◌</span> 0400</span></div>
+            <div class="row"><span>written</span><span class="num" style="color:var(--ink-3)">before the save</span></div>
+          </div>
+        </article>
+
+        <article class="moment">
+          <div class="idx">02</div>
+          <div>
+            <h3>It asks one question, at a pause.</h3>
+            <p>
+              Not a form, not an interview. The question arrives when her hands stop, in her language, and the answer
+              is compiled into a rule with a threshold and, if she named one, a guardrail.
+            </p>
+          </div>
+          <div class="plate query" aria-label="The apprentice's one question at a pause">
+            <span class="label" style="color:var(--query)">? at the pause</span>
+            <p class="quote">“Equipment over €5,000 net is always capex.”</p>
+            <span class="attrib">Sabine · AP · 24 years · asked once</span>
+          </div>
+        </article>
+
+        <article class="moment">
+          <div class="idx">03</div>
+          <div>
+            <h3>It stops the new hire in her words.</h3>
+            <p>
+              When a new hire tries to book something the expert would have held, the save is blocked — and the reason
+              is the expert's own sentence, not a policy document's.
+            </p>
+          </div>
+          <div class="plate binding" aria-label="A blocked save, in the expert's words">
+            <span class="label" style="color:var(--binding)">■ blocked save</span>
+            <p class="quote">“No asset number, no capex booking.”</p>
+            <span class="attrib"><span class="mk bin" aria-hidden="true">■</span> guardrail · behaviour agreed, twice</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── proof: a receipt and a sealed test ───────────────────────────────── -->
+  <section id="proof" class="rule-top">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <span class="label">Words propose, behaviour disposes</span>
+          <h2>You can't argue with it. Only later cases can move it.</h2>
+        </div>
+        <p class="lede">
+          Every answer produces a receipt: the prediction before, the quote, the rule and its parameter diff. Sealed
+          tests then freeze the map's predictions, hash them, and let a human label fresh cases around the boundary.
+        </p>
+      </div>
+
+      <div class="proof-grid">
+        <div class="panel">
+          <div class="head">
+            <span class="label">Learning receipt</span>
+            <span class="mk con" aria-hidden="true">✓</span>
+          </div>
+          <h3>A threshold moves, with provenance</h3>
+          <p class="receipt-quote">“Over two percent I ask purchasing.”</p>
+          <p class="receipt-attrib">Sabine · AP · case HM-2026-0412 · 14:22</p>
+          <dl class="kv">
+            <dt>before</dt><dd><span class="was">€3,600</span> <span class="mk inf" aria-hidden="true">◌</span> inferred from the last case</dd>
+            <dt>after</dt><dd>€4,000 <span class="mk con" aria-hidden="true">✓</span> confirmed by the expert</dd>
+            <dt>rule</dt><dd>skonto_threshold · net &gt; 2% over PO → hold</dd>
+            <dt>provenance</dt><dd>spoken answer · compile v41 · independent checks 6</dd>
+          </dl>
+        </div>
+
+        <div class="panel">
+          <div class="head">
+            <span class="label">Sealed boundary test</span>
+            <span class="mk obs" aria-hidden="true">▮</span>
+          </div>
+          <h3>Predictions frozen before any label</h3>
+          <p class="hash" aria-label="committed hash">sha256 3f9a7c1e…d20b · committed 14:31 · 11 fresh cases</p>
+          <ul class="timeline">
+            <li><span>round 1 · 3,600 above / 4,000 below</span><b>9 / 11</b></li>
+            <li><span>both misses inside the learned band</span><b class="block">3,600 – 4,000</b></li>
+            <li><span>T re-fitted from the misses</span><b>3,600 → 4,069</b></li>
+            <li><span>fresh round after restarting from the saved map</span><b class="allow">11 / 11</b></li>
+          </ul>
+          <p class="label" style="margin-top:16px">labels come from humans only · each label also teaches</p>
+        </div>
+      </div>
+
+      <p class="eval">
+        <span>Simulated held-out eval over the invoice pack:</span>
+        <span>doc-only <b>38%</b></span>
+        <span>always-ask-why <b>73%</b></span>
+        <span class="is">the apprentice <b>98%</b></span>
+        <span>at <b>0%</b> confabulation</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Meet Mira ────────────────────────────────────────────────────────── -->
+  <section id="mira" class="rule-top">
+    <div class="wrap mira">
+      <div class="sprites">
+        <div class="sprite a" role="img" aria-label="The apprentice, pixel art: glasses, green cardigan, holding a notebook."></div>
+        <div class="sprite b" role="img" aria-label="The apprentice with her eyes closed, listening."></div>
+      </div>
+      <div class="mira-copy">
+        <span class="label">The character</span>
+        <h2 style="margin-top:12px">Meet <span data-brand="character"></span>.</h2>
+        <p>
+          <span data-brand="character"></span> is the apprentice, not the product. She has one notebook and one job:
+          to be invisible until she's needed, then ask the smallest question that unlocks the work. Her sprite is the
+          only illustration on this page — no stock photography, no robot mascot.
+        </p>
+        <ul class="mira-list">
+          <li><b>invisible until wanted</b><span>no panel shouting for attention</span></li>
+          <li><b>one question at a pause</b><span>never during the work</span></li>
+          <li><b>never guesses silently</b><span>every prediction carries its belief</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── data & privacy ───────────────────────────────────────────────────── -->
+  <section id="data" class="rule-top">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <span class="label">Data &amp; privacy</span>
+          <h2>What it sees, what it scrubs, what it never touches.</h2>
+        </div>
+        <p class="lede">
+          An apprentice that learns from work only needs the work. Here is the whole ledger of what is stored, in plain
+          language, before it is sent anywhere.
+        </p>
+      </div>
+
+      <div class="cols">
+        <div class="col">
+          <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Collected, per session</span>
+          <ul>
+            <li><b>The decision.</b> The fields on the case and the action taken, at the moment of the save.</li>
+            <li><b>The guess.</b> What the apprentice predicted before the save, kept to measure the gap.</li>
+            <li><b>Your answer.</b> The transcript of the one question, in your own words.</li>
+            <li><b>Case ids and timestamps</b> so a claim can be traced back to a real case.</li>
+            <li><b>Frozen predictions</b> for a sealed test, committed before anyone labels it.</li>
+          </ul>
+        </div>
+
+        <div class="col">
+          <span class="label"><span class="mk wri" aria-hidden="true">§</span> Scrubbed before storage</span>
+          <ul>
+            <li>Bank accounts → <code>[IBAN]</code>, checksum-validated, any country.</li>
+            <li>Emails → <code>[EMAIL]</code> · phone numbers → <code>[PHONE]</code>.</li>
+            <li>Payment cards → <code>[CARD]</code>, Luhn-checked before redaction.</li>
+            <li>Tax ids → <code>[TAX_ID]</code> · secret URLs → <code>[URL_SECRET]</code>.</li>
+            <li>Amounts, cost centres and invoice numbers are <em>kept</em>: the rules depend on them.</li>
+          </ul>
+        </div>
+
+        <div class="col">
+          <span class="label"><span class="mk bin" aria-hidden="true">■</span> Never collected</span>
+          <ul>
+            <li>Passwords, keystrokes, or anything outside the sandbox tab.</li>
+            <li>Screen frames: they stay on the observer's device and are dropped when capture stops.</li>
+            <li>Raw microphone audio. Only the transcript of the answer is kept.</li>
+            <li>Your other browser tabs, files, or clipboard.</li>
+            <li>Anything at all when capture is off — the default.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="kept">
+        The Work Map is exportable as data and the session can be deleted. A rule is only trusted once
+        <span class="mk con" aria-hidden="true">✓</span> later cases agree with it; until then it says so.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── CTA ──────────────────────────────────────────────────────────────── -->
+  <section id="start" class="cta">
+    <div class="wrap inner">
+      <div>
+        <span class="label">Start</span>
+        <h2 style="margin-top:12px">Watch it learn a rule nobody wrote down.</h2>
+        <p class="fine">in the sandbox ERP · AP invoices · rehearsal and live modes are always labelled</p>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="https://core-production-c5ac.up.railway.app">Open the product <span class="ext" aria-hidden="true">↗</span></a>
+        <a class="btn" href="https://erp-production-e3b0.up.railway.app">Open the demo ERP <span class="ext" aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="meta">
+      <span data-brand="product"></span> · learns the part of the job nobody wrote down
+    </span>
+    <span class="meta">built for HackNation × ElevenLabs · 2026</span>
+    <span class="glyphs" aria-label="provenance marks: observed, inferred, confirmed, binding">▮ ◌ ✓ ■</span>
+  </div>
+</footer>
+
+<script>
+  /* ─────────────────────────────────────────────────────────────────────────
+     ONE constant for the product and character names. Rename here and the
+     wordmark, headings, nav, footer, document title and meta description all
+     follow. (Names are still undecided — "Shadow" was the working title.)
+     ───────────────────────────────────────────────────────────────────────── */
+  const BRAND = { product: 'Tacet', character: 'Mira' };
+
+  document.querySelectorAll('[data-brand]').forEach(function (el) {
+    var key = el.getAttribute('data-brand');
+    if (BRAND[key]) el.textContent = BRAND[key];
+  });
+  document.title = BRAND.product + ' — learns the part of the job nobody wrote down';
+  var desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.setAttribute('content',
+    BRAND.product + ' watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
+
+  /* The video is optional: the poster holds until a real clip is present. */
+  (function () {
+    var slot = document.getElementById('video-slot');
+    var video = document.getElementById('demo');
+    if (!slot || !video) return;
+    var reveal = function () { slot.classList.add('has-video'); };
+    video.addEventListener('loadeddata', reveal);
+    video.addEventListener('error', function () { slot.classList.remove('has-video'); });
+  })();
+</script>
+</body>
+</html>

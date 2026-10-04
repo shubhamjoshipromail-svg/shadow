@@ -15,5 +15,6 @@ RUN pip install -r requirements.txt
 COPY backend/shadow ./shadow
 COPY backend/scripts ./scripts
 COPY --from=notebook /src/console/dist /app/console/dist
+COPY site /app/site
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn shadow.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

@@ -110,3 +110,29 @@ def test_parametric_gap_is_silent():
         assert len([q for q in s.planner.history if q.status in ("asked", "answered")]) <= n_before + 1
 
     asyncio.run(run())
+
+
+def test_tutor_coaches_before_and_escalates_hints():
+    async def run():
+        s = Session("cap", PACK, mode="capture", use_llm=False, proposer=fake_propose, compiler=FakeCompiler())
+        await _capture(s)
+        t = Session("tut", PACK, mode="tutor", use_llm=False, wm=s.wm, trainee="Lena")
+        seen = []
+        t.listeners.add(lambda m: _collect(seen, m))
+        await t.open_case("inv-5120")
+        brief = next(m for m in seen if m["type"] == "tutor_case")
+        assert "Before you book this one" in brief["prompt"] and "cost center" in brief["prompt"]
+        assert "5,000" not in brief["prompt"], "first exposure must not give the rule away"
+        v1 = await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        v2 = await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        v3 = await t.before_save("inv-5120", {"cost_center": "4711"}, "post")
+        levels = [v["intervention"]["hint"]["level"] for v in (v1, v2, v3)]
+        assert levels == sorted(levels) and levels[0] < levels[-1], levels
+        assert v1["intervention"]["hint"]["quote"] is None and v3["intervention"]["hint"]["quote"] is not None
+        assert "next_case" in t.tutor_report()
+
+    asyncio.run(run())
+
+
+async def _collect(out, m):
+    out.append(m)

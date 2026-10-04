@@ -40,3 +40,9 @@ __pycache__/
 *.db
 .claude/
 backend/.elevenlabs_agents.json
+
+# generated media
+design/video/frames/
+design/tasks/shots/
+design/review-shots/
+site/shots/

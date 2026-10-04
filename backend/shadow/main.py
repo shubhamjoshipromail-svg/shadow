@@ -413,7 +413,7 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     return {"allow": True}
 
 
-COMPANION_EVENTS = {"ended", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
+COMPANION_EVENTS = {"ended", "tutor_case", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
                     "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
 
 
@@ -429,6 +429,8 @@ def _companion_view(m: dict[str, Any]) -> dict[str, Any]:
         s = m["set"]
         return {"type": t, "t": m["t"], "field": s["field"], "entropy": s["entropy"], "resolved": m.get("resolved"),
                 "top": max(s["items"], key=lambda h: h["posterior"], default=None)}
+    if t == "tutor_case":
+        return {"type": t, "t": m["t"], "case_id": m.get("case_id"), "prompt": m.get("prompt")}
     if t == "episode":
         return {"type": t, "t": m["t"], "gaps": m["episode"]["gaps"], "metrics": m.get("metrics")}
     return m
@@ -604,6 +606,10 @@ async def llm_check() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------- the notebook (console), same origin
+SITE = config.ROOT.parent / "site"  # the public landing page (static)
+if SITE.exists():
+    app.mount("/site", StaticFiles(directory=SITE, html=True), name="site")
+
 if config.CONSOLE_DIST.exists():
     app.mount("/assets", StaticFiles(directory=config.CONSOLE_DIST / "assets"), name="console-assets")
 

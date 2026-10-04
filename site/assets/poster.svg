@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Poster: an invoice with one field annotated, and the expert's rule written beside it.">
+  <rect width="1600" height="900" fill="#f4f1ea"/>
+
+  <!-- ruled paper -->
+  <g stroke="#e2ddd2" stroke-width="1">
+    <line x1="0" y1="90"  x2="1600" y2="90"/>
+    <line x1="0" y1="180" x2="1600" y2="180"/>
+    <line x1="0" y1="270" x2="1600" y2="270"/>
+    <line x1="0" y1="360" x2="1600" y2="360"/>
+    <line x1="0" y1="450" x2="1600" y2="450"/>
+    <line x1="0" y1="540" x2="1600" y2="540"/>
+    <line x1="0" y1="630" x2="1600" y2="630"/>
+    <line x1="0" y1="720" x2="1600" y2="720"/>
+    <line x1="0" y1="810" x2="1600" y2="810"/>
+  </g>
+
+  <!-- apparatus: top rule + labels -->
+  <line x1="60" y1="64" x2="1540" y2="64" stroke="#cbc4b5" stroke-width="1"/>
+  <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="19" fill="#9a9488" letter-spacing="2.5">
+    <text x="60" y="48">OBSERVED WORK · AP INVOICES</text>
+    <text x="1540" y="48" text-anchor="end">DEMO REEL · 01:15 · 16:9</text>
+  </g>
+
+  <!-- the document sheet -->
+  <g>
+    <rect x="80" y="130" width="800" height="620" rx="4" fill="#fbf9f4" stroke="#e2ddd2" stroke-width="1"/>
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" letter-spacing="2.5">
+      <text x="118" y="184" font-size="17" fill="#9a9488">LIEFERANTENRECHNUNG</text>
+      <text x="842" y="184" font-size="17" fill="#6b665d" text-anchor="end">4471</text>
+      <line x1="118" y1="208" x2="842" y2="208" stroke="#cbc4b5" stroke-width="1"/>
+      <text x="118" y="256" font-size="18" fill="#6b665d">Lieferant</text>
+      <text x="842" y="256" font-size="18" fill="#22201c" text-anchor="end">Maschinenbau Krämer GmbH</text>
+      <text x="118" y="318" font-size="18" fill="#6b665d">Gegenstand</text>
+      <text x="842" y="318" font-size="18" fill="#22201c" text-anchor="end">CNC-Fräse · Typ 640</text>
+      <text x="118" y="380" font-size="18" fill="#6b665d">Netto</text>
+      <text x="842" y="380" font-size="22" fill="#22201c" text-anchor="end">6.400,00 €</text>
+      <line x1="118" y1="398" x2="842" y2="398" stroke="#4e6b44" stroke-width="2"/>
+      <text x="118" y="442" font-size="18" fill="#6b665d">Kostenstelle</text>
+      <text x="842" y="442" font-size="18" fill="#a2412e" text-anchor="end">—</text>
+      <text x="118" y="504" font-size="18" fill="#6b665d">Anlagennummer</text>
+      <text x="842" y="504" font-size="18" fill="#a2412e" text-anchor="end">—</text>
+      <text x="118" y="566" font-size="18" fill="#6b665d">Zahlungsziel</text>
+      <text x="842" y="566" font-size="18" fill="#22201c" text-anchor="end">2 % Skonto · 10 Tage</text>
+      <text x="118" y="628" font-size="18" fill="#6b665d">Steuercode</text>
+      <text x="842" y="628" font-size="18" fill="#22201c" text-anchor="end">V19</text>
+      <line x1="118" y1="660" x2="842" y2="660" stroke="#e2ddd2" stroke-width="1"/>
+      <text x="118" y="700" font-size="16" fill="#9a9488">Buchung</text>
+      <text x="842" y="700" font-size="16" fill="#4e6b44" text-anchor="end">0400 · CAPEX</text>
+    </g>
+    <!-- observation mark on the surprising field, in the gutter -->
+    <text x="900" y="386" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="16" fill="#22201c" letter-spacing="1.6">▮ observed</text>
+  </g>
+
+  <!-- the expert's rule, in her own words -->
+  <g>
+    <rect x="1040" y="180" width="500" height="270" rx="4" fill="#fbf9f4" stroke="#e2ddd2" stroke-width="1"/>
+    <line x1="1040" y1="180" x2="1040" y2="450" stroke="#8f6420" stroke-width="3"/>
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="16" fill="#8f6420" letter-spacing="2.5">
+      <text x="1074" y="222">? ONE QUESTION, AT A PAUSE</text>
+    </g>
+    <text x="1074" y="290" font-family="'Newsreader', 'Iowan Old Style', Georgia, serif" font-size="34" fill="#22201c">“Equipment over €5,000 net</text>
+    <text x="1074" y="334" font-family="'Newsreader', 'Iowan Old Style', Georgia, serif" font-size="34" fill="#22201c">is always capex.”</text>
+    <text x="1074" y="404" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="16" fill="#6b665d" letter-spacing="1.6">— Sabine, AP · 24 years · asked once</text>
+  </g>
+
+  <!-- the guardrail it learned -->
+  <g>
+    <rect x="1040" y="500" width="500" height="150" rx="4" fill="#fbf9f4" stroke="#e2ddd2" stroke-width="1"/>
+    <line x1="1040" y1="500" x2="1040" y2="650" stroke="#a2412e" stroke-width="3"/>
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="16" fill="#a2412e" letter-spacing="2.5">
+      <text x="1074" y="542">■ GUARDRAIL · CONFIRMED</text>
+    </g>
+    <text x="1074" y="592" font-family="'Newsreader', 'Iowan Old Style', Georgia, serif" font-size="27" fill="#22201c">No asset number, no capex booking.</text>
+  </g>
+
+  <!-- footer -->
+  <line x1="60" y1="836" x2="1540" y2="836" stroke="#cbc4b5" stroke-width="1"/>
+  <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="18" fill="#9a9488" letter-spacing="2.5">
+    <text x="60" y="876">LEARNS THE PART OF THE JOB NOBODY WROTE DOWN</text>
+    <text x="1540" y="876" text-anchor="end">▮◌✓■</text>
+  </g>
+</svg>

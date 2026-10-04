@@ -6,5 +6,6 @@
 backend/eval_out
 console/dist
 design
+site/shots
 advisory
 .git

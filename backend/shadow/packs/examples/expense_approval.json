@@ -1,0 +1,257 @@
+{
+  "id": "expense_approval",
+  "name": "Employee expense approval",
+  "task": "approve_expense_claim",
+  "goal": "Decide whether an employee expense claim is reimbursed, who must approve it, and which account it is posted to, so that policy is followed and genuinely risky claims are caught before payment.",
+  "expert_name": "Sabine",
+  "namespace": "task",
+  "version": 1,
+  "reference_date": "2026-10-03",
+  "process_doc": "# Expense claims \u2014 written process (extract, revised 2021)\n\n1. Open the claim and read the submitted facts.\n2. Check that a receipt is attached. A claim of 100 EUR or more without a receipt is returned to the employee.\n3. Choose the account: travel is 6200, software and equipment are 6300, meals are 6400, everything else is 6500.\n4. Route the claim. A claim is auto-approved unless the written limit of 500 EUR is exceeded, in which case the\n   line manager approves it.\n\n(The document is known to cover only part of what the team actually does. Nothing here describes how customer-\n billable spend, contractors, or late claims are judged.)",
+  "decision_fields": [
+    {
+      "name": "approval_route",
+      "label": "Approval route",
+      "options": ["auto_approve", "manager_approve", "finance_review", "reject"],
+      "option_labels": {
+        "auto_approve": "Auto-approve",
+        "manager_approve": "Line manager",
+        "finance_review": "Finance review",
+        "reject": "Reject"
+      }
+    },
+    {
+      "name": "gl_account",
+      "label": "GL account",
+      "options": ["6200", "6300", "6400", "6500", "9100"],
+      "option_labels": {
+        "6200": "Travel",
+        "6300": "Software & equipment",
+        "6400": "Meals & entertainment",
+        "6500": "Other operating expense",
+        "9100": "Billable to customer (clearing)"
+      }
+    }
+  ],
+  "actions": [
+    {"name": "reject", "label": "Reject the claim", "severity": 4},
+    {"name": "request_receipt", "label": "Request the receipt", "severity": 3},
+    {"name": "finance_review", "label": "Send to finance", "severity": 2},
+    {"name": "manager_approve", "label": "Send to line manager", "severity": 1},
+    {"name": "auto_approve", "label": "Auto-approve", "severity": 0}
+  ],
+  "features": [
+    {
+      "name": "amount_eur",
+      "label": "Amount",
+      "type": "num",
+      "source": "Expense form \u00b7 Amount (EUR)",
+      "unit": "EUR",
+      "lo": 20,
+      "hi": 8000,
+      "step": 10,
+      "scale": 120,
+      "threshold_capable": true,
+      "threshold_param": "T_amount",
+      "required": true,
+      "note": "Claim total converted to EUR at submission."
+    },
+    {
+      "name": "category",
+      "label": "Category",
+      "type": "cat",
+      "source": "Expense form \u00b7 Category",
+      "options": ["travel", "software", "meals", "equipment", "training", "other"],
+      "required": true
+    },
+    {
+      "name": "receipt_attached",
+      "label": "Receipt attached",
+      "type": "bool",
+      "source": "Attachments \u00b7 Receipt",
+      "required": true
+    },
+    {
+      "name": "days_since_expense",
+      "label": "Days since expense",
+      "type": "num",
+      "source": "Expense form \u00b7 Days since expense",
+      "unit": "days",
+      "lo": 0,
+      "hi": 180,
+      "step": 1,
+      "scale": 8,
+      "threshold_capable": true,
+      "threshold_param": "T_late_days",
+      "note": "Submission age; the written process says nothing about late claims."
+    },
+    {
+      "name": "preapproved",
+      "label": "Pre-approved",
+      "type": "bool",
+      "source": "Expense form \u00b7 Pre-approved"
+    },
+    {
+      "name": "customer_billable",
+      "label": "Billable to customer",
+      "type": "bool",
+      "source": "Expense form \u00b7 Billable to customer"
+    },
+    {
+      "name": "contractor",
+      "label": "Contractor",
+      "type": "bool",
+      "source": "Employee \u00b7 Contractor"
+    },
+    {
+      "name": "submit_date",
+      "label": "Submitted",
+      "type": "date",
+      "source": "Expense form \u00b7 Submitted",
+      "values": ["2026-06-15", "2026-07-04", "2026-08-21", "2026-09-18", "2026-10-01"]
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "order": 1,
+      "name": "Open the claim and read the facts",
+      "description": "Amount, category, employee, attachments, submission date."
+    },
+    {
+      "id": "S2",
+      "order": 2,
+      "name": "Check the receipt and the age of the claim",
+      "description": "Receipt present and within the written return window."
+    },
+    {
+      "id": "S3",
+      "order": 3,
+      "name": "Choose the account",
+      "decision_field": "gl_account"
+    },
+    {
+      "id": "S4",
+      "order": 4,
+      "name": "Route the claim",
+      "decision_field": "approval_route"
+    }
+  ],
+  "process_rules": [
+    {
+      "id": "D1",
+      "step_id": "S3",
+      "title": "Doc: travel \u2192 6200",
+      "when": "task.category == 'travel'",
+      "then": {"gl_account": "6200"}
+    },
+    {
+      "id": "D2",
+      "step_id": "S3",
+      "title": "Doc: software and equipment \u2192 6300",
+      "when": "task.category in ['software', 'equipment']",
+      "then": {"gl_account": "6300"}
+    },
+    {
+      "id": "D3",
+      "step_id": "S3",
+      "title": "Doc: meals \u2192 6400",
+      "when": "task.category == 'meals'",
+      "then": {"gl_account": "6400"}
+    },
+    {
+      "id": "D4",
+      "step_id": "S3",
+      "title": "Doc: everything else \u2192 6500",
+      "when": "True",
+      "then": {"gl_account": "6500"}
+    },
+    {
+      "id": "D5",
+      "step_id": "S4",
+      "title": "Doc: auto-approve",
+      "when": "True",
+      "then": {"approval_route": "auto_approve"}
+    },
+    {
+      "id": "D6",
+      "step_id": "S4",
+      "title": "Doc: over the written 500 EUR limit \u2192 line manager",
+      "when": "task.amount_eur > 500",
+      "then": {"approval_route": "manager_approve"}
+    },
+    {
+      "id": "D7",
+      "step_id": "S4",
+      "title": "Doc: approve when checked",
+      "when": "True",
+      "then": {"action": "auto_approve"}
+    }
+  ],
+  "process_guardrails": [
+    {
+      "id": "G1",
+      "step_id": "S2",
+      "title": "Doc: receipt required from 100 EUR",
+      "when": "task.receipt_attached == False and task.amount_eur >= 100",
+      "type": "hard_limit",
+      "action": "request_receipt"
+    }
+  ],
+  "exploration_priors": [
+    ["receipt_attached", "amount_eur"],
+    ["customer_billable", "category"],
+    ["contractor"],
+    ["days_since_expense"]
+  ],
+  "describe_fields": ["amount_eur", "category", "receipt_attached", "days_since_expense"],
+  "demo_seed": 17,
+  "demo": {
+    "capture": [
+      {
+        "id": "exp-7001",
+        "facts": {"amount_eur": 240.0, "category": "travel", "receipt_attached": true, "days_since_expense": 6.0,
+                  "preapproved": false, "customer_billable": false, "contractor": false, "submit_date": "2026-09-20"},
+        "status": "submitted"
+      },
+      {
+        "id": "exp-7002",
+        "facts": {"amount_eur": 1280.0, "category": "software", "receipt_attached": true, "days_since_expense": 12.0,
+                  "preapproved": true, "customer_billable": true, "contractor": false, "submit_date": "2026-09-01"},
+        "status": "submitted"
+      },
+      {
+        "id": "exp-7003",
+        "facts": {"amount_eur": 42.0, "category": "meals", "receipt_attached": false, "days_since_expense": 3.0,
+                  "preapproved": false, "customer_billable": false, "contractor": false, "submit_date": "2026-10-01"},
+        "status": "submitted"
+      },
+      {
+        "id": "exp-7004",
+        "facts": {"amount_eur": 610.0, "category": "equipment", "receipt_attached": true, "days_since_expense": 40.0,
+                  "preapproved": false, "customer_billable": false, "contractor": true, "submit_date": "2026-08-21"},
+        "status": "submitted"
+      }
+    ],
+    "tutor": [
+      {
+        "id": "exp-8001",
+        "facts": {"amount_eur": 780.0, "category": "software", "receipt_attached": true, "days_since_expense": 9.0,
+                  "preapproved": false, "customer_billable": true, "contractor": false, "submit_date": "2026-09-18"},
+        "status": "submitted"
+      },
+      {
+        "id": "exp-8002",
+        "facts": {"amount_eur": 95.0, "category": "meals", "receipt_attached": false, "days_since_expense": 21.0,
+                  "preapproved": false, "customer_billable": false, "contractor": false, "submit_date": "2026-09-10"},
+        "status": "submitted"
+      },
+      {
+        "id": "exp-8003",
+        "facts": {"amount_eur": 3000.0, "category": "training", "receipt_attached": true, "days_since_expense": 55.0,
+                  "preapproved": true, "customer_billable": false, "contractor": true, "submit_date": "2026-07-04"},
+        "status": "submitted"
+      }
+    ]
+  }
+}

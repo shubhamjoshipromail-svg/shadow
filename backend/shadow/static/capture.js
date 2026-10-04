@@ -720,6 +720,10 @@
     _onServer(m);
     if (m.type === "ask" && MODE !== "tutor") say("[[shadow:ask " + m.inquiry.id + "]]");
     if (m.type === "intervene" && m.intervention && m.intervention.id) say("[[shadow:intervene " + m.intervention.id + "]]");
+    if (m.type === "tutor_case" && m.prompt) {  // proactive coaching as a case opens: where to look, predict first
+      F.asking = true; F.askText = m.prompt; render();
+      say("[[shadow:say " + m.prompt.replace(/[\[\]]/g, "") + "]]");
+    }
     if (m.type === "session" || m.type === "mode") {
       var want = MODE === "tutor" ? "tutor" : "interviewer";
       if (V.conv && V.role !== want) { stopVoice(); startVoice(); }
@@ -780,13 +784,15 @@
   function overlay(iv) {
     if (!iv) return;
     var cards = $("cards");
-    var quote = iv.violation && iv.violation.quote ? (iv.violation.quote.translation || iv.violation.quote.text) : null;
+    // the hint ladder decides how much to reveal; the expert's words come at their rung, or on request (replay)
+    var quote = iv.violation && iv.violation.quote && (!iv.hint || iv.hint.quote) ?
+      (iv.violation.quote.translation || iv.violation.quote.text) : null;
     var el = document.createElement("div");
     el.className = "card";
     el.innerHTML = '<h4>Shadow stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
       '<div class="acts">' + (iv.id ? '<button class="btn amber" data-k="replay"></button>' : "") +
       '<button class="btn" data-k="ok">Got it</button></div>';
-    el.querySelector(".say").textContent = iv.say || "Let's pause here.";
+    el.querySelector(".say").textContent = (iv.say || "Let's pause here.") + (iv.hint && iv.hint.text ? " " + iv.hint.text : "");
     if (quote) el.querySelector("q").textContent = quote;
     var rb = el.querySelector('[data-k="replay"]');
     if (rb) {
