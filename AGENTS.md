@@ -18,3 +18,4 @@ See `CLAUDE.md` (project context, run instructions, conventions). Summary:
 - Claude Code (Opus) owns `backend/shadow/**`, `console/**`, integration, commits and pushes. Lovable owns the ERP UI at the repo root.
 - Codex and other agents work only on bounded tasks assigned in `advisory/codex-coordination/OPUS_TASKS.md`, edit only the files listed there, report in `advisory/codex-coordination/CODEX_STATUS.md`, and do not commit or push.
 - Reviews/advice go in `advisory/<topic>-<date>/`. Never edit `backend/shadow/engine.py` concurrently with another agent.
+- Support desk (/support/**) uses its own local React context (src/lib/support/store.tsx) and never mounts the ERP shell, window.shadowERP or capture.js; Invoices↔Support switch via full-document <a href> so invoice observer state cannot leak — the support surface must stay generic and extension-owned.
