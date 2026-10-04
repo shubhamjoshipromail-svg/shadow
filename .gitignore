@@ -60,3 +60,13 @@ design/film/out/vo_v4_de/
 design/film/out/stills/
 # local extension packages
 tacet-extension*.zip
+
+# generated media scratch (keep only picked assets in git)
+design/film/assets/candidates/*
+!design/film/assets/candidates/*-still.png
+!design/film/assets/candidates/compare.jpg
+design/film/out/sheet/
+design/film/out/tech-silent.mp4
+design/film/out/tech_sfx/
+design/film/out/tech_vo/
+design/film/out/tech_vo_fast/

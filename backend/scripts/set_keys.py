@@ -1,10 +1,11 @@
 """Write API keys into backend/.env without echoing them. Leave a prompt empty to keep the current value."""
 
+import sys
 from getpass import getpass
 from pathlib import Path
 
 ENV = Path(__file__).resolve().parent.parent / ".env"
-KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "ELEVENLABS_API_KEY"]
+KEYS = sys.argv[1:] or ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "ELEVENLABS_API_KEY"]  # or name the keys to set
 
 lines = ENV.read_text().splitlines() if ENV.exists() else []
 values = {}
