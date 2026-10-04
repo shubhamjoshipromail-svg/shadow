@@ -28,8 +28,13 @@ const DUR = 77.0
 const PORT = 9341
 
 // ---- timings: line i (1-based) starts at LINES[i-1]; keep in sync with L[] in film.html
-const LINES = [0.8,4.3,8.3,11.5,15.4,21.4,26.2,30.0,37.4,39.1,45.2,50.7,55.0,59.3,62.2,67.4,72.0]
-const vo = readFileSync(join(DIR, 'voiceover.txt'), 'utf8').split(/\r?\n/).filter((l) => /^\s*\d/.test(l))
+const LANG = String(flag('lang', 'en'))
+const SFX = LANG === 'en' ? '' : '.' + LANG
+// audio start times (the visuals in film.html stay on the original L[]); v4 narration needed small per-language shifts
+const LINES = LANG === 'de'
+  ? [0.8,4.3,8.4,11.5,15.4,21.4,26.2,30.0,37.3,39.2,45.2,50.7,55.0,59.7,62.2,67.4,72.0]
+  : [0.6,4.3,8.3,11.5,15.4,21.4,26.2,30.0,37.4,39.1,45.2,51.0,55.0,59.3,62.2,67.4,72.0]
+const vo = readFileSync(join(DIR, LANG === 'en' ? 'voiceover.txt' : `voiceover${SFX}.txt`), 'utf8').split(/\r?\n/).filter((l) => /^\s*\d/.test(l))
 
 async function launch() {
   const profile = join(tmpdir(), 'tacet-film-' + process.pid)
@@ -68,10 +73,10 @@ function vtt() {
     const wts = groups.map((g) => g.join(' ').length), tot = wts.reduce((a, b) => a + b, 0); let t = start
     groups.forEach((g, gi) => { const e = gi === groups.length - 1 ? end : t + ((end - start) * wts[gi]) / tot; cues.push(`${ts(t)} --> ${ts(e)}`, ...g, ''); t = e })
   })
-  writeFileSync(join(OUT, 'film.vtt'), cues.join('\n'))
+  writeFileSync(join(OUT, `film${SFX}.vtt`), cues.join('\n'))
 }
 function probe(f) { const r = spawnSync(FFMPEG, ['-i', f], { encoding: 'utf8' }); const m = r.stderr.match(/Duration: (\d+):(\d+):([\d.]+)/); return +m[1] * 3600 + +m[2] * 60 + +m[3] }
-const VO = join(ROOT, 'design/video/out/vo')
+const VO = flag('vo', false) && flag('vo') !== true ? resolve(String(flag('vo'))) : join(ROOT, 'design/video/out/vo')
 const durations = vo.map((_, i) => probe(join(VO, String(i + 1).padStart(2, '0') + '.mp3')))
 durations.forEach((d, i) => { const next = LINES[i + 1] ?? DUR; if (LINES[i] + d > next + 0.001) console.warn(`overlap: line ${i + 1} ends ${LINES[i] + d} > next start ${next}`) })
 
@@ -111,9 +116,9 @@ async function main() {
     filt.push(`[mus][vo1]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=600[duck]`)
     filt.push(`[duck][vo2]amix=inputs=2:normalize=0[mix]`); last = '[mix]'
   }
-  filt.push(`${last}apad,atrim=0:${DUR},loudnorm=I=-16:TP=-1.5:LRA=9[a]`)
-  const r = spawnSync(FFMPEG, ['-y', ...inputs, '-filter_complex', filt.join(';'), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', String(DUR), '-movflags', '+faststart', join(OUT, 'film.mp4')], { stdio: 'inherit' })
+  filt.push(`${last}apad,atrim=0:${DUR},loudnorm=I=-16:TP=-2.5:LRA=9[a]`)
+  const r = spawnSync(FFMPEG, ['-y', ...inputs, '-filter_complex', filt.join(';'), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', String(DUR), '-movflags', '+faststart', join(OUT, `film${SFX}.mp4`)], { stdio: 'inherit' })
   if (r.status) process.exit(r.status)
-  console.log('done: out/film.mp4')
+  console.log(`done: out/film${SFX}.mp4`)
 }
 main().catch((e) => { console.error(e); process.exit(1) })
