@@ -1,0 +1,20 @@
+{
+  "_note": "Narration (N*) and Mira's lines (M*) for the demo cut. Mira's lines are her real on-screen questions, re-voiced with her agent voice because the screen recordings captured only the mic.",
+  "voices": {"narrator": "hpp4J3VqNfWAUOO0d1Us", "mira": "cgSgspJ2msm6clMCkdW9"},
+  "lines": [
+    {"id": "N01", "voice": "narrator", "text": "[calmly] Sabine has booked supplier invoices for twenty-four years. On Friday, she retires."},
+    {"id": "N02", "voice": "narrator", "text": "On Monday, Lena starts. The written process covers maybe half of what Sabine actually does."},
+    {"id": "N03", "voice": "narrator", "text": "This is Tacet. Its apprentice is called Mira."},
+    {"id": "N04", "voice": "narrator", "text": "Mira has two jobs: learn from an expert, then teach the next person. Here, Shubham plays Sabine."},
+    {"id": "N05", "voice": "narrator", "text": "Mira watches the real app, and writes down her guess before every decision. The 2019 process says 4711. Sabine books 0400."},
+    {"id": "M01", "voice": "mira", "text": "[gently] You coded invoice 4471 to 0400 instead of 4711. What made you do that?"},
+    {"id": "N06", "voice": "narrator", "text": "She only asks when she's surprised, and only at a pause. The answer is compiled into a rule she can test: equipment over five thousand net is capex."},
+    {"id": "M02", "voice": "mira", "text": "Is there anything you'd never post without, or a moment where you'd stop and ask someone?"},
+    {"id": "N07", "voice": "narrator", "text": "[firmly] But words aren't proof. Mira answers invoices she has never seen, and seals every answer with a hash before anyone labels it. In a live run: nine of eleven, the threshold moved, then eleven of eleven."},
+    {"id": "N08", "voice": "narrator", "text": "Everything lands in a Work Map. Every rule is linked to the expert's own words, and the moment on screen."},
+    {"id": "N09", "voice": "narrator", "text": "An agent takes the same sealed test before it may act alone. And when two experts disagree, Mira shows exactly where, and who to ask."},
+    {"id": "N10", "voice": "narrator", "text": "Monday. Lena books a hydraulic press, codes it to capex, and reaches for Post."},
+    {"id": "M03", "voice": "mira", "text": "[warmly] Sabine would stop here. Why do you think? Her rule: hold a capex booking until asset accounting provides an asset number."},
+    {"id": "N11", "voice": "narrator", "text": "And it isn't tied to one workflow. On a support desk it had never seen, Mira learned the task from a few demonstrations, and started asking her own questions."}
+  ]
+}
