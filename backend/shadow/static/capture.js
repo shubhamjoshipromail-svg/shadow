@@ -168,7 +168,7 @@
       case "highlight":
         if (window.shadowERP && window.shadowERP.highlight) window.shadowERP.highlight(m.field);
         return;
-      case "intervene": overlay(m.intervention); break;
+      case "intervene": F.asking = false; overlay(m.intervention); break;  // the stop replaces the coaching card
       case "activity":
         if (m.activity && m.activity.paused === false) busy();
         break;
@@ -593,7 +593,7 @@
     $("hint").textContent = meta.hint;
     $("badge").textContent = meta.badge;
     $("cap-t").textContent = F.askText;
-    $("cap-h").textContent = V.conv ? NAME + " is listening \u2014 just answer out loud" : "Answer here \u2014 or start " + NAME + " to talk";
+    $("cap-h").textContent = V.conv ? NAME + " is listening \u2014 just answer out loud" : "Type an answer \u2014 or press Talk to say it";
     $("cap").title = F.askText;
     $("cap").classList.toggle("show", F.asking && !!F.askText);
     $("kid").setAttribute("aria-label", NAME + " \u2014 " + meta.status + (F.off ? " (off the record)" : ""));
