@@ -37,16 +37,17 @@ function Inbox() {
   });
 
   return (
-    <div className="p-4">
-      <div className="mb-3 flex items-center gap-2 rounded-sm border border-banner-foreground/25 bg-banner px-3 py-2 text-banner-foreground">
+    <div className="mx-auto max-w-[1400px] p-4 md:p-6">
+      <h1 className="page-title mb-1">Supplier invoices</h1>
+      <p className="mb-4 text-muted-foreground">Accounts payable inbox · Nordwerk Maschinenbau GmbH</p>
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-sm border-l-[3px] border-banner-foreground/60 bg-banner px-3 py-2 text-banner-foreground">
         <span className="font-semibold">Month-end close in 2 days</span>
         <span>·</span>
         <span>{openCount} invoices open</span>
       </div>
 
       <div className="rounded-sm border border-border bg-card">
-        <div className="flex items-center gap-3 border-b border-border px-3 py-2">
-          <h1 className="mr-4 text-[15px] font-semibold">Supplier invoices</h1>
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5">
           <input
             className="field max-w-64"
             placeholder="Search invoice no., supplier, amount…"
@@ -67,18 +68,18 @@ function Inbox() {
           </select>
           <span className="ml-auto text-muted-foreground">{rows.length} items</span>
         </div>
-        <table className="w-full text-[13px]">
-          <thead className="bg-muted text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-[14px]">
+          <thead className="border-b border-rule-strong text-left font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             <tr>
-              <th className="px-3 py-1.5 font-medium">Invoice no.</th>
-              <th className="px-3 py-1.5 font-medium">Supplier</th>
-              <th className="px-3 py-1.5 font-medium">Ctry</th>
-              <th className="px-3 py-1.5 font-medium">Invoice date</th>
-              <th className="px-3 py-1.5 font-medium">Due date</th>
-              <th className="px-3 py-1.5 text-right font-medium">Net</th>
-              <th className="px-3 py-1.5 text-right font-medium">Gross</th>
-              <th className="px-3 py-1.5 font-medium">Curr.</th>
-              <th className="px-3 py-1.5 font-medium">Status</th>
+              <th className="px-3 py-2 font-medium">Invoice no.</th>
+              <th className="px-3 py-2 font-medium">Supplier</th>
+              <th className="px-3 py-2 font-medium">Ctry</th>
+              <th className="px-3 py-2 font-medium">Invoice date</th>
+              <th className="px-3 py-2 font-medium">Due date</th>
+              <th className="px-3 py-2 text-right font-medium">Net</th>
+              <th className="px-3 py-2 text-right font-medium">Gross</th>
+              <th className="px-3 py-2 font-medium">Curr.</th>
+              <th className="px-3 py-2 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -88,19 +89,19 @@ function Inbox() {
                 data-shadow-entity={`invoice:${c.id}`}
                 data-shadow-action="open"
                 onClick={() => navigate({ to: "/invoice/$id", params: { id: c.id } })}
-                className="cursor-pointer border-t border-border even:bg-muted/40 hover:bg-accent"
+                className="cursor-pointer border-t border-border hover:bg-accent/60"
               >
-                <td className="px-3 py-1.5 font-mono text-primary">{c.invoice_no}</td>
-                <td className="px-3 py-1.5">{c.supplier.name}</td>
-                <td className="px-3 py-1.5" title={c.supplier.country}>
+                <td className="px-3 py-2 font-mono text-primary">{c.invoice_no}</td>
+                <td className="px-3 py-2">{c.supplier.name}</td>
+                <td className="px-3 py-2" title={c.supplier.country}>
                   {flag(c.supplier.country)} <span className="text-muted-foreground">{c.supplier.country}</span>
                 </td>
-                <td className="px-3 py-1.5 amount">{date(c.invoice_date)}</td>
-                <td className="px-3 py-1.5 amount">{date(c.due_date)}</td>
-                <td className="px-3 py-1.5 text-right amount">{money(c.net, c.currency)}</td>
-                <td className="px-3 py-1.5 text-right amount">{money(c.gross, c.currency)}</td>
-                <td className="px-3 py-1.5">{c.currency}</td>
-                <td className="px-3 py-1.5">
+                <td className="px-3 py-2 amount">{date(c.invoice_date)}</td>
+                <td className="px-3 py-2 amount">{date(c.due_date)}</td>
+                <td className="px-3 py-2 text-right amount">{money(c.net, c.currency)}</td>
+                <td className="px-3 py-2 text-right amount">{money(c.gross, c.currency)}</td>
+                <td className="px-3 py-2">{c.currency}</td>
+                <td className="px-3 py-2">
                   <StatusBadge status={c.status} />
                 </td>
               </tr>
@@ -113,7 +114,7 @@ function Inbox() {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

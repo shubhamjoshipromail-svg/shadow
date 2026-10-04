@@ -98,27 +98,27 @@ function WorkspaceInner({ c }: { c: Case }) {
     : null;
 
   return (
-    <div data-shadow-entity={`invoice:${c.id}`} className="flex h-[calc(100vh-2.5rem)] flex-col">
-      <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-2">
+    <div data-shadow-entity={`invoice:${c.id}`} className="flex flex-col lg:h-[calc(100vh-2.75rem)]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-card px-4 py-2.5">
         <Link to="/" className="text-primary hover:underline">
           ← Back to inbox
         </Link>
         <span className="text-muted-foreground">/</span>
         <span className="font-mono font-medium">{c.invoice_no}</span>
-        <span>{c.supplier.name}</span>
+        <span className="font-serif text-[18px]">{c.supplier.name}</span>
         <StatusBadge status={c.status} />
-        <span className="ml-auto amount text-[14px] font-semibold">{money(c.gross, c.currency)}</span>
+        <span className="ml-auto amount text-[15px] font-medium">{money(c.gross, c.currency)}</span>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(320px,0.8fr)_minmax(300px,0.75fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.8fr)_minmax(300px,0.75fr)]">
         {/* Document */}
         <div className="overflow-auto bg-muted p-4">
           <InvoiceDocument c={c} />
         </div>
 
         {/* Booking form */}
-        <div className="flex min-h-0 flex-col border-x border-border bg-card">
-          <div className="border-b border-border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="flex min-h-0 flex-col border-y border-border bg-card lg:border-x lg:border-y-0">
+          <div className="border-b border-border px-4 py-2 font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             Booking
           </div>
           <div className="flex-1 space-y-3 overflow-auto p-4">
@@ -258,7 +258,7 @@ function WorkspaceInner({ c }: { c: Case }) {
 
         {/* Context */}
         <div className="overflow-auto bg-card">
-          <div className="border-b border-border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="border-b border-border px-4 py-2 font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             Context
           </div>
           <ContextPanels c={c} />
@@ -266,9 +266,9 @@ function WorkspaceInner({ c }: { c: Case }) {
       </div>
 
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
-        <DialogContent className="max-w-md text-[13px]">
+        <DialogContent className="max-w-md text-[14px]">
           <DialogHeader>
-            <DialogTitle className="text-[15px]">
+            <DialogTitle className="font-serif text-[22px] font-normal">
               {dialog === "hold" && "Put invoice on hold"}
               {dialog === "second_approval" && "Send for 2nd approval"}
               {dialog === "escalate" && "Ask controller"}
@@ -325,7 +325,7 @@ function InvoiceDocument({ c }: { c: Case }) {
   const terms =
     t.skonto_pct > 0 ? `${t.skonto_pct}% Skonto within ${t.skonto_days} days, net ${t.net_days}` : `Net ${t.net_days} days`;
   return (
-    <div data-shadow-region="document" className="mx-auto max-w-[720px] bg-paper p-8 font-serif shadow-md">
+    <div data-shadow-region="document" className="mx-auto max-w-[720px] border border-rule-strong bg-paper p-5 font-serif md:p-8">
       <div className="flex items-start justify-between border-b-2 border-foreground pb-3">
         <div>
           <div className="text-[20px] font-semibold">{c.supplier.name}</div>
@@ -429,9 +429,9 @@ function ContextPanels({ c }: { c: Case }) {
       match = { label: `Price variance ${num(po.price_variance_pct)}%`, tone: "text-status-escalated" };
     else match = { label: "3-way match", tone: "text-status-posted" };
   }
-  const trig = "px-4 py-2 text-[13px] font-medium hover:no-underline";
+  const trig = "px-4 py-2.5 text-[14px] font-medium hover:no-underline";
   return (
-    <Accordion type="multiple" className="text-[12px]">
+    <Accordion type="multiple" className="text-[13px]">
       <AccordionItem value="supplier">
         <AccordionTrigger data-shadow-panel="supplier" className={trig}>Supplier</AccordionTrigger>
         <AccordionContent className="px-4">
