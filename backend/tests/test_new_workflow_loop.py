@@ -297,3 +297,26 @@ def test_tutor_refuses_a_work_map_with_nothing_learned(client, monkeypatch):
     monkeypatch.setattr(llm, "available", lambda: True)  # API guard only
     r = client.post("/api/sessions", json={"mode": "tutor", "pack": s.pack.id, "from_session": s.id})
     assert r.status_code == 409 and "no rules yet" in r.text
+
+
+def test_provider_outage_never_closes_the_observer(client, monkeypatch):
+    """Live: one failed model call raised inside the capture socket, closed it, and every later save was lost."""
+    s = start(client)
+    s.use_llm = True
+    monkeypatch.setattr(llm, "available", lambda: True)
+    async def down(*a, **k):
+        raise RuntimeError("provider down")
+    monkeypatch.setattr(llm, "parse", down)
+    with client.websocket_connect(f"/ws/capture?session={s.id}") as ws:
+        ws.send_json({"type": "hello", "session": s.id})
+        assert ws.receive_json()["type"] == "session"
+        ws.send_json({**page(), "session": s.id})
+        ws.send_json({"type": "field_changed", "field": "assigned_team", "before": "Support", "after": "Dispatch",
+                      "session": s.id})
+        ws.send_json({"type": "action", "name": "save_ticket", "session": s.id})
+        ws.send_json({"type": "hello", "session": s.id})  # still open: the server answers
+        for _ in range(50):
+            if ws.receive_json()["type"] == "session":
+                break
+    assert s.current_case and s.dps[s.current_case].prediction is not None
+    assert len(s.episodes) == 1

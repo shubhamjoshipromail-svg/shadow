@@ -870,7 +870,10 @@ async def ws_capture(ws: WebSocket, session: str | None = None, follow_latest: b
                     if m["type"] in COMPANION_EVENTS:
                         await _ws.send_text(json.dumps(_companion_view(m), default=str))
                 s.listeners.add(push)
-            await s.on_event(msg)
+            try:
+                await s.on_event(msg)
+            except Exception:  # noqa: BLE001 - one bad event (e.g. a provider outage) must never close the observer
+                log.exception("capture event %s failed", msg.get("type"))
     except WebSocketDisconnect:
         if s is not None and push is not None:
             s.listeners.discard(push)

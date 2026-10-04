@@ -11,6 +11,7 @@ fills uncovered fields and writes the human-readable rationale.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, create_model
@@ -18,6 +19,8 @@ from pydantic import BaseModel, Field, create_model
 from shadow import llm
 from shadow.packs.base import Pack
 from shadow.workmap import ACTIVE, FieldPred, MapPrediction, WorkMap, run_map
+
+log = logging.getLogger("shadow.novice")
 
 
 class NoviceOutput(BaseModel):
@@ -66,7 +69,12 @@ async def predict(wm: WorkMap, pack: Pack, case: dict[str, Any], use_llm: bool =
         f"Full case:\n{json.dumps({k: v for k, v in case.items() if not k.startswith('_')}, default=str)}\n\n"
         "Decide every field and the action. Prefer the learned rules over the work instruction when they conflict."
     )
-    out = await llm.parse(schema, system, user, tier="fast", max_tokens=800)
+    try:
+        out = await llm.parse(schema, system, user, tier="fast", max_tokens=800)
+    except Exception:  # noqa: BLE001 - no provider (outage, budget): guess from the map alone, never stall the session
+        log.exception("novice prediction fell back to the Work Map")
+        pred.rationale = "Following the written process and the rules learned so far (the language model was unavailable)."
+        return pred
     data = out.model_dump()
     for f in pack.decision_fields:
         if f.name not in pred.fields:
