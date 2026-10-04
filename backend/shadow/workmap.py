@@ -278,7 +278,10 @@ def check_proposal(wm: WorkMap, pack: Pack, case: dict[str, Any], booking: dict[
     for g in wm.guardrails:
         if g.belief.status not in statuses or not dsl.holds(g.when, gctx):
             continue
-        if g.action == "block" or _severity(pack, g.action) > _severity(pack, action):
+        # "block" forbids the routine save; any non-routine action (hold, escalate, ...) satisfies it.
+        # Otherwise a block on e.g. "0400 without an asset number" deadlocks against the rule that demands 0400.
+        if (_severity(pack, action) <= 1 if g.action == "block"
+                else _severity(pack, g.action) > _severity(pack, action)):
             out.append(Violation(kind="guardrail", node_id=g.id, field="action", expected=g.action, got=action,
                                  title=g.title, quote=g.quote, screen_moment=g.screen_moment))
     reported = {v.node_id for v in out if v.field == "action"}
