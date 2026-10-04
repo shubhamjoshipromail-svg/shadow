@@ -159,13 +159,23 @@ function ConsoleInner({ sid }: { sid: string }) {
       <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)_400px] gap-5 px-5 py-5">
         {/* LEFT: the exhibit + the conversation */}
         <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
-          <Section title="The workplace">
-            <p className="m-0 text-[13px] leading-relaxed text-ink-2">
-              {mode === 'tutor' ? snap.trainee : snap.expert} works in the ERP. Shadow sits in its corner, asks at pauses and
-              learns from what is saved. This notebook is for reviewing; nobody has to work in it.
-            </p>
-            <a href={`${erpUrl}/?shadow=${sid}`} target="nordwerk-erp" className="mt-3 inline-block"><Btn tone="primary">Open Nordwerk ERP ↗</Btn></a>
-            <div className="num mt-2 text-[10.5px] text-ink-3">opens pinned to session {sid}</div>
+          <Section title="The expert's screen" right={screen.stream ? <span className="num text-[10px] text-ink-3">{screen.frameCount} frames, kept locally</span> : null}>
+            {screen.stream ? (
+              <video ref={screen.videoRef} muted className="aspect-video w-full border border-rule bg-wash object-contain" />
+            ) : (
+              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-rule-strong text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink-1">
+                Share the expert’s screen
+                <span className="text-[11px] text-ink-3">frames stay in this browser</span>
+              </button>
+            )}
+            <label className="mt-3 flex items-start gap-2 text-[12px] text-ink-2">
+              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="mt-0.5 accent-[#4e6b44]" />
+              Read changed frames with a vision model (personal data blurred first)
+            </label>
+            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
+            <a href={`${erpUrl}/?shadow=${sid}`} target="nordwerk-erp" className="mt-3 block border-t border-rule pt-2.5 text-[12px] text-inferred hover:underline">
+              Demo: open Nordwerk ERP ↗ <span className="num text-[10.5px] text-ink-3">(pinned to this session)</span>
+            </a>
           </Section>
 
           <Section title="When to ask">
@@ -202,25 +212,6 @@ function ConsoleInner({ sid }: { sid: string }) {
             )}
           </Section>
 
-          <details className="panel px-4 py-3">
-            <summary className="label cursor-pointer">Optional · replay clips of this screen</summary>
-            <div className="mt-3">
-              {screen.stream && <div className="num mb-2 text-[10px] text-ink-3">{screen.frameCount} frames, kept in this browser</div>}
-            {screen.stream ? (
-              <video ref={screen.videoRef} muted className="aspect-video w-full border border-rule bg-wash object-contain" />
-            ) : (
-              <button onClick={() => screen.start()} className="flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-rule-strong text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink-1">
-                Share the expert’s screen
-                <span className="text-[11px] text-ink-3">frames stay in this browser</span>
-              </button>
-            )}
-            <label className="mt-3 flex items-start gap-2 text-[12px] text-ink-2">
-              <input type="checkbox" checked={vision} onChange={(e) => setVision(e.target.checked)} className="mt-0.5 accent-[#4e6b44]" />
-              Read changed frames with a vision model (personal data blurred first)
-            </label>
-            {screen.lastVision && <div className="mt-2 text-[11.5px] italic text-ink-3">read: “{screen.lastVision}”</div>}
-            </div>
-          </details>
 
 
           {mode === 'tutor' && live.interventions.length > 0 && (

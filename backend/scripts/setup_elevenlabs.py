@@ -29,6 +29,8 @@ ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 IDS_FILE = ROOT / ".elevenlabs_agents.json"
 API = "https://api.elevenlabs.io/v1/convai/agents"
+# Jessica: young, bright, warm, conversational — matches the intern companion
+VOICE_ID = os.getenv("SHADOW_VOICE_ID", "cgSgspJ2msm6clMCkdW9")
 
 PROMPT = (
     "You are Shadow, a quiet, curious apprentice. SHADOW_SESSION={{shadow_session}} MODE={{shadow_mode}}\n"
@@ -67,6 +69,7 @@ def payload(role: str, public_url: str) -> dict:
                                                      "params": {"system_tool_type": "skip_turn"}}},
                 },
             },
+            "tts": {"voice_id": VOICE_ID},
             # the expert is working, not chatting: don't prompt them after silence
             "turn": {"turn_eagerness": "patient", "turn_timeout": 30},
             "conversation": {"max_duration_seconds": 1800},
