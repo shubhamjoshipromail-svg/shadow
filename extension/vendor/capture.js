@@ -363,6 +363,7 @@
   var PAPER = "#fffdf7", INK = "#30362f", MUTED = "#697165", LINE = "#e0e3d8", ACCENT = "#627857";
   var UID = "sc" + Math.random().toString(36).slice(2, 8);
   var ART = API + "/companion/intern.png";
+  var ART_T = API + "/companion/teacher.png";  // teaching mode: same Mira, with a pointer (Codex art)
   // the learner-guide nudge: { level, text, look } from the server (or the harness hook)
   var NUDGE = { level: 0, text: "", look: [], case_id: null };
 
@@ -377,7 +378,7 @@
   };
 
   var SVG =
-    '<svg viewBox="145 96 426 520" aria-hidden="true" focusable="false">' +
+    '<svg class="sp-a" viewBox="145 96 426 520" aria-hidden="true" focusable="false">' +
       '<defs>' +
         '<clipPath id="' + UID + '-eyes"><ellipse cx="313" cy="294" rx="28" ry="24"/><ellipse cx="404" cy="289" rx="27" ry="24"/></clipPath>' +
         '<clipPath id="' + UID + '-curl"><path d="M470 329 L515 333 L537 362 L524 380 L509 386 L493 410 L468 401 L479 381 L487 365 Z"/></clipPath>' +
@@ -385,6 +386,16 @@
       '<image href="' + ART + '" width="1254" height="1254"/>' +
       '<g clip-path="url(#' + UID + '-eyes)" class="blink"><image href="' + ART + '" width="1254" height="1254" transform="translate(-552 0)"/></g>' +
       '<g class="curl"><g clip-path="url(#' + UID + '-curl)"><image href="' + ART + '" width="1254" height="1254"/></g></g>' +
+    '</svg>';
+  // teaching mode: only the forearm and pointer move, one slight lift in a long cycle
+  var SVG_T =
+    '<svg class="sp-t" viewBox="120 260 1120 880" aria-hidden="true" focusable="false">' +
+      '<defs>' +
+        '<clipPath id="' + UID + '-tb"><rect x="0" y="0" width="790" height="1254"/></clipPath>' +
+        '<clipPath id="' + UID + '-ta"><rect x="780" y="0" width="474" height="1254"/></clipPath>' +
+      '</defs>' +
+      '<g clip-path="url(#' + UID + '-tb)"><image href="' + ART_T + '" width="1254" height="1254"/></g>' +
+      '<g class="pointer"><g clip-path="url(#' + UID + '-ta)"><image href="' + ART_T + '" width="1254" height="1254"/></g></g>' +
     '</svg>';
 
   var CSS =
@@ -398,6 +409,11 @@
     '.portrait svg{display:block;width:100%;height:100%;overflow:hidden;image-rendering:pixelated}' +
     '.blink{animation:blink 8.6s steps(1,end) infinite;opacity:0}.curl{animation:curl 19s steps(2,end) infinite}' +
     '@keyframes blink{0%,91%,94%,100%{opacity:0}92%,93%{opacity:1}}' +
+    '.portrait .sp-t{display:none}#w.tutor .portrait .sp-a{display:none}#w.tutor .portrait .sp-t{display:block}' +
+    '#w.tutor{width:calc(var(--shadow-size)*1.58 + 8px)}#w.tutor .portrait{width:calc(var(--shadow-size)*1.58)}' +
+    '.pointer{transform-box:view-box;transform-origin:780px 1045px;animation:pointer 14s ease-in-out infinite}' +
+    '@keyframes pointer{0%,82%,100%{transform:rotate(0)}86%,89%{transform:rotate(-1.2deg)}93%{transform:rotate(0)}}' +
+    '#w.state-paused .pointer,#w.state-offline .pointer,#w.still .pointer{animation:none}' +
     '@keyframes curl{0%,79%,100%{transform:translate(0,0)}83%,86%{transform:translate(3px,0)}90%{transform:translate(1px,0)}}' +
     '.badge{position:absolute;right:-2px;top:5px;display:none;align-items:center;justify-content:center;min-width:17px;height:17px;border-radius:5px;background:#efe3bb;color:#67552c;border:1px solid #d8c999;font:600 11px/1 ui-monospace,monospace}' +
     '#w.state-question .badge,#w.state-learned .badge,#w.state-paused .badge,#w.state-offline .badge{display:flex}' +
@@ -523,7 +539,7 @@
         '<div class="toast pop" id="toast"></div>' +
         '<div class="showcap pop" id="showcap"></div>' +
       '</div>' +
-      '<button class="portrait" id="kid" type="button" aria-label="' + NAME + ' companion">' + SVG +
+      '<button class="portrait" id="kid" type="button" aria-label="' + NAME + ' companion">' + SVG + SVG_T +
         '<span class="badge" id="badge" aria-hidden="true"></span>' +
         '<span class="nbadge" id="nbadge" aria-hidden="true"></span></button>' +
       '<span class="hint" id="hint" aria-hidden="true">Here when you need me</span>' +

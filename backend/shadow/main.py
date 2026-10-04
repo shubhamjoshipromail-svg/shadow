@@ -521,6 +521,12 @@ async def companion_art() -> FileResponse:
     return FileResponse(STATIC / "intern.png", media_type="image/png", headers={"Cache-Control": "max-age=3600"})
 
 
+@app.get("/companion/teacher.png")
+async def companion_teacher_art() -> FileResponse:
+    """Mira in teaching mode (pointer), shown while she tutors a new hire."""
+    return FileResponse(STATIC / "teacher.png", media_type="image/png", headers={"Cache-Control": "max-age=3600"})
+
+
 @app.get("/api/erp/cases")
 async def erp_cases(session: str | None = None) -> list[dict[str, Any]]:
     if not sessions:
