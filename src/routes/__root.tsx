@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -14,6 +15,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ErpProvider } from "@/lib/erp/store";
 import { AppShell } from "@/components/erp/AppShell";
+import { SupportProvider } from "@/lib/support/store";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -118,15 +121,29 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const support = pathname === "/support" || pathname.startsWith("/support/");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ErpProvider>
-        <AppShell>
-          <Outlet />
-        </AppShell>
-        <Toaster position="top-right" />
-      </ErpProvider>
+      {support ? (
+        // Generic, extension-owned surface: no ERP context, no window.shadowERP, no capture.js.
+        <SupportProvider>
+          <div className="flex min-h-screen flex-col bg-background text-[14px]">
+            <WorkspaceHeader active="support" />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+          </div>
+        </SupportProvider>
+      ) : (
+        <ErpProvider>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </ErpProvider>
+      )}
+      <Toaster position="top-right" />
     </QueryClientProvider>
   );
 }
