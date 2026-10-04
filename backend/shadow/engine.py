@@ -29,8 +29,9 @@ from shadow.bayes import ThresholdPosterior, bald_discrete, entropy, posterior_u
 from shadow.packs.base import Pack
 from shadow.planner import Inquiry, Planner, impact_on_pool, sample_pool
 from shadow.store import Store
-from shadow.taskdef import match_feature, observation_to_case
-from shadow.workmap import (TRUSTED, Evidence, Guardrail, MapPrediction, Quote, Rule, ScreenMoment, WorkMap,
+from shadow import onboard
+from shadow.taskdef import DecisionFieldDef, FeatureDef, match_feature, observation_to_case
+from shadow.workmap import (TRUSTED, Step, Evidence, Guardrail, MapPrediction, Quote, Rule, ScreenMoment, WorkMap,
                             check_proposal, run_map)
 
 log = logging.getLogger("shadow.engine")
@@ -163,6 +164,7 @@ class Session:
         self.page_case: str | None = None
         self.page_identity: tuple | None = None
         self.page_decided = False
+        self.page_edited: dict[str, dict[str, Any]] = {}
         self._last_tutor_check: tuple[Any, float, dict[str, Any]] | None = None
         self.voice_owner: dict[str, str] | None = None  # one ElevenLabs conversation per session (see /voice)
         for node in [*self.wm.rules, *self.wm.guardrails]:
@@ -361,6 +363,7 @@ class Session:
         self.page_url = evt.get("url")
         self.page_identity = identity
         self.page_decided = False
+        self.page_edited = {}
         # A revisited item gets a fresh prospective prediction against today's map.
         case["id"] = "page-" + uuid.uuid4().hex[:12]
         case["_source_url"] = self.page_url
@@ -385,6 +388,9 @@ class Session:
             return
         feature = match_feature(self.pack.task_def, evt)
         if not feature:
+            # A control the task never heard of, edited by the expert: possibly the decision itself.
+            if self.mode == "capture" and evt.get("field"):
+                self.page_edited[str(evt["field"])] = dict(evt)
             return
         self.page_decided = False
         case = self.cases[self.page_case]
@@ -399,6 +405,83 @@ class Session:
                     f["value"] = evt.get("after")
             await self.observe_page({"url": self.page_url, "fields": fields})
 
+    async def _adopt_edited_controls(self, case: dict[str, Any], evt: dict[str, Any]) -> None:
+        """The expert changed choice controls the learned task has no decision field for.
+
+        Live (Support desk): a workflow onboarded from a page where nothing was edited had no decision fields, so
+        the only "decision" was the save button, always predicted right, never a gap, never a question, an empty
+        Work Map. Edited choice controls are the expert's decisions: adopt them (and the page's other readable
+        facts) into the task, persist the new version, and let this very save count as the first surprise.
+        """
+        edited = self.page_edited
+        self.page_edited = {}
+        task = self.pack.task_def
+        by_name = {str(f.get("name")): f for f in self.page_fields if f.get("name")}
+        known_decisions = {d.name for d in task.decision_fields}
+        decisions: list[DecisionFieldDef] = []
+        for name, ch in edited.items():
+            page = by_name.get(name, {})
+            options = [str(o) for o in (page.get("options") or ch.get("options") or []) if o not in (None, "")]
+            kind = str(page.get("kind") or ch.get("kind") or "").lower()
+            if not (options or kind in ("select", "select-one", "radio")) or ch.get("redacted") or page.get("redacted"):
+                continue  # free text / numbers typed by hand are not a choice among options
+            ident = onboard._identifier(name, "field")
+            if ident in known_decisions or any(d.name == ident for d in decisions):
+                continue
+            after = ch.get("after")
+            if after not in (None, "") and str(after) not in options:
+                options.append(str(after))
+            decisions.append(DecisionFieldDef(name=ident, label=str(page.get("label") or ch.get("label") or name),
+                                              options=options, option_labels={o: o for o in options}))
+        if not decisions:
+            return
+        taken = {onboard._norm(x) for d in decisions for x in (d.name, d.label)}
+        features: list[FeatureDef] = []
+        for f in self.page_fields:
+            name = str(f.get("name") or "")
+            if not name or f.get("redacted") or match_feature(task, f) or onboard._norm(name) in taken \
+                    or name in edited or name.lower().rsplit("_", 1)[-1] in ("id", "no", "number", "ref"):
+                continue
+            vk = str(f.get("value_kind") or "text")
+            if onboard._type_from_value_kind(vk) == "cat" and not f.get("options") \
+                    and not (isinstance(f.get("value"), str) and 0 < len(f["value"]) <= 24):
+                continue  # free text is not a fact a rule can compare
+            features.append(onboard._feature_from_record({
+                "name": name, "label": f.get("label") or name, "kind": f.get("kind") or "", "value_kind": vk,
+                "options": list(f.get("options") or []), "values": [f["value"]] if f.get("value") is not None else [],
+                "title": task.name}))
+        self.pack.extend_task(decisions, features)
+        for d in decisions:
+            if not self.wm.step_for_field(d.name):
+                self.wm.steps.append(Step(id=self.wm.next_id("S"), order=len(self.wm.steps) + 1,
+                                          name=f"Decide {d.label or d.name}", decision_field=d.name))
+        # this item: the edited controls are its booking, the newly readable facts are its facts
+        obs = [{"field": f.get("name"), "label": f.get("label"), "value": f.get("value")}
+               for f in self.page_fields if not f.get("redacted")]
+        fresh = observation_to_case(self.pack.task_def, obs)
+        for k, v in fresh["facts"].items():
+            if k not in {d.name for d in self.pack.decision_fields}:
+                case["facts"][k] = v
+                case.setdefault("_availability", {})[k] = fresh["_availability"].get(k, "missing")
+        for d in decisions:
+            for name, ch in edited.items():
+                if onboard._identifier(name, "field") == d.name:
+                    case["booking"][d.name] = ch.get("after")
+        self._persist_task()
+        await self.emit("task_extended", {"decision_fields": [d.name for d in decisions],
+                                          "features": [f.name for f in features]})
+
+    def _persist_task(self) -> None:
+        if not self.store or self.simulated:
+            return
+        row = self.store.workflow(self.pack.id)
+        if not row:
+            return
+        sig = dict(row.get("signature") or {})
+        sig["fields"] = sorted({*(sig.get("fields") or []), *(f.name for f in self.pack.task_def.features),
+                                *(d.name for d in self.pack.task_def.decision_fields)})
+        self.store.save_workflow(self.pack.id, row["workspace"], row["name"], self.pack.task_def.model_dump(mode="json"), sig)
+
     async def page_action(self, evt: dict[str, Any]) -> dict[str, Any] | None:
         # capture records one decision per page; the tutor re-checks every save (double reports dedupe below)
         if not self.page_case or (self.page_decided and self.mode != "tutor"):
@@ -410,6 +493,8 @@ class Session:
         if action is None:  # navigation and helper buttons are not decisions
             return None
         case = self.cases[self.page_case]
+        if self.mode == "capture":
+            await self._adopt_edited_controls(case, evt)
         # The action snapshot includes decisions left unchanged by the expert.
         for f in evt.get("fields") or []:
             feature = match_feature(self.pack.task_def, f)

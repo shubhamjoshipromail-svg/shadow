@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from typing import Any, Iterator
 
 from shadow.packs.base import FieldSpec
-from shadow.taskdef import FeatureDef, TaskDefinition, load_task_definition
+from shadow.taskdef import FeatureDef, ProcessStepDef, TaskDefinition, load_task_definition
 
 _MISSING = object()
 
@@ -52,6 +52,24 @@ class GenericPack:
         # meaning; the engine subtracts these before judging "novel facts".
         self.derive_noise = {"id", *(d.name for d in task.decision_fields)} | {f"{f.name}_{part}" for f in task.features if f.type == "date"
                                       for part in ("month", "day")}
+
+    def extend_task(self, decisions: list[Any], features: list[Any]) -> None:
+        """Adopt decision fields / features learned at runtime (in place: sessions keep their pack reference)."""
+        t = self.task_def
+        have_d = {d.name for d in t.decision_fields}
+        have_f = {f.name for f in t.features}
+        t.decision_fields = [*t.decision_fields, *(d for d in decisions if d.name not in have_d)]
+        t.features = [*t.features, *(f for f in features if f.name not in have_f)]
+        have_s = {s.decision_field for s in t.steps}
+        t.steps = [*t.steps, *(ProcessStepDef(id=f"S{len(t.steps) + i + 1}", order=len(t.steps) + i + 1,
+                                              name=f"Decide {d.label or d.name}", decision_field=d.name)
+                               for i, d in enumerate(d for d in decisions if d.name not in have_s))]
+        t.exploration_priors = t.exploration_priors or [[f.name] for f in t.features[:3]]
+        self.decision_fields = [FieldSpec(d.name, d.label or d.name, list(d.options) or None, dict(d.option_labels))
+                                for d in t.decision_fields]
+        self.derive_noise = {"id", *(d.name for d in t.decision_fields)} | {
+            f"{f.name}_{part}" for f in t.features if f.type == "date" for part in ("month", "day")}
+        self.exploration_priors = [set(p) for p in t.exploration_priors]
 
     # ------------------------------------------------------------- cases
     def _materialize(self, case: dict[str, Any]) -> dict[str, Any]:

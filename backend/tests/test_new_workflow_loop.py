@@ -320,3 +320,33 @@ def test_provider_outage_never_closes_the_observer(client, monkeypatch):
         assert "episode" in seen
     assert s.current_case and s.dps[s.current_case].prediction is not None
     assert len(s.episodes) == 1
+
+
+def test_workflow_onboarded_without_edits_adopts_the_controls_the_expert_changes(client):
+    """Live bug (Support desk, Me1/Me2): the demo had no edits, so the task had no decision field, the save was
+    always 'predicted correctly', and the Work Map stayed v0 with nothing to ask about."""
+    thin = [[{"type": "observe", "url": f"https://desk.test/ticket/{i}", "title": "Service desk",
+              "fields": [{"name": "open_hours", "label": "Hours open", "kind": "number", "value_kind": "num",
+                          "value": 3}]},
+             {"type": "action", "name": "save_ticket", "label": "Save routing"}] for i in range(2)]
+    r = client.post("/api/onboard", json={"goal": "Route service tickets", "demos": thin, "events": True,
+                                         "pack_id": "test_service_loop", "expert": "Alex"})
+    assert r.status_code == 200, r.text
+    s = main.sessions[r.json()["session"]["id"]]
+    s.proposer, s.compiler = no_proposals, translate
+    assert not s.pack.decision_fields
+    event(client, s, page(hours=30, level="Premium"))
+    first = s.current_case
+    event(client, s, {"type": "field_changed", "field": "assigned_team", "before": "Support", "after": "Dispatch"})
+    assert event(client, s, {"type": "action", "name": "save_ticket"})["allow"]
+    assert [d.name for d in s.pack.decision_fields] == ["assigned_team"]
+    assert s.cases[first]["facts"]["service_level"] == "Premium"
+    assert len(s.episodes) == 1 and s.episodes[0].expert["assigned_team"] == "Dispatch"
+    assert s.episodes[0].gaps, "a decision nobody predicted must surface as a gap"
+    # durable: a later session on this workflow starts with the decision field
+    saved = main.store.workflow("test_service_loop")
+    assert [d["name"] for d in saved["definition"]["decision_fields"]] == ["assigned_team"]
+    assert s.wm.step_for_field("assigned_team")
+    # and the next ticket is predicted on it
+    event(client, s, page(hours=4, url="https://desk.test/ticket/9"))
+    assert "assigned_team" in s.dps[s.current_case].prediction.fields or "assigned_team" in s.dps[s.current_case].prediction.uncovered
