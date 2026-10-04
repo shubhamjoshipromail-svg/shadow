@@ -10,11 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as InvoiceIdRouteImport } from './routes/invoice.$id'
+import { Route as SupportIndexRouteImport } from './routes/support.index'
+import { Route as SupportTicketIdRouteImport } from './routes/support.$ticketId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvoiceIdRoute = InvoiceIdRouteImport.update({
@@ -22,30 +30,56 @@ const InvoiceIdRoute = InvoiceIdRouteImport.update({
   path: '/invoice/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportIndexRoute = SupportIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SupportRoute,
+} as any)
+const SupportTicketIdRoute = SupportTicketIdRouteImport.update({
+  id: '/$ticketId',
+  path: '/$ticketId',
+  getParentRoute: () => SupportRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/support': typeof SupportRouteWithChildren
   '/invoice/$id': typeof InvoiceIdRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
+  '/support/': typeof SupportIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invoice/$id': typeof InvoiceIdRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
+  '/support': typeof SupportIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/support': typeof SupportRouteWithChildren
   '/invoice/$id': typeof InvoiceIdRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
+  '/support/': typeof SupportIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/invoice/$id'
+  fullPaths:
+    '/' | '/support' | '/invoice/$id' | '/support/$ticketId' | '/support/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/invoice/$id'
-  id: '__root__' | '/' | '/invoice/$id'
+  to: '/' | '/invoice/$id' | '/support/$ticketId' | '/support'
+  id:
+    | '__root__'
+    | '/'
+    | '/support'
+    | '/invoice/$id'
+    | '/support/$ticketId'
+    | '/support/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SupportRoute: typeof SupportRouteWithChildren
   InvoiceIdRoute: typeof InvoiceIdRoute
 }
 
@@ -58,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoice/$id': {
       id: '/invoice/$id'
       path: '/invoice/$id'
@@ -65,11 +106,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvoiceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support/': {
+      id: '/support/'
+      path: '/'
+      fullPath: '/support/'
+      preLoaderRoute: typeof SupportIndexRouteImport
+      parentRoute: typeof SupportRoute
+    }
+    '/support/$ticketId': {
+      id: '/support/$ticketId'
+      path: '/$ticketId'
+      fullPath: '/support/$ticketId'
+      preLoaderRoute: typeof SupportTicketIdRouteImport
+      parentRoute: typeof SupportRoute
+    }
   }
 }
 
+interface SupportRouteChildren {
+  SupportTicketIdRoute: typeof SupportTicketIdRoute
+  SupportIndexRoute: typeof SupportIndexRoute
+}
+
+const SupportRouteChildren: SupportRouteChildren = {
+  SupportTicketIdRoute: SupportTicketIdRoute,
+  SupportIndexRoute: SupportIndexRoute,
+}
+
+const SupportRouteWithChildren =
+  SupportRoute._addFileChildren(SupportRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SupportRoute: SupportRouteWithChildren,
   InvoiceIdRoute: InvoiceIdRoute,
 }
 export const routeTree = rootRouteImport
