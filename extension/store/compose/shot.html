@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tacet — Chrome Web Store screenshot composition</title>
+<!--
+  Store screenshot composition. Rendered by compose/render.mjs at 1280x800 with
+  headless Chrome (CDP :9351). This page is the *host*: a plain third-party form
+  in the Tacet paper/ink register. The companion bottom-right is the real
+  backend/shadow/static/capture.js, served by the render harness and driven by a
+  fake Tacet Core over /ws/capture (never port 8000). The page-level caption is
+  burned in for the store listing.
+-->
+<style>
+  :root{
+    --paper:#f4f1ea; --sheet:#fbf9f4; --wash:#efebe2;
+    --rule:#e2ddd2; --rule-strong:#cbc4b5;
+    --ink-1:#22201c; --ink-2:#6b665d; --ink-3:#9a9488;
+    --confirmed:#4e6b44; --binding:#a2412e; --query:#8f6420; --inferred:#56677c;
+    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink-1);
+    font-family:var(--sans);font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .top{
+    height:46px;display:flex;align-items:center;gap:14px;
+    padding:0 26px;border-bottom:1px solid var(--rule);background:var(--paper);
+  }
+  .wordmark{display:inline-flex;align-items:center;gap:9px;font-weight:600;
+            letter-spacing:-.02em;font-size:16px}
+  .wordmark .mark{position:relative;width:13px;height:13px;flex:none}
+  .wordmark .mark i{position:absolute;inset:0;display:block}
+  .wordmark .mark i:first-child{transform:translate(3px,-3px);background:#c9d1bb}
+  .wordmark .mark i:last-child{background:var(--confirmed)}
+  .top .meta{margin-left:auto;font-family:var(--mono);font-size:10.5px;
+             letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+  /* the burned-in one-line caption, in the site's own register */
+  .captionband{
+    display:flex;align-items:baseline;gap:14px;
+    padding:15px 26px 16px;border-bottom:1px solid var(--rule);background:var(--paper);
+  }
+  .captionband .label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3);flex:none}
+  .captionband p{margin:0;font-family:var(--serif);font-size:20px;line-height:1.2;
+    letter-spacing:-.01em;color:var(--ink-1);white-space:nowrap}
+  .captionband .mk{font-family:var(--mono);color:var(--query);margin-right:7px}
+
+  .page{padding:22px 0 34px}
+  .sheet{
+    width:660px;margin:0 auto;background:var(--sheet);
+    border:1px solid var(--rule);border-radius:4px;padding:26px 32px 28px;
+  }
+  .eyebrow{margin:0;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+           text-transform:uppercase;color:var(--ink-3)}
+  h1{font-family:var(--serif);font-weight:400;font-size:30px;letter-spacing:-.02em;
+     margin:8px 0 4px}
+  .lede{margin:0 0 24px;color:var(--ink-2);max-width:56ch}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .row{margin-bottom:15px}
+  label{display:block;margin-bottom:6px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+  input[type="text"],input[type="number"],select,textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--rule-strong);border-radius:3px;
+    background:#fff;color:var(--ink-1);font:inherit;font-size:14px;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid #dfe6d6;outline-offset:0;
+    border-color:var(--confirmed)}
+  .check{display:flex;align-items:center;gap:9px}
+  .check input{width:17px;height:17px;accent-color:var(--confirmed)}
+  .check label{margin:0;font-weight:500}
+  .actions{display:flex;gap:10px;margin-top:22px;align-items:center}
+  button{font:inherit;color:inherit;cursor:pointer;padding:9px 16px;
+         border:1px solid var(--rule-strong);border-radius:3px;background:var(--sheet)}
+  button:hover{border-color:var(--ink-2)}
+  button.primary{background:var(--ink-1);border-color:var(--ink-1);color:var(--paper)}
+  button#hold{margin-left:auto}
+
+</style>
+</head>
+<body>
+  <header class="top">
+    <span class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i></span> Tacet</span>
+    <span class="meta">Tacet for Chrome</span>
+  </header>
+
+  <div class="captionband">
+    <span class="label">Tacet</span>
+    <p id="caption-text"></p>
+  </div>
+
+  <main class="page">
+    <section class="sheet">
+      <p class="eyebrow">Accounts payable</p>
+      <h1>Invoice review</h1>
+      <p class="lede">A page we did not build. Mira reads the form that is already here.</p>
+
+      <form id="inv" autocomplete="off" onsubmit="return false">
+        <div class="grid">
+          <div class="row">
+            <label for="supplier">Supplier</label>
+            <input id="supplier" name="supplier" type="text" value="Nordwerk Geräte GmbH">
+          </div>
+          <div class="row">
+            <label for="invoice_no">Invoice number</label>
+            <input id="invoice_no" name="invoice_no" type="text" value="RE-4471">
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="row">
+            <label for="net">Net amount</label>
+            <input id="net" name="net" type="number" step="0.01" value="0">
+          </div>
+          <div class="row">
+            <label for="tax">Tax rate</label>
+            <select id="tax" name="tax">
+              <option>19%</option>
+              <option>7%</option>
+              <option>0%</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="cost_center">Cost centre</label>
+          <input id="cost_center" name="cost_center" type="text" value="0400">
+        </div>
+
+        <div class="row check">
+          <input id="receipt" name="receipt" type="checkbox">
+          <label for="receipt">Receipt attached</label>
+        </div>
+
+        <div class="row">
+          <label for="note">Note</label>
+          <textarea id="note" name="note" rows="2" placeholder="What is this for?"></textarea>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="book" name="book" type="button">Book invoice</button>
+          <button id="hold" name="hold" type="button">Hold</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    /* Fill the page to suit the story, and pick the one-line caption. */
+    (function () {
+      var state = new URLSearchParams(location.search).get("state") || "watch";
+      var caption = {
+        watch: "Mira watches the form you already have — no integration, no new app.",
+        ask: "At a pause, she asks one question — in the expert\u2019s own words.",
+        intervene: "The answer comes back as a rule: the next person is stopped in her words."
+      }[state] || "";
+      document.getElementById("caption-text").innerHTML =
+        '<span class="mk" aria-hidden="true">\u25ae</span>' + caption;
+      if (state === "ask" || state === "intervene") {
+        document.getElementById("net").value = "6400.00";
+        document.getElementById("cost_center").value = "0400";
+        document.getElementById("receipt").checked = false;
+      }
+    })();
+  </script>
+  <!-- The real companion (driver sends session + the state message over /ws/capture). -->
+  <script src="/capture.js"></script>
+</body>
+</html>

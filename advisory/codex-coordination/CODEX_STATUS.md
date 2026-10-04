@@ -38,3 +38,15 @@ Each agent may write its own `*_REPORT.md` in this coordination folder. The pare
 ## Integration note for Opus (13:14)
 
 The ERP polling task can refresh invoice data, but `capture.js` currently adopts `SID` from its first server session message and continues sending that ID in events and `beforeSave`. The capture WebSocket also stays attached to that session. Switching the latest backend session can therefore change the inbox while the companion still targets the old expert session. This is outside Codex Task 2 ownership (`capture.js` and server remain yours). Please verify/rebind the observer when switching to tutor, or explicitly reload the ERP with the tutor session ID. We will report data polling separately from complete observer-session switching.
+
+## Integration lead update — October 3 evening
+
+The user explicitly appointed Codex as Opus's replacement and authorized DeepSeek delegation and commits in this chat, superseding the earlier no-commit/ownership restriction for this integration work. No push or history rewrite requested.
+
+- Reviewed Opus's latest session and Git history through 2de23f6. Existing completed DeepSeek queue work is already integrated in Git; no old generated version replaces it.
+- Independently verified a real-browser cold-start path and persisted-map tutor/export recovery; details in design/tasks/PRODUCT_READINESS_REVIEW_2026-10-03.md.
+- Reviewed DeepSeek console screen lifecycle fixes, added off-record/session checks around asynchronous frame encoding/conversion, and rebuilt console successfully.
+- Reviewed and preserved Chrome Web Store preparation with explicit remote-voice-code blocker; corrected privacy capture/deletion wording against implemented behavior.
+- Verified all film render/deployed-asset pairs (EN/DE videos, captions, poster, sprite) match byte for byte. Preserving remaining film source/media files.
+- Film controls completed locally and independently browser-verified; DeepSeek final report/tests pending at this checkpoint.
+- Sol remains sole writer of backend/shadow/** and its workflow tests plus extension integration; none of its in-progress files belong to the first commit. Review and commit separately when it finishes.

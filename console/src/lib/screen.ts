@@ -32,28 +32,84 @@ export function useScreen(opts: {
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const streamRef = useRef<MediaStream | null>(null) // the one stream this hook owns
   const frames = useRef<Frame[]>([])
   const [frameCount, setFrameCount] = useState(0)
   const [lastVision, setLastVision] = useState<string | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
 
-  const start = useCallback(async () => {
-    const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 10 }, audio: false })
-    s.getVideoTracks()[0].addEventListener('ended', () => setStream(null))
-    setStream(s)
+  // Capture ownership. `generation` invalidates a permission request that was still in
+  // flight when the user stopped, restarted, or the console unmounted, so a late picker
+  // result can never leave an orphaned track (and a second Chrome sharing indicator) behind.
+  // `pending` dedupes concurrent start() calls so only one picker/stream can ever exist.
+  const generation = useRef(0)
+  const pending = useRef(false)
+  const mounted = useRef(true)
+
+  const dropFrames = useCallback(() => {
+    for (const f of frames.current) URL.revokeObjectURL(f.url)
+    frames.current = []
+    if (mounted.current) setFrameCount(0)
   }, [])
 
+  const stopTracks = useCallback((s: MediaStream | null) => {
+    if (!s) return
+    try { s.getTracks().forEach((t) => t.stop()) } catch { /* tracks already gone */ }
+  }, [])
+
+  /** Stop and forget the stream this hook owns, and release its in-memory frame URLs. */
+  const release = useCallback(() => {
+    const s = streamRef.current
+    streamRef.current = null
+    stopTracks(s)
+    dropFrames()
+    if (mounted.current) setStream(null)
+  }, [dropFrames, stopTracks])
+
+  const start = useCallback(async () => {
+    if (!mounted.current) return
+    if (streamRef.current) return // already sharing: never open a second stream
+    if (pending.current) return // one permission request at a time
+    pending.current = true
+    const mine = ++generation.current
+    try {
+      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 10 }, audio: false })
+      // Stop/unmount/newer start happened while the picker was open: drop this stream.
+      if (!mounted.current || mine !== generation.current) { stopTracks(s); return }
+      const track = s.getVideoTracks()[0]
+      if (track) track.addEventListener('ended', () => { if (streamRef.current === s) release() })
+      streamRef.current = s
+      setStream(s)
+    } catch {
+      /* picker cancelled or denied: stay off, silently */
+    } finally {
+      if (mine === generation.current) pending.current = false
+    }
+  }, [release, stopTracks])
+
   const stop = useCallback(() => {
-    stream?.getTracks().forEach((t) => t.stop())
-    setStream(null)
-  }, [stream])
+    generation.current++ // invalidate a permission request still in flight
+    pending.current = false
+    release()
+  }, [release])
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      generation.current++
+      pending.current = false
+      release()
+    }
+  }, [release])
 
   useEffect(() => {
     if (!stream || !videoRef.current) return
     const video = videoRef.current
     video.srcObject = stream
     void video.play()
+    let disposed = false
     const small = document.createElement('canvas')
     small.width = HASH
     small.height = 9
@@ -63,9 +119,11 @@ export function useScreen(opts: {
     let prev: Uint8Array | null = null
     let lastSent = 0
     let busy = false
+    // a frame is only kept while this exact stream is still the owned one
+    const live = () => !disposed && streamRef.current === stream
 
     const timer = window.setInterval(async () => {
-      if (!video.videoWidth) return
+      if (!live() || !video.videoWidth) return
       const h = aHash(sctx, video)
       const changed = !prev || hamming(prev, h) > 5
       prev = h
@@ -89,7 +147,7 @@ export function useScreen(opts: {
       }
       if (optsRef.current.paused) return // off the record: nothing is kept
       const blob = await new Promise<Blob | null>((r) => big.toBlob(r, 'image/jpeg', 0.6))
-      if (!blob) return
+      if (!blob || !live() || optsRef.current.paused) return // capture may stop or pause while encoding
       frames.current.push({ epoch: Date.now() / 1000, url: URL.createObjectURL(blob) })
       if (frames.current.length > 1500) URL.revokeObjectURL(frames.current.shift()!.url)
       setFrameCount(frames.current.length)
@@ -99,17 +157,26 @@ export function useScreen(opts: {
       if (optsRef.current.vision && optsRef.current.sid && !busy && now - lastSent > 2500) {
         busy = true
         lastSent = now
+        const visionSid = optsRef.current.sid
         const b64 = await blobToB64(blob)
+        if (!live() || optsRef.current.paused || !optsRef.current.vision || optsRef.current.sid !== visionSid) {
+          busy = false
+          return
+        }
         try {
-          const reading = await api<{ summary?: string }>(`/api/sessions/${optsRef.current.sid}/frames`, {
+          const reading = await api<{ summary?: string }>(`/api/sessions/${visionSid}/frames`, {
             method: 'POST', body: JSON.stringify({ image: b64, media_type: 'image/jpeg' }),
           })
-          if (reading.summary) setLastVision(reading.summary)
+          if (live() && reading.summary) setLastVision(reading.summary)
         } catch { /* vision is best-effort */ }
         busy = false
       }
     }, 1000)
-    return () => window.clearInterval(timer)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+      if (video.srcObject === stream) video.srcObject = null
+    }
   }, [stream])
 
   const frameAt = useCallback((epoch: number): Frame | null => {

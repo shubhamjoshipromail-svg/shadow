@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tacet — Privacy</title>
+<meta name="description" content="What the Tacet apprentice and its Chrome extension read, what never leaves the page, where the data is stored, and how to have a session deleted.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23f4f1ea'/%3E%3Crect x='3' y='3' width='7' height='7' fill='%23c9d1bb'/%3E%3Crect x='6' y='6' width='7' height='7' fill='%234e6b44'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300&display=swap" rel="stylesheet">
+<style>
+  /* ── the same tokens as the landing page (design/DESIGN.md) ──────────────── */
+  :root{
+    --paper:#f4f1ea; --sheet:#fbf9f4; --wash:#efebe2;
+    --rule:#e2ddd2; --rule-strong:#cbc4b5;
+    --ink-1:#22201c; --ink-2:#6b665d; --ink-3:#9a9488;
+    --observed:#22201c; --inferred:#56677c; --confirmed:#4e6b44; --binding:#a2412e;
+    --query:#8f6420; --candidate:#6f5a7e; --written:#8a8378;
+    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+    --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --pad:clamp(20px,5vw,44px);
+    --maxw:1180px;
+    --sec:clamp(48px,6vw,80px);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink-1);
+    font-family:var(--sans);font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  ::selection{background:#dfe6d6}
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  h1,h2,h3,p,figure,blockquote,ul,ol,dl,dd{margin:0}
+  ul,ol{padding:0;list-style:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+
+  .serif{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
+  .label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+         text-transform:uppercase;color:var(--ink-3)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .lede{color:var(--ink-2);font-size:clamp(15px,1.3vw,17px);line-height:1.6;max-width:62ch}
+  .mk{font-family:var(--mono);display:inline-block;width:1.15em;text-align:center}
+  .mk.obs{color:var(--observed)} .mk.inf{color:var(--inferred)} .mk.con{color:var(--confirmed)}
+  .mk.bin{color:var(--binding)} .mk.que{color:var(--query)} .mk.wri{color:var(--written)}
+
+  /* ── masthead (identical to the landing page) ────────────────────────────── */
+  .masthead{border-bottom:1px solid var(--rule);background:var(--paper)}
+  .masthead .wrap{display:flex;align-items:center;gap:16px 22px;min-height:60px;flex-wrap:wrap}
+  .wordmark{display:inline-flex;align-items:center;gap:9px;font-weight:600;
+            letter-spacing:-.02em;font-size:16px;text-decoration:none}
+  .wordmark .mark{position:relative;width:13px;height:13px;flex:none}
+  .wordmark .mark i{position:absolute;inset:0;display:block}
+  .wordmark .mark i:first-child{transform:translate(3px,-3px);background:#c9d1bb}
+  .wordmark .mark i:last-child{background:var(--confirmed)}
+  .nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-left:auto}
+  .nav a{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+         color:var(--ink-2);text-decoration:none}
+  .nav a:hover{color:var(--ink-1)}
+  .mast-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;
+       padding:9px 16px;border:1px solid var(--rule-strong);border-radius:3px;
+       background:var(--sheet);color:var(--ink-1);text-decoration:none;white-space:nowrap;
+       transition:border-color .16s var(--ease),background .16s var(--ease)}
+  .btn:hover{border-color:var(--ink-2)}
+  .btn.primary{background:var(--ink-1);border-color:var(--ink-1);color:var(--paper)}
+
+  section{padding:var(--sec) 0}
+  .rule-top{border-top:1px solid var(--rule)}
+  .sec-head{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+            gap:14px 48px;align-items:end}
+  .sec-head .label{display:block;margin-bottom:12px}
+  h2{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,38px);
+     line-height:1.1;letter-spacing:-.02em;max-width:24ch}
+  .sec-head .lede{max-width:58ch}
+
+  /* ── policy head ─────────────────────────────────────────────────────────── */
+  .ph{padding-top:clamp(40px,5vw,64px)}
+  .ph .label{display:block;margin-bottom:14px}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,4.6vw,58px);
+     line-height:1.04;letter-spacing:-.025em;max-width:22ch}
+  .ph .lede{margin-top:20px;max-width:66ch;font-size:clamp(16px,1.4vw,18px)}
+  .stamp{margin-top:22px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+         text-transform:uppercase;color:var(--ink-3)}
+
+  /* ── body: one measure for reading, panels for structure ────────────────── */
+  .doc{display:grid;grid-template-columns:minmax(0,1fr);max-width:860px}
+  .doc h3{font-family:var(--serif);font-weight:400;font-size:clamp(20px,2.1vw,26px);
+          letter-spacing:-.015em;margin-bottom:10px}
+  .doc h4{font-family:var(--sans);font-weight:600;font-size:14px;margin:22px 0 6px}
+  .doc p{color:var(--ink-2);margin-top:12px;max-width:76ch}
+  .doc p strong{color:var(--ink-1);font-weight:600}
+  .doc ul{margin-top:12px;border-top:1px solid var(--rule)}
+  .doc li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);
+          color:var(--ink-2);font-size:14.5px;line-height:1.5}
+  .doc li .mk{flex:none;color:var(--written)}
+  .doc li b{font-weight:500;color:var(--ink-1)}
+  .doc code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;
+            padding:1px 5px;color:var(--ink-1)}
+  .doc a{color:var(--ink-1);text-decoration:none;border-bottom:1px solid var(--rule-strong)}
+  .doc a:hover{border-color:var(--ink-2)}
+
+  .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;
+         padding:22px 24px;margin-top:22px}
+  .panel.warn{border-left:3px solid var(--binding)}
+  .panel .label{display:block;margin-bottom:8px}
+  .panel p{margin-top:8px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:9px 20px;
+      font-family:var(--mono);font-size:12.5px;margin-top:16px}
+  .kv dt{color:var(--ink-3);letter-spacing:.04em}
+  .kv dd{margin:0;color:var(--ink-1)}
+
+  .toc{margin-top:26px;border-top:1px solid var(--rule-strong);padding-top:14px}
+  .toc li{display:block;padding:6px 0;border-bottom:1px solid var(--rule);font-size:14.5px}
+  .toc a{font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;color:var(--ink-2);
+         text-decoration:none;border-bottom:0}
+  .toc a:hover{color:var(--ink-1)}
+
+  footer{padding:36px 0 52px;border-top:1px solid var(--rule)}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between}
+  footer .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  footer .glyphs{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.28em}
+
+  @media (max-width:900px){
+    .sec-head{grid-template-columns:1fr;align-items:start}
+  }
+  @media (max-width:620px){
+    body{font-size:15px}
+    .nav{display:none}
+    .mast-actions{margin-left:0;width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<a class="label" href="#main" style="position:absolute;left:-9999px">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="/" aria-label="Tacet home">
+      <span class="mark" aria-hidden="true"><i></i><i></i></span>
+      <span>Tacet</span>
+    </a>
+    <nav class="nav" aria-label="sections">
+      <a href="#read">What it reads</a>
+      <a href="#never">Never</a>
+      <a href="#stored">Stored</a>
+      <a href="#processors">Processors</a>
+      <a href="#choices">Your choices</a>
+    </nav>
+    <span class="mast-actions">
+      <a class="btn" href="/">Back to Tacet</a>
+      <a class="btn primary" href="mailto:hello@tacet.work">Contact us</a>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+  <section class="ph">
+    <div class="wrap doc">
+      <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Privacy</span>
+      <h1>What the apprentice sees, keeps and never touches.</h1>
+      <p class="lede">
+        Tacet learns from work — so it needs the work, and nothing more. This page is the
+        whole ledger: what the Chrome extension and the companion read on a page you turn
+        Mira on for, what is dropped before anything is sent, where the rest is stored, and
+        how to have it deleted. It describes what the code in this product actually does.
+      </p>
+      <p class="stamp">Last updated 2026-10-03 · applies to Tacet and the Tacet Chrome extension</p>
+
+      <ul class="toc">
+        <li><a href="#at-a-glance">At a glance</a></li>
+        <li><a href="#read">What is read, in the browser</a></li>
+        <li><a href="#never">What never leaves the page</a></li>
+        <li><a href="#stored">Where it goes and how long it is kept</a></li>
+        <li><a href="#processors">Who processes it</a></li>
+        <li><a href="#not">What Tacet does not do</a></li>
+        <li><a href="#choices">Your choices and deletion</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="at-a-glance" class="rule-top">
+    <div class="wrap doc">
+      <h3>At a glance</h3>
+      <ul>
+        <li><span class="mk" aria-hidden="true">▮</span><span><b>On sites you turn Mira on for</b>, the extension reads the visible form: field names, labels, control types, dropdown options, and safe values.</span></li>
+        <li><span class="mk" aria-hidden="true">◌</span><span><b>Free text is reported as a length only.</b> The structured observer skips passwords, hidden fields and sensitive-named controls, and drops email, card and IBAN patterns. Your typed or spoken answers are sent separately to Tacet Core.</span></li>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>Screen sharing is optional.</b> The extension sends structured events. If you enable Replays and approve browser screen sharing, the companion keeps sampled frames in memory on your device; it drops them when replays stop.</span></li>
+        <li><span class="mk" aria-hidden="true">✓</span><span><b>Nothing at all is collected on a site until you switch Mira on</b>, and turning her off removes the site's access immediately.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No selling, no advertising, no cross-site tracking.</b> See <a href="#not">what Tacet does not do</a>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="read" class="rule-top">
+    <div class="wrap doc">
+      <h3>What is read, in the browser</h3>
+      <p>
+        The extension runs only on the sites you switch Mira on for. There, a small observer
+        discovers the form that already exists on the page and reports what changed. This is
+        the complete list.
+      </p>
+      <ul>
+        <li><span class="mk" aria-hidden="true">▮</span><span><b>Form structure.</b> Visible <code>input</code>, <code>select</code> and <code>textarea</code> controls: a stable field name, the human label, the control kind, the kind of value it holds, and the options of dropdowns and radio groups.</span></li>
+        <li><span class="mk" aria-hidden="true">▮</span><span><b>Safe values.</b> Numbers, dates, selected categories, checkboxes, and short codes such as <code>T2</code> or <code>SF-12</code>. These are the values the learned rules depend on.</span></li>
+        <li><span class="mk" aria-hidden="true">▮</span><span><b>Actions.</b> Which button you pressed or which form you submitted, by its name and label.</span></li>
+        <li><span class="mk" aria-hidden="true">▮</span><span><b>Context.</b> The page URL and title, and case identifiers, so a learned rule can be traced back to a real case.</span></li>
+        <li><span class="mk" aria-hidden="true">◌</span><span><b>Activity kinds, not contents.</b> That a key was pressed, that the page scrolled, that the pointer moved — never what was typed.</span></li>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>Your answer.</b> The one question Mira asks at a pause, and the answer you give — typed or spoken. A spoken answer is transcribed; the transcript is what is kept.</span></li>
+      </ul>
+      <div class="panel">
+        <span class="label">On your own machine</span>
+        <p>
+          The extension keeps only two things in Chrome's local storage: the URL of your
+          Tacet Core, and the list of sites you turned Mira on for. It keeps no page
+          content there.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="never" class="rule-top">
+    <div class="wrap doc">
+      <div class="sec-head">
+        <div>
+          <span class="label"><span class="mk bin" aria-hidden="true">■</span> Never collected</span>
+          <h2>What stays on the page.</h2>
+        </div>
+        <p class="lede">
+          These are enforced inside the observer, in your browser, before any event is
+          queued to send — not by a setting on a server.
+        </p>
+      </div>
+      <ul>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Passwords and hidden fields.</b> Controls of type <code>password</code> or <code>hidden</code> are skipped entirely.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Anything that looks sensitive by name.</b> Fields whose name, id, autocomplete, placeholder, label or ARIA label mentions a password, secret, token, OTP, CVV/CVC, card, credit, IBAN, BIC, SWIFT, SSN, social security, routing number, account number or PIN are skipped.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Email addresses, payment-card numbers and IBANs.</b> Even in an otherwise safe field, a value that looks like an email, a 13–19 digit card number, or an IBAN is never returned.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Free-text contents.</b> Names, notes and messages typed into a text field or textarea are reduced to a length, unless the whole value is a short code and does not look like a secret.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Optional screen and voice capture.</b> Local replays capture the surface you approve in the browser picker; structured field filtering does not mask those replay images. Optional console vision sends frames to Tacet Core and its configured vision provider, masking regions identified by the observed app. Voice runs when you press <b>Talk</b>; ElevenLabs processes microphone audio, while Tacet stores the answer transcript.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Your other tabs, files and clipboard.</b> The extension runs only on enabled sites, only in the page you are on, and never reads the clipboard, the file system, or other tabs.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>Anything when capture is off.</b> Off is the default. Until you switch Mira on for a site, nothing from that site is read or sent.</span></li>
+      </ul>
+      <div class="panel warn">
+        <span class="label">One honest exception</span>
+        <p>
+          If a site marks its own personal fields for redaction, the companion sends the
+          <em>positions</em> of those fields (their rectangles on screen) so that area can be
+          blurred in anything the site replays. It sends the rectangle, never the value.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="stored" class="rule-top">
+    <div class="wrap doc">
+      <h3>Where it goes and how long it is kept</h3>
+      <p>
+        The events described above travel over a WebSocket to the Tacet Core you
+        configure — the hosted core by default, which uses HTTPS and WSS. Tacet Core runs on
+        Railway in the US West region and stores sessions in a PostgreSQL database.
+        Predictions, the compiled rules, learning receipts and sealed-test records live with
+        the session so that every claim can be traced back to the case it came from.
+      </p>
+      <dl class="kv">
+        <dt>stored at</dt><dd>Tacet Core · Railway · US West (us-west2) · PostgreSQL</dd>
+        <dt>kept</dt><dd>stored records have no automatic expiry in this prototype; ending a session does not delete its records</dd>
+        <dt>deleted</dt><dd>contact us to request deletion; there is no self-service session deletion control — see <a href="#choices">your choices</a></dd>
+        <dt>sold</dt><dd>never</dd>
+        <dt>used for ads</dt><dd>never</dd>
+      </dl>
+      <p>
+        Ending a session stops collection but retains its records and learned map. Contact us
+        to request deletion. Exporting a Work Map gives you the learned rules as data.
+      </p>
+    </div>
+  </section>
+
+  <section id="processors" class="rule-top">
+    <div class="wrap doc">
+      <h3>Who processes it</h3>
+      <p>
+        Tacet learns in plain code; language models are used only to turn a spoken or typed
+        answer into a rule, and to read screenshots where a workflow needs them. When that
+        happens, the relevant text — or, where vision is needed, the frame — is sent to the
+        processors below. They process it to return an answer; they are not permitted to use
+        it for advertising.
+      </p>
+      <ul>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>Anthropic</b> — Claude, used to compile spoken and typed answers into rules and to reason about a gap.</span></li>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>OpenAI</b> — used for vision and fast model steps where a workflow needs them.</span></li>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>ElevenLabs</b> — voice: speaks Mira's question and transcribes your spoken answer. Only the transcript is stored with the session.</span></li>
+        <li><span class="mk" aria-hidden="true">§</span><span><b>Railway</b> — hosting for Tacet Core and its database.</span></li>
+      </ul>
+      <p>
+        The providers used for a given session are the ones configured in the Tacet Core you
+        point the extension at. If you run your own core with your own keys, your data goes
+        to those providers under your accounts.
+      </p>
+    </div>
+  </section>
+
+  <section id="not" class="rule-top">
+    <div class="wrap doc">
+      <h3>What Tacet does not do</h3>
+      <ul>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No selling or sharing for advertising.</b> We do not sell user data or transfer it to third parties for advertising, profiling or creditworthiness.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No ads and no trackers.</b> The extension contains no advertising and no third-party analytics.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No browsing history.</b> It sees only pages where you turned Mira on; it does not log where else you go.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No acting for you.</b> It observes and asks. It never fills a field, clicks a button or submits a form on your behalf.</span></li>
+        <li><span class="mk bin" aria-hidden="true">■</span><span><b>No background listening.</b> There is no capture on a page you have not enabled, and no audio until you press Talk.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="choices" class="rule-top">
+    <div class="wrap doc">
+      <h3>Your choices and deletion</h3>
+      <ul>
+        <li><span class="mk con" aria-hidden="true">✓</span><span><b>Turn Mira off per site.</b> The popup lists every site she is on for; turning one off removes Chrome's access to that site immediately and stops collection there.</span></li>
+        <li><span class="mk con" aria-hidden="true">✓</span><span><b>End a session.</b> Ending a session in the companion stops capture for that session on the page.</span></li>
+        <li><span class="mk con" aria-hidden="true">✓</span><span><b>Delete what was stored.</b> Write to <a href="mailto:hello@tacet.work">hello@tacet.work</a> with the session identifier and the Tacet Core you used to request deletion. For a self-hosted core, contact its operator.</span></li>
+        <li><span class="mk con" aria-hidden="true">✓</span><span><b>Export before you leave.</b> A Work Map can be exported as data, so the rules you taught can be kept without the session.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="contact" class="rule-top">
+    <div class="wrap doc">
+      <h3>Contact</h3>
+      <p>
+        Questions about this policy, a correction, or a deletion request:
+        <a href="mailto:hello@tacet.work">hello@tacet.work</a>. This policy describes the
+        product as built on 2026-10-03; when the product changes in a way that changes what
+        it reads or keeps, this page changes with it and the date above moves.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="meta">Tacet · learns the part of the job nobody wrote down</span>
+    <span class="meta">© 2026 Tacet · <a href="/" style="text-decoration:none;border-bottom:1px solid var(--rule-strong)">Home</a> · <a href="mailto:hello@tacet.work" style="text-decoration:none;border-bottom:1px solid var(--rule-strong)">hello@tacet.work</a></span>
+    <span class="glyphs" aria-label="provenance marks: observed, inferred, confirmed, binding">▮ ◌ ✓ ■</span>
+  </div>
+</footer>
+</body>
+</html>

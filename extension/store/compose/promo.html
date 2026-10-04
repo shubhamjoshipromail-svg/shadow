@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tacet — 440x280 promo tile composition</title>
+<!-- Rendered by compose/render.mjs at 440x280 with headless Chrome (CDP :9351). -->
+<style>
+  :root{
+    --paper:#f4f1ea; --sheet:#fbf9f4; --rule:#e2ddd2; --rule-strong:#cbc4b5;
+    --ink-1:#22201c; --ink-2:#6b665d; --ink-3:#9a9488; --confirmed:#4e6b44;
+    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    width:440px;height:280px;background:var(--paper);color:var(--ink-1);
+    font-family:var(--sans);position:relative;overflow:hidden;
+  }
+  .wordmark{position:absolute;left:26px;top:24px;display:inline-flex;align-items:center;gap:9px;
+            font-weight:600;letter-spacing:-.02em;font-size:17px}
+  .wordmark .mark{position:relative;width:14px;height:14px;flex:none}
+  .wordmark .mark i{position:absolute;inset:0;display:block}
+  .wordmark .mark i:first-child{transform:translate(3px,-3px);background:#c9d1bb}
+  .wordmark .mark i:last-child{background:var(--confirmed)}
+  h1{position:absolute;left:26px;top:70px;width:250px;margin:0;
+     font-family:var(--serif);font-weight:400;font-size:31px;line-height:1.06;
+     letter-spacing:-.025em}
+  .foot{position:absolute;left:26px;bottom:24px;
+        font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+        text-transform:uppercase;color:var(--ink-3)}
+  .rule{position:absolute;left:26px;bottom:52px;width:120px;height:2px;background:var(--confirmed)}
+  .mira{position:absolute;right:18px;bottom:0;width:158px;height:193px}
+  .mira svg{display:block;width:100%;height:100%;image-rendering:pixelated}
+</style>
+</head>
+<body>
+  <span class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i></span> Tacet</span>
+  <h1>Learns the part of the job nobody wrote down.</h1>
+  <span class="rule" aria-hidden="true"></span>
+  <span class="foot">Tacet for Chrome</span>
+  <div class="mira" aria-hidden="true">
+    <!-- the companion's own crop of the real sprite (see capture.js) -->
+    <svg viewBox="145 96 426 520" aria-hidden="true" focusable="false">
+      <image href="/companion/intern.png" width="1254" height="1254"/>
+    </svg>
+  </div>
+</body>
+</html>
