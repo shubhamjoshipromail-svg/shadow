@@ -29,7 +29,7 @@ const initial: Live = { snap: null, feed: [], asked: null, lastLearned: null, tr
 function reduce(state: Live, e: ShadowEvent): Live {
   const feed = e.type === 'activity' ? state.feed : [e, ...state.feed].slice(0, 120)
   const s = state.snap
-  if (e.type === 'snapshot') return { ...state, snap: e.snapshot, activity: e.snapshot.activity }
+  if (e.type === 'snapshot') return { ...state, snap: e.snapshot, activity: e.snapshot.activity, interventions: state.interventions.length ? state.interventions : (e.snapshot.interventions ?? []) }
   if (!s) return { ...state, feed }
   const next: Snapshot = { ...s }
   switch (e.type) {

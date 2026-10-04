@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any, AsyncIterator
 
-from shadow import llm
+from shadow import lang as langlib, llm
 from shadow.engine import Session
 from shadow.workmap import TRUSTED
 
@@ -142,7 +142,8 @@ async def _tutor_turn(session: Session, messages: list[dict[str, Any]], text: st
             try:
                 lead = await llm.text(
                     "You are a warm, Socratic tutor. The trainee just guessed why the expert would stop. In ONE "
-                    "short sentence, acknowledge what is right or gently correct it. Do not explain the rule yet.",
+                    "short sentence, acknowledge what is right or gently correct it. Do not explain the rule yet."
+                    + ("" if langlib.is_english(session.learner_lang) else f" Answer in {langlib.name(session.learner_lang)}."),
                     f"Rule: {pending['violation']['title']}\nTrainee said: {text}", max_tokens=60)
             except Exception:  # noqa: BLE001
                 lead = ""
@@ -154,11 +155,13 @@ async def _tutor_turn(session: Session, messages: list[dict[str, Any]], text: st
     rules = [{"title": n.title, "quote": n.quote.english() if n.quote else None}
              for n in [*session.wm.rules, *session.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
     case = session.cases.get(session.current_case or "")
+    speak = "" if langlib.is_english(session.learner_lang) else (
+        f" Speak and write ONLY in {langlib.name(session.learner_lang)}; translate {session.expert}'s words faithfully.")
     system = (f"You are Mira, a patient tutor teaching {session.trainee or 'a new hire'} how {session.expert} "
               f"performs {session.pack.name}. Use Socratic questions first, then explain using {session.expert}'s own words "
               "(quote them). Max two short sentences per turn. Never invent rules beyond these:\n"
               f"{json.dumps(rules, ensure_ascii=False)}\n"
-              f"Current case: {session.pack.describe(case) if case else 'none open'}")
+              f"Current case: {session.pack.describe(case) if case else 'none open'}" + speak)
     async for chunk in llm.stream_text(system, _history(messages), max_tokens=160):
         yield chunk
 

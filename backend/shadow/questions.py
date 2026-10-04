@@ -162,7 +162,8 @@ async def polish(text: str, lang: str = "en") -> str:
     if not llm.available():
         return text
     try:
-        target = "German" if lang == "de" else "English"
+        from shadow import lang as langlib
+        target = langlib.name(lang)
         out = await llm.text(POLISH_SYSTEM + f" Answer in {target}.", text, max_tokens=120)
         return out.strip().strip('"') or text
     except Exception:  # noqa: BLE001 - phrasing must never block the loop

@@ -16,6 +16,7 @@ import Mastery from '../components/Mastery'
 import MomentModal from '../components/MomentModal'
 import Receipts from '../components/Receipts'
 import { Btn, Dot, Section, Wordmark } from '../components/ui'
+import TutorView from '../components/TutorView'
 
 export default function Console() {
   const { sid } = useParams()
@@ -69,8 +70,8 @@ function ConsoleInner({ sid }: { sid: string }) {
   }), [on])
 
   const screen = useScreen({ sid, send, vision, piiRects: pii, paused: !!snap?.off_record })
-  const mode = snap?.mode ?? 'capture'
-  const voice = useVoiceBridge({ sid, mode, lang: snap?.lang ?? 'en', send, on })
+  const mode = (snap?.mode ?? 'capture') as 'capture' | 'debrief' | 'tutor'
+  const voice = useVoiceBridge({ sid, mode, lang: snap?.learner_lang ?? 'en', send, on })
   const lines = useMemo(() => [...voice.lines, ...localLines].sort((a, b) => a.at - b.at).slice(-40), [voice.lines, localLines])
 
   const latestHyp = useMemo(() => {
@@ -86,6 +87,28 @@ function ConsoleInner({ sid }: { sid: string }) {
 
   if (!snap) {
     return <div className="flex h-full items-center justify-center text-[13px] text-ink-2">{connected ? 'Opening the session…' : 'Connecting to Tacet Core…'}</div>
+  }
+
+  if (mode === 'tutor') {
+    const sendTyped = async () => {
+      const text = typed.trim()
+      if (!text) return
+      setTyped('')
+      setLocalLines((l) => [...l, { who: 'user', text, at: Date.now() }])
+      const r = await api<{ reply: string }>(`/api/sessions/${sid}/utterance`, { method: 'POST', body: JSON.stringify({ text }) })
+      if (r.reply) setLocalLines((l) => [...l, { who: 'agent', text: r.reply, at: Date.now() }])
+    }
+    const voiceOn = voice.conv.status === 'connected'
+    return (
+      <>
+        <TutorView sid={sid} snap={snap} connected={connected} feed={live.feed} interventions={live.interventions} erpUrl={erpUrl}
+          voiceOn={voiceOn} voiceStatus={voiceOn ? (voice.conv.isSpeaking ? 'Mira is speaking' : 'listening') : voice.conv.status}
+          onVoice={() => (voiceOn ? voice.stop() : voice.start().catch((err) => alert(err.message)))}
+          lines={lines} typed={typed} setTyped={setTyped} sendTyped={sendTyped}
+          onMoment={(ts, quote) => setMoment({ ts, quote })} shareScreen={() => screen.start()} sharing={!!screen.stream} send={send} />
+        {moment && <MomentModal frames={moment.ts != null ? screen.framesAround(moment.ts + offset.current, 4, 3) : []} ts={moment.ts} quote={moment.quote} title={moment.title} onClose={() => setMoment(null)} />}
+      </>
+    )
   }
 
   const openMoment = (ts: number | null, node?: MapNode) => setMoment({ ts, quote: node?.quote, title: node?.title })
@@ -134,12 +157,12 @@ function ConsoleInner({ sid }: { sid: string }) {
         <Link to="/"><Wordmark /></Link>
         <div className="num flex items-center gap-3 text-[11px] text-ink-2">
           <span className="text-ink-1">{modeWord}</span>
-          <span>{mode === 'tutor' ? `${snap.trainee} learning from ${snap.expert}` : snap.expert}</span>
+          <span>{(mode as string) === 'tutor' ? `${snap.trainee} learning from ${snap.expert}` : snap.expert}</span>
           <span className="flex items-center gap-1.5"><Dot on={connected && !snap.off_record} />{snap.off_record ? 'off the record' : connected ? 'on record' : 'reconnecting'}</span>
           <span>map v{snap.map.version}{snap.map_source.kind === 'saved' ? ` · continued from saved v${snap.map_source.version}` : ''}</span>
           {snap.pending.compiling && <span className="text-query">compiling an answer…</span>}
           {snap.ended && <span className="text-binding">session ended</span>}
-          {snap.simulated && <span className="text-candidate">practice run · simulated {mode === 'tutor' ? 'trainee' : snap.expert}</span>}
+          {snap.simulated && <span className="text-candidate">practice run · simulated {(mode as string) === 'tutor' ? 'trainee' : snap.expert}</span>}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           {snap.simulated && <>
@@ -148,8 +171,8 @@ function ConsoleInner({ sid }: { sid: string }) {
           </>}
           <Btn tone="ghost" onClick={toggleRecord}>{snap.off_record ? 'Back on record' : 'Off the record'}</Btn>
           {mode === 'capture' && <Btn tone="ask" onClick={startDebrief}>Start debrief</Btn>}
-          {mode !== 'tutor' && <Btn onClick={startTutor}>Teach a new hire</Btn>}
-          {mode !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases">Test it</Btn></Link>}
+          {(mode as string) !== 'tutor' && <Btn onClick={startTutor}>Teach a new hire</Btn>}
+          {(mode as string) !== 'tutor' && !snap.simulated && <Link to={`/s/${sid}/proof`}><Btn title="Sealed test on unseen cases">Test it</Btn></Link>}
           <Link to={`/s/${sid}/map`}><Btn tone="primary">Work Map</Btn></Link>
           <Link to={`/s/${sid}/data`}><Btn tone="ghost" title="What was collected, where it lives">Data</Btn></Link>
           <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn tone="ghost" title="Agent-ready guardrails">Agent skill ↗</Btn></a>
@@ -188,7 +211,7 @@ function ConsoleInner({ sid }: { sid: string }) {
             <div className="num mt-2 text-[10.5px] text-ink-3">{m.questions_live} asked live · budget 3–5 per 10 min · the rest waits for the debrief</div>
           </Section>
 
-          <Section title={mode === 'tutor' ? 'Tutor · conversation' : 'Interview · conversation'} right={
+          <Section title={(mode as string) === 'tutor' ? 'Tutor · conversation' : 'Interview · conversation'} right={
             <Btn tone={voiceOn ? 'danger' : 'primary'} onClick={() => (voiceOn ? voice.stop() : voice.start().catch((err) => alert(err.message)))}>
               {voiceOn ? 'Stop voice' : 'Start voice'}
             </Btn>
@@ -197,7 +220,7 @@ function ConsoleInner({ sid }: { sid: string }) {
             <div className="scroll-thin mt-2 max-h-[280px] divide-y divide-rule overflow-y-auto">
               {lines.map((l, i) => (
                 <div key={i} className="grid grid-cols-[52px_1fr] gap-2 py-1.5 text-[12.5px] leading-snug">
-                  <span className={`num pt-px text-[10px] uppercase tracking-[.06em] ${l.who === 'agent' ? 'text-query' : 'text-ink-3'}`}>{l.who === 'agent' ? 'Tacet' : mode === 'tutor' ? snap.trainee : snap.expert}</span>
+                  <span className={`num pt-px text-[10px] uppercase tracking-[.06em] ${l.who === 'agent' ? 'text-query' : 'text-ink-3'}`}>{l.who === 'agent' ? 'Tacet' : (mode as string) === 'tutor' ? snap.trainee : snap.expert}</span>
                   <span className={l.who === 'agent' ? 'text-ink-1' : 'testimony text-[14px] text-ink-1'}>{l.who === 'agent' ? l.text : `“${l.text}”`}</span>
                 </div>
               ))}
@@ -214,7 +237,7 @@ function ConsoleInner({ sid }: { sid: string }) {
 
 
 
-          {mode === 'tutor' && live.interventions.length > 0 && (
+          {(mode as string) === 'tutor' && live.interventions.length > 0 && (
             <Section title="Stops">
               <div className="space-y-3">
                 {live.interventions.map((iv: Intervention) => (
@@ -233,8 +256,8 @@ function ConsoleInner({ sid }: { sid: string }) {
         <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
           <PredictionCard snap={snap} caseId={snap.current_case} />
           {question && <div className="px-1"><Question key={question.id} q={question} live={!!asked && asked.id === question.id} /></div>}
-          {mode !== 'tutor' && <Hypotheses snap={snap} set={latestHyp} />}
-          {mode !== 'tutor' && (
+          {(mode as string) !== 'tutor' && <Hypotheses snap={snap} set={latestHyp} />}
+          {(mode as string) !== 'tutor' && (
             <Section title="Learning receipts" right={<Link to={`/s/${sid}/proof`} className="text-[11.5px] text-inferred hover:underline">sealed test →</Link>}>
               <Receipts snap={snap} limit={4} />
             </Section>
@@ -254,7 +277,7 @@ function ConsoleInner({ sid }: { sid: string }) {
               </div>
             ))}
           </div>
-          {mode === 'tutor' ? (
+          {(mode as string) === 'tutor' ? (
             <Section title={`${snap.trainee}’s mastery`}><Mastery snap={snap} /></Section>
           ) : (
             <Section title="Has Mira understood?"><Checklist u={snap.understood} /></Section>

@@ -53,6 +53,30 @@ AGENTS = {
 }
 
 
+# Spoken-language detection: Scribe + the built-in `language_detection` system tool switch the agent between these
+# (the default is English). The expert is never asked which language they speak; the new hire's language is set
+# per session by the console override.
+PRESET_LANGS = {
+    "de": {"interviewer": "Hallo, ich bin Mira. Arbeiten Sie einfach wie gewohnt. Ich bleibe still und frage nur, wenn etwas nicht offensichtlich ist.",
+           "tutor": "Hallo, ich bin Ihre Tutorin Mira. Bearbeiten Sie den Fall, wie Sie es für richtig halten. Ich melde mich, wenn der Experte es anders gemacht hätte."},
+    "fr": {"interviewer": "Bonjour, je suis Mira. Travaillez comme d'habitude. Je reste discrète et je ne pose une question que si quelque chose n'est pas évident.",
+           "tutor": "Bonjour, je suis Mira, votre tutrice. Traitez le dossier comme vous le pensez juste. J'interviens si l'expert aurait fait autrement."},
+    "es": {"interviewer": "Hola, soy Mira. Trabaje como siempre. Me quedo callada y solo pregunto cuando algo no es obvio.",
+           "tutor": "Hola, soy Mira, su tutora. Trabaje el caso como crea correcto. Intervengo si el experto lo habría hecho de otra forma."},
+}
+LANGUAGE_DETECTION_TOOL = {"type": "system", "name": "language_detection", "description": "",
+                           "params": {"system_tool_type": "language_detection"}}
+
+
+def language_patch(role: str) -> dict:
+    """Only the language-detection config (tool + presets): nothing else about the agent changes."""
+    return {"conversation_config": {
+        "agent": {"prompt": {"built_in_tools": {"language_detection": LANGUAGE_DETECTION_TOOL}}},
+        "language_presets": {code: {"overrides": {"agent": {"first_message": msgs[role], "language": code}}}
+                             for code, msgs in PRESET_LANGS.items()},
+    }}
+
+
 MCP_API = "https://api.elevenlabs.io/v1/convai/mcp-servers"
 MCP_NAME = "Tacet Work Map"
 
@@ -94,9 +118,11 @@ def payload(role: str, public_url: str, mcp_id: str | None = None) -> dict:
                     **({"mcp_server_ids": [mcp_id]} if mcp_id else {}),
                     # lets Shadow stay silent properly (an empty reply makes ElevenLabs retry and stall)
                     "built_in_tools": {"skip_turn": {"type": "system", "name": "skip_turn", "description": "",
-                                                     "params": {"system_tool_type": "skip_turn"}}},
+                                                     "params": {"system_tool_type": "skip_turn"}},
+                                       "language_detection": LANGUAGE_DETECTION_TOOL},
                 },
             },
+            "language_presets": language_patch(role)["conversation_config"]["language_presets"],
             "tts": {"voice_id": VOICE_ID, "model_id": "eleven_v4_turbo", "expressive_mode": True},
             # Scribe v2 Realtime, primed with the trade's words so jargon survives transcription
             "asr": {"provider": "scribe_realtime", "quality": "high", "keywords": ASR_KEYWORDS},
@@ -120,6 +146,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--mcp", action="store_true", help="register the Work Map MCP server and attach it to both agents")
+    ap.add_argument("--languages-only", action="store_true",
+                    help="PATCH only language detection + presets on the existing agents (URL, voice, model untouched)")
     ap.add_argument("--public-url", default=os.getenv("SHADOW_PUBLIC_URL", "http://localhost:8000"))
     args = ap.parse_args()
 
@@ -134,8 +162,20 @@ def main() -> int:
     if "localhost" in args.public_url or "127.0.0.1" in args.public_url:
         print(f"note: {args.public_url} isn't reachable from ElevenLabs. Re-run with --public-url once tunneled/deployed.")
 
-    ids = json.loads(IDS_FILE.read_text()) if IDS_FILE.exists() else {}
+    ids = json.loads(IDS_FILE.read_text()) if IDS_FILE.exists() else json.loads(os.getenv("SHADOW_ELEVENLABS_AGENTS") or "{}")
     headers = {"xi-api-key": key, "Content-Type": "application/json"}
+    if args.languages_only:
+        with httpx.Client(timeout=30) as http:
+            for role in AGENTS:
+                if not ids.get(role):
+                    print(f"{role}: no agent id", file=sys.stderr)
+                    return 2
+                r = http.patch(f"{API}/{ids[role]}", headers=headers, json=language_patch(role))
+                if r.status_code >= 400:
+                    print(f"{role}: HTTP {r.status_code}: {r.text[:800]}", file=sys.stderr)
+                    return 2
+                print(f"{role}: language detection patched")
+        return 0
     with httpx.Client(timeout=30) as http:
         mcp_id = ensure_mcp_server(http, headers, args.public_url) if args.mcp else None
         if args.mcp:

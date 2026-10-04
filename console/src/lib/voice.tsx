@@ -69,11 +69,12 @@ export function useVoiceBridge(opts: {
       connectionType: 'webrtc',
       dynamicVariables: { shadow_session: opts.sid ?? '', shadow_mode: opts.mode },
       customLlmExtraBody: { shadow_session: opts.sid },
+      // the expert's language is detected by the agent (Scribe + language_detection); only the new hire's is chosen
       overrides: opts.mode === 'debrief'
-        ? { agent: { firstMessage: 'Thanks, that was really useful. Mind if I ask a few things I’m still unsure about?', language: opts.lang as never } }
-        : opts.mode === 'tutor'
-          ? { agent: { language: 'en' as never } }
-          : { agent: { language: opts.lang as never } },
+        ? { agent: { firstMessage: 'Thanks, that was really useful. Mind if I ask a few things I’m still unsure about?' } }
+        : opts.mode === 'tutor' && opts.lang && opts.lang !== 'auto'
+          ? { agent: { language: opts.lang as never } }
+          : undefined,
     })
   }
 

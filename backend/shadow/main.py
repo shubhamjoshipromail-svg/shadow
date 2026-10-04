@@ -110,10 +110,10 @@ class NewSession(BaseModel):
     workspace: str = config.DEFAULT_WORKSPACE
     expert: str | None = None
     trainee: str | None = None
-    lang: str = "en"
+    lang: str = "auto"  # capture: the expert's language is detected per answer. tutor: the new hire's language
     pack: str = config.DEFAULT_PACK
     from_session: str | None = None
-    fresh: bool = True  # capture: start from the written process only
+    fresh: bool = True  # only matters for an expert with no saved Work Map yet: knowledge accumulates, never resets
     simulate: bool = False  # oracle-driven proposer/compiler: runs without API keys
 
 
@@ -133,7 +133,7 @@ async def create_session(body: NewSession) -> dict[str, Any]:
             raise HTTPException(409, "A practice Work Map cannot seed a live session. Keep this a practice run.")
         wm = sessions[body.from_session].wm.model_copy(deep=True)
         source = {"kind": "session", "session": body.from_session, "version": wm.version}
-    elif body.mode != "capture" or not body.fresh:
+    elif body.mode != "capture" or not body.fresh or not body.simulate:
         saved = store.latest_map_row(expert, pack.id, include_simulated=body.simulate)
         if not saved and body.expert is None and (body.mode == "tutor" or not body.fresh):
             saved = store.latest_map_any(pack.id)  # teach from whichever expert taught this workflow last
@@ -535,7 +535,7 @@ class OnboardBody(BaseModel):
     pack_id: str | None = None
     expert: str | None = None
     workspace: str = config.DEFAULT_WORKSPACE
-    lang: str = "en"
+    lang: str = "auto"
 
 
 @app.post("/api/onboard")
@@ -647,7 +647,13 @@ def _compare(pack_id: str, a: str, b: str, simulated: bool) -> tuple[dict[str, A
 async def workflow_experts(pack_id: str, simulated: bool = True) -> list[dict[str, Any]]:
     """Everyone with a saved Work Map for this workflow. Rehearsal experts carry `simulated: true`."""
     get_pack(pack_id)
-    return store.expert_maps(pack_id, include_simulated=simulated)
+    out = store.expert_maps(pack_id, include_simulated=simulated)
+    for m in out:  # enough to say what Mira would continue from, without shipping the map
+        row = store.latest_map_row(m["expert"], pack_id, include_simulated=m.get("simulated", False))
+        wm = (row or {}).get("map") or {}
+        learned = lambda xs: len([n for n in xs if n.get("origin") != "doc"])  # noqa: E731
+        m["rules"], m["guardrails"] = learned(wm.get("rules", [])), learned(wm.get("guardrails", []))
+    return out
 
 
 @app.get("/api/workflows/{pack_id}/compare")

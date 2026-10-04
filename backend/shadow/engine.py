@@ -21,7 +21,7 @@ from typing import Any, Awaitable, Callable
 import numpy as np
 
 from shadow import compiler as compiler_mod
-from shadow import coach, dsl, hypotheses, llm, novice, paths, questions, receipts
+from shadow import coach, dsl, hypotheses, lang as langlib, llm, novice, paths, questions, receipts
 from shadow.stuck import StuckDetector
 from shadow import proof as proof_mod
 from shadow.activity import ActivityTracker
@@ -93,14 +93,18 @@ class DecisionPoint:
 class Session:
     def __init__(self, sid: str, pack: Pack, mode: str = "capture", expert: str | None = None,
                  wm: WorkMap | None = None, store: Store | None = None, use_llm: bool = True,
-                 proposer: Proposer | None = None, compiler: Compiler | None = None, lang: str = "en",
+                 proposer: Proposer | None = None, compiler: Compiler | None = None, lang: str = "auto",
                  trainee: str | None = None):
         self.id = sid
         self.pack = pack
         self.mode = mode
         self.expert = expert or pack.expert_name
         self.trainee = trainee
-        self.lang = lang
+        # capture/debrief: the expert's language is detected per answer ("auto"); an explicit code only seeds it.
+        # tutor: `lang` is the NEW HIRE's language, the one Mira teaches in.
+        self.lang = lang or "auto"
+        self.expert_lang: str | None = None if mode == "tutor" or self.lang in ("auto", "en") else self.lang
+        self.learner_lang: str = self.lang if mode == "tutor" and self.lang != "auto" else "en"
         self.store = store
         self.use_llm = use_llm and llm.available()
         self.proposer = proposer or hypotheses.propose
@@ -199,6 +203,8 @@ class Session:
     def snapshot(self) -> dict[str, Any]:
         return {
             "id": self.id, "mode": self.mode, "expert": self.expert, "trainee": self.trainee, "lang": self.lang,
+            "expert_lang": self.expert_lang, "learner_lang": self.learner_lang,
+            "interventions": list(reversed(list(self.pending_interventions.values()))),
             "pack": {"id": self.pack.id, "name": self.pack.name,
                      "fields": [f.__dict__ for f in self.pack.decision_fields], "actions": self.pack.actions},
             "map": self.wm.model_dump(), "current_case": self.current_case,
@@ -824,11 +830,12 @@ class Session:
 
     def _localise(self, q: Inquiry) -> None:
         """Ask in the expert's language. Translation runs while Shadow waits for the pause, so asking stays instant."""
-        if self.lang in ("en", None) or not self.use_llm:
+        if langlib.is_english(self.expert_lang) or not self.use_llm:
             return
+        lang = self.expert_lang
 
         async def run() -> None:
-            text = await questions.polish(q.text, self.lang)
+            text = await questions.polish(q.text, lang)
             if q.status == "queued" and text:
                 q.text = text
         self.spawn(run())
@@ -924,7 +931,7 @@ class Session:
                                              expert_value=hs.expert_value, predicted_value=hs.predicted_value,
                                              hypotheses=chosen.hypotheses, probe_delta=chosen.probe_delta)
         if self.use_llm and phase != "live":
-            chosen.text = await questions.polish(chosen.text, self.lang)
+            chosen.text = await questions.polish(chosen.text, self.expert_lang or "en")
         elif phase == "live":
             self._localise(chosen)
         chosen.reason = (f"EVOI {chosen.evoi:.2f} bits × impact {chosen.impact:.2f} + guardrail {chosen.guardrail_gap:.1f} "
@@ -1034,10 +1041,15 @@ class Session:
         try:
             compiled = await self.compiler(self.pack, self.wm, q.to_json(), transcript, case_for_compile)
             rc["provenance"] = self._provenance()  # the model that actually compiled this answer
-            if compiled.key_quote and not compiled.translation_en and self.lang not in ("en", None) and self.use_llm:
-                try:  # the tutor teaches in English: never let an untranslated quote through silently
+            said_lang = langlib.detect(transcript, default=self.expert_lang or "en")
+            if said_lang != "en":
+                self.expert_lang = said_lang  # follows the person, answer by answer
+            elif len(transcript.split()) >= 5:
+                self.expert_lang = None  # a clear English answer: back to English questions
+            if compiled.key_quote and not compiled.translation_en and said_lang != "en" and self.use_llm:
+                try:  # the map is read in English too: never let an untranslated quote through silently
                     compiled.translation_en = (await llm.text(
-                        f"Translate this {self.lang} sentence to English. Reply with the translation only.",
+                        f"Translate this {langlib.name(said_lang)} sentence to English. Reply with the translation only.",
                         compiled.key_quote, max_tokens=200)).strip() or None
                 except Exception:  # noqa: BLE001
                     log.warning("quote translation failed; the original is shown, labelled")
@@ -1065,7 +1077,7 @@ class Session:
             rc.update(status="kept_open", error="the compiler judged this did not answer the question")
             await self._publish_receipt(rc)
             return
-        quote = Quote(text=compiled.key_quote, speaker=self.expert, ts=self.now(), lang=self.lang,
+        quote = Quote(text=compiled.key_quote, speaker=self.expert, ts=self.now(), lang=said_lang,
                       translation=compiled.translation_en, inquiry_id=q.id)
         src_dp = self.dps.get(q.case_id or "")
         moment = ScreenMoment(**{k: v for k, v in (q.screen_moment or {}).items() if k in ("ts", "frame_id")},
@@ -1806,6 +1818,18 @@ class Session:
         return bool(eps) and all(e.predicted.get(f) == e.expert.get(f) for e in eps)
 
     # ------------------------------------------------------------ tutor
+    async def to_learner(self, text: str | None) -> str | None:
+        """Mira speaks the new hire's language. The English original stays on the payload; quotes arrive translated."""
+        if not text or langlib.is_english(self.learner_lang) or not self.use_llm:
+            return text
+        try:
+            out = await llm.text(
+                f"Translate into {langlib.name(self.learner_lang)} for a colleague learning a job. Keep numbers, codes, "
+                "names and quoted words exactly; natural, warm, brief. Reply with the translation only.", text, max_tokens=300)
+            return out.strip() or text
+        except Exception:  # noqa: BLE001 - teaching must not stall on a translation
+            return text
+
     async def tutor_open(self, case_id: str) -> None:
         pred = run_map(self.wm, self.pack, self.cases[case_id], TRUSTED)
         self.dps[case_id].prediction = pred
@@ -1814,8 +1838,10 @@ class Session:
         self.briefs[case_id] = brief
         if brief.get("worked_example") and (brief.get("focus") or {}).get("node_id") not in self.mastery:
             brief["worked_example"] = None  # first exposure: let them try first (the stop teaches); examples after a miss
+        line = self._coach_line(brief)
         await self.emit("tutor_case", {"case_id": case_id, "expected": pred.model_dump(), "brief": brief,
-                                       "prompt": self._coach_line(brief)})
+                                       "prompt": await self.to_learner(line), "prompt_en": line,
+                                       "lang": self.learner_lang})
 
     async def _maybe_nudge(self, force_level: int | None = None) -> None:
         """Learner guide mode: climb the ladder only as far as the behaviour says (silent → cue → question → look → show)."""
@@ -1916,6 +1942,14 @@ class Session:
             "screen_moment": v.screen_moment.model_dump() if v.screen_moment else None,
             "node": node.model_dump() if node else None,
         }
+        if not langlib.is_english(self.learner_lang):  # keep the English beside the learner's language
+            intervention["en"] = {"say": intervention["say"], "explain": intervention["explain"],
+                                  "hint": (hint or {}).get("text") if isinstance(hint, dict) else None}
+            intervention["say"] = await self.to_learner(intervention["say"])
+            intervention["explain"] = await self.to_learner(intervention["explain"])
+            if isinstance(hint, dict) and hint.get("text"):
+                intervention["hint"] = {**hint, "text": await self.to_learner(hint["text"])}
+            intervention["lang"] = self.learner_lang
         self.pending_interventions[iid] = intervention
         await self.emit("intervene", {"intervention": intervention, "mastery": self.mastery})
         return {"allow": False, "intervention": intervention}

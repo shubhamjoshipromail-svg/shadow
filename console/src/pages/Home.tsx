@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Mark, Wordmark } from '../components/ui'
+import Mira from '../components/Mira'
 import { AGENTS } from '../lib/voice'
+
+type ExpertMap = { expert: string; version: number; session_id: string; created: number; rules?: number; guardrails?: number }
 
 export default function Home() {
   const nav = useNavigate()
@@ -15,9 +18,13 @@ export default function Home() {
   const [sessions, setSessions] = useState<{ id: string; mode: string; expert: string; metrics: any }[]>([])
   const [interviewer, setInterviewer] = useState(AGENTS.interviewer())
   const [tutor, setTutor] = useState(AGENTS.tutor())
-  const [lang, setLang] = useState('en')
+  const [learnerName, setLearnerName] = useState('Lena')
+  const [teachLang, setTeachLang] = useState('en')
+  const [experts, setExperts] = useState<ExpertMap[]>([])
+  const [expertPick, setExpertPick] = useState('__new__')
+  const [newName, setNewName] = useState('')
+  const [teachFrom, setTeachFrom] = useState('')
   const [busy, setBusy] = useState<'capture' | 'tutor' | null>(null)
-  const [continueSaved, setContinueSaved] = useState(false)
   const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number; compare_experts?: { expert: string; simulated: boolean }[] }[]>([])
   const [wfState, setWfState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [workflow, setWorkflow] = useState('ap_invoices')
@@ -27,6 +34,17 @@ export default function Home() {
       .then((w) => { setWorkflows(w); setWfState('ready') })
       .catch(() => setWfState('error'))
   }, [])
+
+  useEffect(() => {
+    api<ExpertMap[]>(`/api/workflows/${workflow}/experts?simulated=false`)
+      .then((e) => {
+        setExperts(e)
+        const richest = e.slice().sort((a, b) => ((b.rules ?? 0) + (b.guardrails ?? 0)) - ((a.rules ?? 0) + (a.guardrails ?? 0)) || b.created - a.created)[0]
+        setTeachFrom(richest?.expert ?? '')
+        setExpertPick('__new__')
+      })
+      .catch(() => { setExperts([]); setTeachFrom('') })
+  }, [workflow])
 
   useEffect(() => {
     api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => {
@@ -63,12 +81,15 @@ export default function Home() {
     setBusy(mode)
     setError(null)
     const capture = sessions.slice().reverse().find((s) => s.mode !== 'tutor')
+    const expertName = expertPick === '__new__' ? (newName.trim() || 'Guest') : expertPick
     try {
       const snap = await api('/api/sessions', {
         method: 'POST',
         body: JSON.stringify(mode === 'tutor'
-          ? { mode, trainee: 'Lena', pack: workflow, from_session: capture && (capture as any).pack === workflow ? capture.id : null, simulate: rehearsal }
-          : { mode, lang, pack: workflow, simulate: rehearsal, fresh: !continueSaved }),
+          ? rehearsal
+            ? { mode, trainee: learnerName.trim() || 'Lena', lang: teachLang, pack: workflow, from_session: capture && (capture as any).pack === workflow ? capture.id : null, simulate: true }
+            : { mode, trainee: learnerName.trim() || 'Lena', lang: teachLang, pack: workflow, expert: teachFrom || undefined }
+          : { mode, expert: expertName, pack: workflow, simulate: rehearsal }),
       })
       nav(`/s/${snap.id}`)
     } catch (e) {
@@ -77,9 +98,15 @@ export default function Home() {
     }
   }
 
+  const picked = experts.find((e) => e.expert === (expertPick === '__new__' ? newName.trim() : expertPick))
+  const from = experts.find((e) => e.expert === teachFrom)
+  const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`
+  const mapWords = (e: ExpertMap) => `v${e.version}${e.rules != null ? `, ${n(e.rules, 'rule')}, ${n(e.guardrails ?? 0, 'guardrail')}` : ''}`
+
   const core = health === null ? 'Connecting' : health.ok ? 'Connected' : 'Unavailable'
   const coreDot = health === null ? 'bg-ink-3' : health.ok ? 'bg-confirmed' : 'bg-binding'
 
+  const sel = 'mt-1.5 block w-full rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-2 text-[14px] text-ink-1 outline-none focus:border-ink-2'
   const field = 'num mt-1.5 w-full rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12px] text-ink-1 outline-none focus:border-ink-2'
   return (
     <div className="min-h-full bg-paper">
@@ -95,61 +122,46 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-[1180px] px-6 pb-20">
-        <section className="border-b border-rule pb-9 pt-12">
-          <div className="label">Your notebook</div>
-          <h1 className="testimony mb-0 mt-3 max-w-[20ch] text-[34px] leading-[1.06] tracking-[-0.015em] sm:text-[48px]">
-            Teach Mira how you work.
+        <section className="pb-7 pt-12">
+          <h1 className="testimony mb-0 mt-0 max-w-[24ch] text-[34px] leading-[1.06] tracking-[-0.015em] sm:text-[46px]">
+            Two jobs for Mira.
           </h1>
-          <p className="mb-0 mt-4 max-w-[64ch] text-[17px] leading-relaxed text-ink-2">
-            Show the decisions you make. Mira learns the rules, then helps someone else follow them.
+          <p className="mb-0 mt-3 max-w-[60ch] text-[16px] leading-relaxed text-ink-2">
+            She learns how your best people decide, then teaches everyone else in their words.
           </p>
         </section>
 
-        <section className="border-b border-rule py-9">
-          <h2 className="m-0 text-[16px] font-medium text-ink-1">Choose a workflow</h2>
-          <div className="mt-4">
-            {wfState === 'loading' && <div className="text-[14px] text-ink-3">Loading workflows…</div>}
-            {wfState === 'error' && <div className="text-[14px] text-ink-3">Couldn’t load workflows — using the default.</div>}
-            {wfState === 'ready' && workflows.length === 0 && (
-              <div className="text-[14px] text-ink-3">No workflows yet. Learn one from a work page with the extension.</div>
-            )}
-            {workflows.length > 0 && (
-              <div className="divide-y divide-rule">
-                {workflows.map((w) => {
-                  const on = workflow === w.id
-                  return (
-                    <label
-                      key={w.id}
-                      className={`grid cursor-pointer grid-cols-[18px_minmax(0,1fr)] items-start gap-3 border-l-2 py-3.5 pl-3 pr-1 ${on ? 'border-l-confirmed' : 'border-l-transparent'}`}
-                    >
-                      <input type="radio" name="wf" checked={on} onChange={() => setWorkflow(w.id)} className="mt-1 accent-[#4e6b44]" />
-                      <span className="min-w-0">
-                        <span className="block text-[16px] leading-snug text-ink-1">{w.name}</span>
-                        <span className="mt-0.5 block text-[14px] leading-snug text-ink-2">
-                          <Mark state={w.kind === 'learned' ? 'observed' : 'written'} className="mr-1" />
-                          {w.kind === 'learned' ? 'Learned from a person' : 'Built in'}
-                          <span className="text-ink-3">
-                            {' · '}
-                            {w.experts.length ? `taught by ${w.experts.join(', ')}` : 'not taught yet'}
-                            {w.learners.length ? ` · training ${w.learners.join(', ')}` : ''}
-                          </span>
-                        </span>
-                        {(w.compare_experts?.length ?? 0) >= 2 && (
-                          <Link
-                            to={`/w/${w.id}/compare`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-1 inline-block text-[14px] text-inferred hover:underline"
-                          >
-                            Compare {w.compare_experts!.length} experts
-                            {w.compare_experts!.some((x) => x.simulated) ? ' (includes a rehearsal expert)' : ''} →
-                          </Link>
-                        )}
-                      </span>
+        <section className="border-y border-rule py-5">
+          <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="label">Workflow</div>
+            <div>
+              {wfState === 'loading' && <span className="text-[14px] text-ink-3">Loading…</span>}
+              {wfState === 'error' && <span className="text-[14px] text-ink-3">Couldn’t load workflows. Using the default.</span>}
+              {workflows.length > 4 && (
+                <select value={workflow} onChange={(e) => setWorkflow(e.target.value)} className="block w-full max-w-[520px] rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-2 text-[14px] text-ink-1 outline-none focus:border-ink-2">
+                  {workflows.map((w) => <option key={w.id} value={w.id}>{w.name}{w.kind === 'learned' ? ' · learned' : ''}</option>)}
+                </select>
+              )}
+              {workflows.length > 0 && workflows.length <= 4 && (
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                  {workflows.map((w) => (
+                    <label key={w.id} className={`flex cursor-pointer items-center gap-2 border-b-2 py-1 text-[15px] ${workflow === w.id ? 'border-confirmed text-ink-1' : 'border-transparent text-ink-2'}`}>
+                      <input type="radio" name="wf" checked={workflow === w.id} onChange={() => setWorkflow(w.id)} className="accent-[#4e6b44]" />
+                      {w.name}
+                      <span className="num text-[11px] text-ink-3">{w.kind === 'learned' ? 'learned' : 'built in'}</span>
+                      {(w.compare_experts?.length ?? 0) >= 2 && (
+                        <Link to={`/w/${w.id}/compare`} onClick={(e) => e.stopPropagation()} className="text-[13px] text-inferred hover:underline">
+                          compare experts →
+                        </Link>
+                      )}
                     </label>
-                  )
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+              <p className="mb-0 mt-2 text-[13px] text-ink-3">
+                A task that isn’t listed? Turn Mira on in the browser extension and choose <span className="text-ink-2">Learn this task</span>.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -160,48 +172,86 @@ export default function Home() {
               <span className="text-ink-1">Practice mode.</span> This run uses a simulated expert. It is labelled everywhere and never feeds a saved Work Map.
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
-            <div className="flex flex-col pb-8 md:pb-0 md:pr-10">
-              <div className="num text-[11px] text-ink-3">1</div>
-              <h2 className="testimony mb-0 mt-1.5 text-[30px] leading-[1.1] tracking-[-0.01em]">Learn from an expert</h2>
-              <p className="mb-0 mt-3 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
-                Work as usual. Mira watches your decisions and asks a question when you pause.
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="flex flex-col pb-9 md:pb-0 md:pr-10">
+              <div className="flex items-end gap-5">
+                <Mira role="learn" height={104} />
+                <div className="pb-1">
+                  <div className="num text-[11px] text-ink-3">Job 1</div>
+                  <h2 className="testimony m-0 mt-1 text-[28px] leading-[1.1] tracking-[-0.01em]">Learn from an expert</h2>
+                </div>
+              </div>
+              <p className="mb-0 mt-4 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
+                The expert works as usual. Mira watches, asks one question at a natural pause, and builds the Work Map.
               </p>
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 md:mt-auto md:pt-6">
-                <button
-                  disabled={busy !== null}
-                  onClick={() => start('capture')}
-                  className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 text-[13.5px] font-medium text-sheet hover:bg-[#3a3732] disabled:opacity-40"
-                >
-                  Start capture
-                </button>
-                <label className="flex items-center gap-2 text-[14px] text-ink-2">
-                  Expert speaks
-                  <select value={lang} onChange={(e) => setLang(e.target.value)} className="num rounded-[3px] border border-rule-strong bg-sheet px-2 py-1 text-[14px] text-ink-1 outline-none focus:border-ink-2">
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
+              <div className="mt-6 space-y-3">
+                <label className="block text-[13px] text-ink-2">Who is the expert?
+                  <select value={expertPick} onChange={(e) => setExpertPick(e.target.value)} className={sel}>
+                    <option value="__new__">+ New expert (you)</option>
+                    {experts.map((e) => <option key={e.expert} value={e.expert}>{e.expert} · Work Map v{e.version}</option>)}
                   </select>
                 </label>
+                {expertPick === '__new__' && (
+                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Your name" aria-label="Your name" className={`${sel} mt-0`} />
+                )}
+                <p className="m-0 text-[13px] leading-snug text-ink-2">
+                  {picked
+                    ? <>Mira continues {picked.expert}’s Work Map ({mapWords(picked)}).</>
+                    : <>Mira starts from the written process and learns from {expertPick === '__new__' ? 'you' : expertPick}.</>}
+                </p>
               </div>
-              {busy === 'capture' && <div className="num mt-3 text-[12px] text-ink-2">Starting capture…</div>}
-            </div>
-
-            <div className="flex flex-col border-t border-rule pt-8 md:border-l md:border-t-0 md:pl-10 md:pt-0">
-              <div className="num text-[11px] text-ink-3">2</div>
-              <h2 className="testimony mb-0 mt-1.5 text-[30px] leading-[1.1] tracking-[-0.01em]">Teach someone new</h2>
-              <p className="mb-0 mt-3 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
-                Put the learned rules into practice. Mira guides the next person in the expert’s words.
-              </p>
               <div className="mt-6 md:mt-auto md:pt-6">
-                <button
-                  disabled={busy !== null}
-                  onClick={() => start('tutor')}
-                  className="inline-flex h-11 items-center rounded-[3px] border border-rule-strong px-5 text-[13.5px] font-medium text-ink-1 hover:border-ink-2 disabled:opacity-40"
-                >
-                  Start tutoring
+                <button disabled={busy !== null} onClick={() => start('capture')}
+                  className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 text-[13.5px] font-medium text-sheet hover:bg-[#3a3732] disabled:opacity-40">
+                  {busy === 'capture' ? 'Starting…' : 'Start learning'}
                 </button>
               </div>
-              {busy === 'tutor' && <div className="num mt-3 text-[12px] text-ink-2">Starting tutoring…</div>}
+            </div>
+
+            <div className="flex flex-col border-t border-rule pt-9 md:border-l md:border-t-0 md:pl-10 md:pt-0">
+              <div className="flex items-end gap-5">
+                <Mira role="teach" height={104} />
+                <div className="pb-1">
+                  <div className="num text-[11px] text-ink-3">Job 2</div>
+                  <h2 className="testimony m-0 mt-1 text-[28px] leading-[1.1] tracking-[-0.01em]">Teach a new hire</h2>
+                </div>
+              </div>
+              <p className="mb-0 mt-4 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
+                The new hire works a case. Mira watches and steps in before a mistake, in the expert’s own words.
+              </p>
+              <div className="mt-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block text-[13px] text-ink-2">New hire
+                    <input value={learnerName} onChange={(e) => setLearnerName(e.target.value)} className={sel} />
+                  </label>
+                  <label className="block text-[13px] text-ink-2">Mira teaches in
+                    <select value={teachLang} onChange={(e) => setTeachLang(e.target.value)} className={sel}>
+                      <option value="en">English</option>
+                      <option value="de">Deutsch</option>
+                      <option value="fr">Français</option>
+                      <option value="es">Español</option>
+                    </select>
+                  </label>
+                </div>
+                {experts.length > 1 && (
+                  <label className="block text-[13px] text-ink-2">Teach from
+                    <select value={teachFrom} onChange={(e) => setTeachFrom(e.target.value)} className={sel}>
+                      {experts.map((e) => <option key={e.expert} value={e.expert}>{e.expert} · Work Map v{e.version}</option>)}
+                    </select>
+                  </label>
+                )}
+                <p className="m-0 text-[13px] leading-snug text-ink-2">
+                  {from ? <>Taught from {from.expert}’s Work Map ({mapWords(from)}).</>
+                    : rehearsal ? <>Practice run: taught from a simulated expert.</>
+                    : <>No Work Map yet. Learn from an expert first.</>}
+                </p>
+              </div>
+              <div className="mt-6 md:mt-auto md:pt-6">
+                <button disabled={busy !== null || (!from && !rehearsal)} onClick={() => start('tutor')}
+                  className="inline-flex h-11 items-center rounded-[3px] border border-rule-strong px-5 text-[13.5px] font-medium text-ink-1 hover:border-ink-2 disabled:opacity-40">
+                  {busy === 'tutor' ? 'Starting…' : 'Start teaching'}
+                </button>
+              </div>
             </div>
           </div>
           {error && (
@@ -211,16 +261,9 @@ export default function Home() {
           )}
         </section>
 
-        <section className="border-b border-rule py-8">
-          <h2 className="m-0 text-[16px] font-medium text-ink-1">Working in another app?</h2>
-          <p className="mb-0 mt-2 max-w-[76ch] text-[16px] leading-relaxed text-ink-2">
-            Open the Tacet extension on your work page, turn Mira on, and choose <span className="text-ink-1">Learn this task</span>. The workflow will appear here.
-          </p>
-        </section>
-
         {sessions.length > 0 && (
           <section className="border-b border-rule py-8">
-            <h2 className="m-0 text-[16px] font-medium text-ink-1">Continue a session</h2>
+            <h2 className="m-0 text-[16px] font-medium text-ink-1">Recent sessions</h2>
             <div className="mt-4">
               {sessions.slice().reverse().map((s) => (
                 <button
@@ -268,10 +311,6 @@ export default function Home() {
                 <button onClick={() => setRehearsal(false)} className={`px-3 py-1 ${!rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Live</button>
                 <button onClick={() => setRehearsal(true)} className={`border-l border-rule-strong px-3 py-1 ${rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Practice run · simulated expert</button>
               </div>
-              <label className="flex items-center gap-1.5 text-ink-2" title="Capture continues from the last saved Work Map instead of the written process only">
-                <input type="checkbox" checked={continueSaved} onChange={(e) => setContinueSaved(e.target.checked)} className="accent-[#4e6b44]" />
-                continue from saved map
-              </label>
               <button onClick={runCheck} disabled={checking} className="text-inferred hover:underline disabled:opacity-40">
                 {checking ? 'checking…' : 'check LLM providers'}
               </button>
@@ -279,9 +318,6 @@ export default function Home() {
                 <span key={p} className={`num text-[11px] ${s.ok ? 'text-confirmed' : 'text-binding'}`} title={s.why}>{p}: {s.ok ? `ok (${s.model})` : s.why}</span>
               ))}
               {checkError && <span className="num text-[11px] text-binding">check failed · {checkError}</span>}
-            </div>
-            <div className="text-[11.5px] text-ink-3 sm:col-span-2 lg:col-span-3">
-              Live sessions learn only from real people. Practice runs use a simulated expert, are labelled everywhere, and never feed a saved Work Map.
             </div>
           </div>
         </details>
