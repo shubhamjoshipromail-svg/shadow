@@ -15,6 +15,7 @@ import { NAME, ENABLED_KEY, SERVER_KEY, siteOf, patternOf, normalizeServer } fro
  * its session. wire.js only requests that connection; it never bypasses it. */
 const INJECT_FILES = [
   "injected/loader.js",
+  "vendor/elevenlabs-client.js",
   "vendor/capture.js",
   "vendor/observe.js",
   "injected/wire.js",
@@ -43,11 +44,18 @@ async function inject(tabId, serverUrl) {
   await chrome.scripting.executeScript({
     target,
     world: "MAIN",
-    func: (api, name) => {
+    func: (api, name, voiceResources) => {
       window.SHADOW_API = api;
       window.SHADOW_NAME = name;
+      window.__tacetVoiceResources = voiceResources;
     },
-    args: [serverUrl, "Mira"],  // the companion on the page is Mira; the product is Tacet
+    args: [serverUrl, "Mira", {
+      libsampleratePath: chrome.runtime.getURL("vendor/libsamplerate.worklet.js"),
+      workletPaths: {
+        rawAudioProcessor: chrome.runtime.getURL("vendor/rawAudioProcessor.js"),
+        audioConcatProcessor: chrome.runtime.getURL("vendor/audioConcatProcessor.js"),
+      },
+    }],  // the companion on the page is Mira; the product is Tacet
   });
 
   // One file per call guarantees the companion is ready before observer wiring.

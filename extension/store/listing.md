@@ -139,40 +139,21 @@ Requested at runtime, one site at a time, only when the user switches Mira on fo
 
 ## 4. Remote code
 
-The Chrome Web Store form asks: *"Are you using remote code?"* — answer carefully,
-because the honest answer is not a plain "no".
+The submission ZIP packages all executable JavaScript and the resampler's embedded
+WASM locally. The extension build removes the companion's CDN import and injects
+`vendor/elevenlabs-client.js` (SDK 1.26.0) before the companion. The SDK's resampler
+fallback URL and the conversation worklet paths point to packaged extension resources.
+`web_accessible_resources` exposes only the three audio worklet files so enabled
+HTTP(S) pages can load them; this does not grant observation access to those sites.
 
-**Core observer and companion: no remote code.** All injected JavaScript is bundled
-in the extension: `injected/loader.js`, `vendor/capture.js`, `vendor/observe.js`,
-`injected/wire.js` (the two `vendor/` files are copies of
-`backend/shadow/static/` written by `extension/sync.sh`). The extension fetches no
-script to run its observation, prediction, or question behavior.
+For this package, select **No** for remotely hosted executable code. API and voice
+connections still use the configured Core and ElevenLabs services. Do not confuse
+those data connections with downloading executable scripts. See Chrome's
+[remote hosted code guidance](https://developer.chrome.com/docs/extensions/develop/migrate/remote-hosted-code).
 
-**Voice feature: yes, one remote import.** The bundled `vendor/capture.js` starts
-voice only when the user presses **Talk**, and at that moment dynamically imports the
-ElevenLabs browser client from a CDN:
-
-```js
-var EL_CDN = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm";
-...
-import(EL_CDN)
-```
-
-That is code fetched and executed at runtime, so under Chrome's MV3 policy it counts
-as remote code. **Before submitting, choose one of:**
-
-1. **Bundle it.** Copy the ElevenLabs client into `extension/vendor/` and import it
-   locally (the extension code is owned by another agent right now; this is their
-   one-file change), then declare "No" with confidence. Recommended if voice must ship
-   in the store build.
-2. **Ship without voice in the extension.** Remove the `import(EL_CDN)` path from the
-   bundled copy / gate it behind the core's own settings, so the store build is
-   text-only, and declare "No".
-3. **Declare "Yes" and describe it** exactly as above, accepting the review risk:
-   Chrome may reject a remote-code import even when it is optional and
-   user-triggered.
-
-Do **not** paste "No remote code" while `import(EL_CDN)` is in the shipped bundle.
+The original web companion source retains its web-only CDN path; `sync.sh` applies
+a checked transform for the extension. Rerun the packaging checks after any updates.
+Live microphone/voice behavior has not yet been verified in the installed MV3 build.
 
 ---
 
@@ -260,16 +241,8 @@ Tacet reads the visible form on sites you switch it on for: field names, labels,
 
 ## Before you submit (manual checklist)
 
-1. **Decide the remote-code answer** (section 4). Either bundle the ElevenLabs client
-   into `vendor/` and remove the CDN import, or ship the store build without voice.
-2. **Add an `icons` entry** to `extension/manifest.json` pointing at the icon sizes
-   provided here: `extension/store/icon16.png`, `icon32.png`, `icon48.png`,
-   `icon128.png`. The manifest currently has no `icons` key. This pack does not edit
-   the manifest (another agent owns it).
-3. **Serve `site/privacy.html` at `/privacy.html`** on the core host
-   (`core-production-c5ac.up.railway.app`) so the privacy-policy URL resolves. The file
-   is self-contained and matches the landing page.
-4. **Zip the extension** (the contents of `extension/`, not the parent folder) and
-   upload, then fill the form above.
-5. **Developer account and fee**: a Chrome Web Store developer account is required
-   (one-time US$5 registration), then the item review.
+1. Run `python3 extension/package.py`; use the generated ZIP with `manifest.json` at its root.
+2. Verify the deployed privacy-policy URL resolves and matches current behavior.
+3. Load the package unpacked in Chrome and smoke-test per-site activation, voice,
+   screen sharing, learned workflow continuation and the notebook before submission.
+4. Upload the ZIP in the developer portal and complete the listing/disclosures above.

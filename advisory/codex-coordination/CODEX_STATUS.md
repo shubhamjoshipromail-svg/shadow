@@ -66,3 +66,12 @@ Primary-agent verification supersedes the worker's pending visual-check note: fi
 
 ### Final assembly
 Completed work saved in checkpoint 8ee04b2 and cold-start commit 753146c; final film controls/report/evidence and integration documentation saved in the subsequent final commit. Both workers stopped; no active file ownership remains. All known release limits are preserved in readiness and worker reports. No push, history rewrite or deployment performed.
+
+## 2026-10-03 — Extension ZIP and logo
+
+User requested a developer-portal ZIP with a logo. Added explicit toolbar icons and
+popup logo; packaged voice SDK/worklets locally while preserving voice; updated sync,
+package validation, license/provenance files and store guidance. ZIP is generated in
+ignored `dist/tacet-extension-0.1.0.zip`. Packaging and offline SDK smoke checks pass.
+See `design/tasks/EXTENSION_PACKAGE_REPORT_2026-10-03.md` for validation limits.
+User authorized integration commits earlier in this chat; no push or upload.

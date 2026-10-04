@@ -1106,7 +1106,6 @@
   // Tacet decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
   // triggers turns at the moments Tacet picks, and reports who is speaking for pause detection.
   var V = { conv: null, role: null, status: "off", speaking: false, userTalking: false, quiet: 0 };
-  var EL_CDN = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm";
 
   function voiceStatus(t) { V.status = t; var el = $("v-st"); if (el) { el.hidden = !t || t === "off"; $("v-t").textContent = t; } render(); }
 
@@ -1130,11 +1129,13 @@
     if (V.conv) return Promise.resolve();
     voiceStatus("connecting…");
     var role = MODE === "tutor" ? "tutor" : "interviewer";
-    return Promise.all([ensureSession(), api("/api/config"), import(EL_CDN)]).then(function (r) {
+    return Promise.all([ensureSession(), api("/api/config"), Promise.resolve(window.ElevenLabsClient)]).then(function (r) {
       var agentId = (r[1].agents || {})[role];
       if (!agentId) throw new Error("no " + role + " agent — run scripts/setup_elevenlabs.py");
       return r[2].Conversation.startSession({
         agentId: agentId,
+        libsampleratePath: window.__tacetVoiceResources.libsampleratePath,
+        workletPaths: window.__tacetVoiceResources.workletPaths,
         connectionType: "websocket",
         dynamicVariables: { shadow_session: SID, shadow_mode: MODE || "capture" },
         customLlmExtraBody: { shadow_session: SID },

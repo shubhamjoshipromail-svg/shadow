@@ -38,8 +38,8 @@ engine sees the work — not just the one app it was built against.
 - Auto-fill or click for you. It observes and asks; the person works.
 - Reliably prevent saves on an arbitrary site from a click observation alone. Tutor enforcement
   requires the host action to await `window.shadow.beforeSave`.
-- Guarantee voice on every site: the injected `capture.js` loads the ElevenLabs client
-  from a CDN at runtime, so a page whose CSP blocks that import keeps text-only Mira.
+- Guarantee voice on every site: microphone permissions, secure-context requirements,
+  and host CSP can prevent audio worklets from loading. Voice code and worklets are packaged locally.
 
 ## Layout
 
@@ -49,7 +49,7 @@ engine sees the work — not just the one app it was built against.
 | `background.js` | decides where Mira is allowed and injects the bundle (MAIN world) |
 | `injected/loader.js` | records whether the page ships its own companion without replacing WebSocket |
 | `injected/wire.js` | asks the companion to own observer routing/watch mode (only on generic pages) |
-| `vendor/` | copies of `capture.js` + `observe.js`, written by `sync.sh`; voice still imports the CDN client |
+| `vendor/` | synced companion/observer, pinned ElevenLabs 1.26.0 SDK, local audio worklets and licenses |
 | `popup/` | 320px popup: server URL, per-site switch, list of enabled sites |
 | `test/` | static test pages + the headless-Chrome acceptance harness |
 
@@ -67,6 +67,11 @@ SPA/reload behaviour and the "don't double-inject our ERP" guard, then writes
 ## Store preparation
 
 Listing, icons, rendered store screenshots and composition sources are in `store/`.
-The four icons are wired into the manifest. Bundle the ElevenLabs client locally before
-submitting: the current voice CDN import prevents a truthful no-remote-code declaration.
+The four icons are wired into the manifest and toolbar; the popup displays the logo.
+Voice uses the checked-in ElevenLabs 1.26.0 IIFE and libsamplerate 2.1.2 worklet,
+with SDK defaults adapted to extension-local URLs. `sync.sh` applies a fail-closed
+companion transform, leaving the web companion source unchanged.
+Run `python3 extension/package.py` to validate and create `dist/tacet-extension-0.1.0.zip`.
+The package excludes store compositions, test fixtures and development tooling.
+Actual microphone/voice operation in a loaded MV3 extension still needs a live smoke test.
 See `store/listing.md` and `../site/privacy.html`; this repository does not claim store approval.
