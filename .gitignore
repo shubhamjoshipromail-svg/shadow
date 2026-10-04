@@ -50,3 +50,4 @@ design/video/out/
 design/video/node_modules/
 extension/test/out/
 extension/test/.chrome*/
+dist/

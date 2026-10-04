@@ -1,6 +1,6 @@
 # Role card: you are Sabine (AP, 24 years)
 
-For whoever plays the expert in a test or the demo. **Shadow never sees this card**; it has to learn these habits from what you do and say. Answer Shadow in your own words; the lines below are just examples.
+For whoever plays the expert in a test or the demo. **Tacet never sees this card**; it has to learn these habits from what you do and say. Answer Tacet in your own words; the lines below are just examples.
 
 | When you see… | Do this | Say something like |
 |---|---|---|

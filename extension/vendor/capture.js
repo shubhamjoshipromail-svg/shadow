@@ -1,8 +1,8 @@
-/* Shadow capture script — loaded by the observed app (e.g. the sandbox ERP).
+/* Tacet capture script — loaded by the observed app (e.g. the sandbox ERP).
  *
  * Sends semantic events (what was opened, which field changed, which panel the
  * expert looked at) and activity *kinds* (typing / scrolling / pointer) to
- * Shadow. It never sends keystroke contents. It also exposes
+ * Tacet. It never sends keystroke contents. It also exposes
  * window.shadow.beforeSave, the save intercept the tutor uses to step in
  * before a guardrail is broken.
  *
@@ -17,7 +17,7 @@
   var script = document.currentScript;
   var API = (window.SHADOW_API && window.SHADOW_API.indexOf("%") < 0 && window.SHADOW_API) ||
             (script ? new URL(script.src).origin : "http://localhost:8000");
-  var NAME = window.SHADOW_NAME || "Shadow";  // the product name lives here and nowhere else
+  var NAME = window.SHADOW_NAME || "Mira";  // the companion's name (product: Tacet) lives here and nowhere else
   var CONSOLE = window.SHADOW_CONSOLE || "";   // notebook origin: /api/config console_url, else the API origin
   var CONFIG = null;
   var EXPERT = window.SHADOW_EXPERT || "Sabine";
@@ -147,7 +147,7 @@
         return v;
       }).catch(function () {
         if (MODE === "tutor") {
-          var iv = { say: "Shadow tutor is unreachable \u2014 try saving again in a moment." };
+          var iv = { say: "Mira can\u2019t reach Tacet right now \u2014 try saving again in a moment." };
           overlay(iv);
           return { allow: false, intervention: iv };
         }
@@ -273,7 +273,7 @@
     if (SID) return;
     var b = $("b-start");
     if (b) b.disabled = true;
-    // starting a session also starts the voice: one click, and Shadow can actually speak
+    // starting a session also starts the voice: one click, and Tacet can actually speak
     ensureSession().then(function () { render(); return startVoice().catch(function () {}); }).catch(function () {
       toast(["Couldn\u2019t start a session \u2014 the notebook may be offline."]);
     }).then(function () { if (b) b.disabled = false; });
@@ -460,6 +460,20 @@
     '.card h4{margin:0 0 6px;font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}' +
     '.card .say{font-size:15px;line-height:1.45;color:var(--ink)}' +
     '.card q{display:block;margin-top:9px;color:var(--muted);font:italic 13px/1.5 Georgia,"Times New Roman",serif}' +
+    // end-of-practice summary: the tutor's report card on warm paper, lists only, no chart
+    '.card.summary .sumtop{font-size:12px;color:var(--muted);margin-top:5px}' +
+    '.card.summary .sumtop b{color:var(--ink);font-weight:650}' +
+    '.card.summary .sumb{margin-top:11px;border-top:1px solid var(--line);padding-top:9px}' +
+    '.card.summary .sumb h5{margin:0 0 4px;font:600 10.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}' +
+    '.card.summary ul.sum{list-style:none;margin:0;padding:0}' +
+    '.card.summary ul.sum li{display:flex;align-items:baseline;gap:8px;padding:2.5px 0;font-size:12.5px;line-height:1.4;color:var(--ink)}' +
+    '.card.summary ul.sum li i{flex:0 0 13px;width:13px;text-align:center;font-style:normal}' +
+    '.card.summary ul.sum li i.tick{color:#4e6b44}' +
+    '.card.summary ul.sum li i.ring{color:#8f6420}' +
+    '.card.summary ul.sum li .t{flex:1}' +
+    '.card.summary ul.sum li .why{color:var(--muted);font-size:11px}' +
+    '.card.summary ul.sum li .pp{font:11px ui-monospace,SFMono-Regular,monospace;color:var(--muted)}' +
+    '.card.summary ul.sum li.empty .none{color:var(--muted);font-size:11.5px}' +
     '@media (prefers-reduced-motion:reduce){#w *,#w *::before,#w *::after{animation:none!important;transition:none!important}}';
 
   var host = document.createElement("div");
@@ -496,6 +510,7 @@
             '<button class="btn accent" id="b-ask" type="button" hidden>Ask me now</button>' +
             '<button class="btn" id="b-debrief" type="button" hidden>Debrief me</button>' +
             '<button class="btn" id="b-teach" type="button" hidden>Teach ' + NOVICE + '</button>' +
+            '<button class="btn accent" id="b-finish" type="button" hidden>Finish practice</button>' +
             '<button class="btn" id="b-off" type="button"></button></div>' +
           '<div class="stuckrow"><button class="linkbtn" id="b-stuck" type="button">I\u2019m stuck</button></div>' +
           '<div class="vst" id="v-st" hidden><span id="v-t"></span></div>' +
@@ -524,6 +539,7 @@
     e.stopPropagation(); clearTimeout(T.open); F.open = false; render();
   });
   $("b-start").addEventListener("click", startSession);
+  $("b-finish").addEventListener("click", finishPractice);
   $("b-end").addEventListener("click", askEndSession);
   $("b-end-yes").addEventListener("click", endSession);
   $("b-end-no").addEventListener("click", cancelEndSession);
@@ -567,6 +583,7 @@
       nudge({ level: level, text: text, look: look || [], case_id: lastCase });
       return true;
     },
+    setSummary: function (m) { tutorSummary(m || {}); return true; },
     setIntervention: function (iv) { overlay(iv || {}); return true; },
     showMe: function (steps) { replayPath(steps || []); return true; },
     notebook: function () { return SID ? notebookURL() : null; },
@@ -594,6 +611,7 @@
     bv.classList.toggle("accent", !V.conv && (F.asking || F.hand || MODE === "tutor"));
     $("b-debrief").hidden = !(V.conv && MODE === "capture");
     $("b-teach").hidden = !(SID && MODE !== "tutor");
+    $("b-finish").hidden = !(SID && MODE === "tutor");  // the trainee ends the practice
   }
   function render() {
     var st = companionState(), meta = STATES[st];
@@ -772,6 +790,109 @@
     render();
   }
 
+  // ------------------------------------------- end-of-practice tutor summary
+  // When the trainee finishes (the Finish button) or the last case is done, the
+  // engine sends tutor_summary. It is the report card: what is solid, what to
+  // practise next, and the first-try score. This only reads it; leaving for the
+  // next case is the trainee's click, through the app's own router when it has one.
+  function pctOf(p) {
+    var n = Number(p);
+    if (p == null || isNaN(n)) return "";
+    return Math.round(n * 100) + "%";
+  }
+  function reasonFor(status) {
+    var s = String(status == null ? "" : status).toLowerCase();
+    if (s === "shaky") return "still shaky";
+    if (s === "practice") return "needs practice";
+    if (s === "unseen" || s === "not seen yet") return "not tried yet";
+    return s;
+  }
+  function summaryList(title, items, mark, mastered) {
+    var box = document.createElement("div"); box.className = "sumb";
+    var h = document.createElement("h5"); h.textContent = title; box.appendChild(h);
+    var ul = document.createElement("ul"); ul.className = "sum";
+    if (!items.length) {
+      var li0 = document.createElement("li"); li0.className = "empty";
+      var n0 = document.createElement("span"); n0.className = "none";
+      n0.textContent = mastered ? "Nothing confirmed yet \u2014 keep going." : "Nothing queued \u2014 nice.";
+      li0.appendChild(n0); ul.appendChild(li0);
+    } else {
+      items.forEach(function (it) {
+        it = it || {};
+        var li = document.createElement("li");
+        var i = document.createElement("i"); i.className = mark; i.textContent = mastered ? "\u2713" : "\u25cc";
+        var t = document.createElement("span"); t.className = "t"; t.textContent = it.title || it.id || "\u2014";
+        li.appendChild(i); li.appendChild(t);
+        if (!mastered) {
+          var why = document.createElement("span"); why.className = "why"; why.textContent = reasonFor(it.status);
+          li.appendChild(why);
+        }
+        var pp = pctOf(it.p);
+        if (pp) { var pEl = document.createElement("span"); pEl.className = "pp"; pEl.textContent = pp; li.appendChild(pEl); }
+        ul.appendChild(li);
+      });
+    }
+    box.appendChild(ul);
+    return box;
+  }
+  function openNextCase(id) {
+    if (id == null || id === "") return false;
+    try {
+      if (window.shadowERP && typeof window.shadowERP.open === "function") { window.shadowERP.open(id); return true; }
+    } catch (e) {}
+    // generic fallback: only swap the id already in the current path, never guess a route
+    var path = location.pathname || "";
+    if (lastCase && path.indexOf(lastCase) >= 0) { location.pathname = path.split(lastCase).join(String(id)); return true; }
+    return false;
+  }
+  // the Finish button asks the engine for the summary; the engine may also send it on its own
+  function finishPractice() {
+    if (!SID) return;
+    var b = $("b-finish");
+    if (b) { b.disabled = true; b.textContent = "Finishing\u2026"; }
+    think();
+    send({ type: "finish_practice" });
+    later("finish", 8000, function () {  // the socket may be offline; never leave the button stuck
+      var x = $("b-finish");
+      if (x && x.disabled) { x.disabled = false; x.textContent = "Finish practice"; }
+    });
+  }
+  function tutorSummary(m) {
+    m = m || {};
+    var cards = $("cards");
+    if (!cards) return;
+    clearTimeout(T.finish);
+    var b = $("b-finish");
+    if (b) { b.disabled = false; b.textContent = "Finish practice"; }
+    var ind = m.independent || {};
+    var el = document.createElement("div");
+    el.className = "card summary";
+    var h = document.createElement("h4"); h.textContent = "Practice summary"; el.appendChild(h);
+    var top = document.createElement("div"); top.className = "sumtop";
+    top.appendChild(document.createTextNode((m.learner ? m.learner + " \u00b7 " : "") + "first try, on your own: "));
+    if (ind.of) {
+      var sb = document.createElement("b"); sb.textContent = (ind.ok || 0) + " of " + ind.of; top.appendChild(sb);
+    } else {
+      top.appendChild(document.createTextNode("no independent tries yet"));
+    }
+    el.appendChild(top);
+    el.appendChild(summaryList("What you\u2019ve mastered", m.mastered || [], "tick", true));
+    el.appendChild(summaryList("Practise next", m.practice || [], "ring", false));
+    var acts = document.createElement("div"); acts.className = "acts";
+    if (m.next_case != null && m.next_case !== "") {
+      var nb = document.createElement("button"); nb.className = "btn accent"; nb.type = "button"; nb.textContent = "Next case";
+      nb.onclick = function () { nb.textContent = "Opening\u2026"; openNextCase(m.next_case); };
+      acts.appendChild(nb);
+    }
+    var ok = document.createElement("button"); ok.className = "btn"; ok.type = "button"; ok.textContent = "Close";
+    ok.onclick = function () { el.remove(); };
+    acts.appendChild(ok);
+    el.appendChild(acts);
+    cards.innerHTML = "";
+    cards.appendChild(el);
+    F.open = false; render();
+  }
+
   // interactions
   function askNow() { if (!F.hand) return; send({ type: "ask_now" }); F.hand = false; think(); render(); }
   function askLater() { send({ type: "ask_later" }); F.hand = false; render(); }
@@ -785,8 +906,8 @@
   }
 
   // ------------------------------------------------------------- voice (ElevenLabs, inside the observed app)
-  // Shadow decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
-  // triggers turns at the moments Shadow picks, and reports who is speaking for pause detection.
+  // Tacet decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
+  // triggers turns at the moments Tacet picks, and reports who is speaking for pause detection.
   var V = { conv: null, role: null, status: "off", speaking: false, userTalking: false, quiet: 0 };
   var EL_CDN = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm";
 
@@ -839,7 +960,7 @@
     }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) {
       V.conv = null;
       var msg = /permission|notallowed|denied/i.test(String(e && (e.name + " " + e.message)))
-        ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then click Start Shadow again."
+        ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then press Talk again."
         : "Voice couldn\u2019t start: " + e.message;
       voiceStatus(msg);
       toast([msg], "amber");
@@ -869,6 +990,7 @@
   onServer = function (m) {
     _onServer(m);
     if (m.type === "nudge") nudge(m);  // learner guide: cue, question, highlight or show me
+    if (m.type === "tutor_summary") tutorSummary(m);  // end of practice: the trainee's report card
     if (m.type === "ask" && MODE !== "tutor") say("[[shadow:ask " + m.inquiry.id + "]]");
     if (m.type === "intervene" && m.intervention && m.intervention.id) say("[[shadow:intervene " + m.intervention.id + "]]");
     if (m.type === "tutor_case" && m.prompt) {  // proactive coaching as a case opens: where to look, predict first
@@ -942,7 +1064,7 @@
     var showMe = iv.show_me || [];
     var el = document.createElement("div");
     el.className = "card";
-    el.innerHTML = '<h4>Shadow stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
+    el.innerHTML = '<h4>Mira stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
       (showMe.length ? '<div class="look"></div>' : "") +
       '<div class="acts">' + (showMe.length ? '<button class="btn accent" data-k="showme">Show me</button>' : "") +
 

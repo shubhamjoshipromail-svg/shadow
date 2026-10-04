@@ -3,7 +3,7 @@
 *An apprentice that learns what the AI doesn't already know.*
 *HackNation · ElevenLabs "AI Apprentice" challenge.*
 
-v3 replaces v2. It was rewritten after reading the challenge brief (`file.pdf`) and after the team pushed back on v2. The thesis and the Observe → Predict → Ask → Learn → Test loop are unchanged. What changed is **what Shadow predicts with**, **what the central artifact is**, and **how this scales past supplier picking**.
+v3 replaces v2. It was rewritten after reading the challenge brief (`file.pdf`) and after the team pushed back on v2. The thesis and the Observe → Predict → Ask → Learn → Test loop are unchanged. What changed is **what Tacet predicts with**, **what the central artifact is**, and **how this scales past supplier picking**.
 
 ---
 
@@ -11,11 +11,11 @@ v3 replaces v2. It was rewritten after reading the challenge brief (`file.pdf`) 
 
 | v2 | v3 | Reason |
 |---|---|---|
-| Predictor = Bayesian choice model with hand-written features | **Predictor = "AI Novice"**: an LLM that knows only the written process doc plus every rule Shadow has learned. The Bayesian layer stays for repeated discrete decisions (thresholds, weights). | The judged demo is one 5–10 minute session with about 3 cases. A choice model has almost no data to learn from in that window. An AI Novice can make a real, pre-committed prediction on case #1. It also generalizes to code, design and medicine, where hand-written features can't. |
-| Gaps = expert diverges from the learned model | **Gaps = expert diverges from what an AI would do.** Shadow harvests the *residual*: the knowledge the expert has that AI lacks. | That residual is exactly the training signal needed to teach the next human *or* to build the AI replacement. Every gap episode is a ready-made preference pair. (§9) |
+| Predictor = Bayesian choice model with hand-written features | **Predictor = "AI Novice"**: an LLM that knows only the written process doc plus every rule Tacet has learned. The Bayesian layer stays for repeated discrete decisions (thresholds, weights). | The judged demo is one 5–10 minute session with about 3 cases. A choice model has almost no data to learn from in that window. An AI Novice can make a real, pre-committed prediction on case #1. It also generalizes to code, design and medicine, where hand-written features can't. |
+| Gaps = expert diverges from the learned model | **Gaps = expert diverges from what an AI would do.** Tacet harvests the *residual*: the knowledge the expert has that AI lacks. | That residual is exactly the training signal needed to teach the next human *or* to build the AI replacement. Every gap episode is a ready-made preference pair. (§9) |
 | Work Map = output document | **Work Map is executable.** Steps, rules and guardrails can be *run* on a new case. | One artifact powers all three modules. It *knows when it understood* (it can predict the expert on unseen cases). It *teaches* (it predicts what the trainee should do and catches mistakes before save). It *exports to agents* (stretch goal, almost free). |
 | No vision in the core | **Hybrid capture**: screen-share + vision events (required by the brief, works on any screen), plus a DOM fast path in our sandbox ERP for precision and the "catch before save" hook. | The brief explicitly asks for screen share and vision events. The DOM path keeps the demo reliable. |
-| Short voice session per question | **One persistent ElevenAgents session per mode. The agent's LLM *is* Shadow Core** (Custom LLM endpoint). Pauses trigger the agent via `sendUserMessage`. | Latency is fine. A persistent session sounds like a colleague. A custom LLM endpoint makes "Shadow owns cognition" literally true. |
+| Short voice session per question | **One persistent ElevenAgents session per mode. The agent's LLM *is* Tacet Core** (Custom LLM endpoint). Pauses trigger the agent via `sendUserMessage`. | Latency is fine. A persistent session sounds like a colleague. A custom LLM endpoint makes "Tacet owns cognition" literally true. |
 | Supplier selection | **Accounts-payable invoices (the brief's "Sabine" example).** Supplier choice becomes one judgment call inside it. | The judges' rubric ("What good looks like") is written for this domain, and a judge will literally play Sabine. Our edge comes from the engine, not from an exotic domain. |
 
 Kept from v2:
@@ -30,16 +30,16 @@ Kept from v2:
 
 ---
 
-## 1. Brief requirements → how Shadow meets them
+## 1. Brief requirements → how Tacet meets them
 
-| Brief requirement | Shadow mechanism |
+| Brief requirement | Tacet mechanism |
 |---|---|
 | **M1 Capture:** at least 3 live questions, each at a natural pause, about something visible on screen; at least 1 about a guardrail | Pause detector (§4.3) gates the Inquiry Planner. Every question is anchored to a screen event. A guardrail coverage term in EVOI forces at least one limit/stop question. Budget: 3–5 per 10 minutes, the rest goes to the debrief queue. |
 | **M2 Map:** debrief with at least 3 new follow-ups and a teach-back the expert confirms; every step and guardrail links to a screen moment and the expert's words | Debrief agenda = ranked uncertainty (§5). Teach-back is *generated by running the executable map*, not summarized from the transcript. Provenance on every node: `{video_ts, frame, quote, quote_ts}`. |
 | **M3 Teach:** a judge processes an *unseen* case; the tutor catches at least 1 wrong decision before it is saved and explains it with the expert's reasoning | Tutor runs the map on the live case, so it knows the expected decision before the trainee acts. A save-intercept hook (sandbox) plus a vision fallback catches the mistake. It replays Sabine's clip and quote. (§6) |
 | Apprentice Test 1: **when to ask** | Fused pause signal: Scribe v2 Realtime voice activity + keyboard/mouse idle + screen-stable frames + task boundary (§4.3) |
 | Test 2: **what to ask** | Ask only where the expert diverged from the AI Novice (the screen and the doc can't explain it). Rank by EVOI. (§4.4) |
-| Test 3: **when it has understood** | *Shadow passes its own exam*: it predicts the expert on k synthetic boundary cases, residual uncertainty is below τ, and every guardrail has a stop condition. Then teach-back. (§5.3) |
+| Test 3: **when it has understood** | *Tacet passes its own exam*: it predicts the expert on k synthetic boundary cases, residual uncertainty is below τ, and every guardrail has a stop condition. Then teach-back. (§5.3) |
 | Test 4: **whether the new hire learned** | Per-rule mastery (Bayesian Knowledge Tracing) on unseen cases generated from the rule space, plus a mastery report (§6.3) |
 | Test 5: **trust** | "Off the record" voice command and hotkey; Presidio redaction on transcripts and vision text; on-screen PII blurred before frames are stored (§7) |
 | Stretch: two experts | Run both maps on the same probe cases → disagreements → ask each expert (§5.5) |
@@ -51,11 +51,11 @@ Kept from v2:
 
 ## 2. Five principles
 
-1. **Episodes are the asset; models are disposable views.** Everything Shadow believes can be re-derived from the append-only log of frames, events, predictions, answers and counterfactuals. Today's view is a rule set plus a Bayesian layer. Tomorrow's is a fine-tuned model trained on the same log. (This is the answer to "data vs policies". See §9.)
+1. **Episodes are the asset; models are disposable views.** Everything Tacet believes can be re-derived from the append-only log of frames, events, predictions, answers and counterfactuals. Today's view is a rule set plus a Bayesian layer. Tomorrow's is a fine-tuned model trained on the same log. (This is the answer to "data vs policies". See §9.)
 2. **Predict before you observe.** Every decision point gets a committed, timestamped prediction from the AI Novice *before* the expert acts.
 3. **Ask about the residual.** Questions go only where the expert's behavior can't be explained by the screen, the written doc, or rules already learned. Only when EVOI > interruption cost, and only at a pause.
 4. **Words propose, behavior disposes.** A spoken reason is a hypothesis. It is verified by counterfactual probes, by replaying past episodes, and by future behavior. This is the defense against confabulation (Nisbett & Wilson 1977).
-5. **The Work Map is a program.** If Shadow can't *run* it on a new case and get the expert's answer, it hasn't understood.
+5. **The Work Map is a program.** If Tacet can't *run* it on a new case and get the expert's answer, it hasn't understood.
 
 ---
 
@@ -105,7 +105,7 @@ The same function is used by the debrief exam, the tutor, the two-expert diff, a
 - `confirmed`: survived counterfactual and replay
 - `contested`: contradicted by later behavior
 
-The UI colors nodes by belief state, so judges can *see* what Shadow knows versus guesses.
+The UI colors nodes by belief state, so judges can *see* what Tacet knows versus guesses.
 
 ---
 
@@ -126,11 +126,11 @@ Event fusion (dedupe DOM vs vision; DOM wins when present)
 - **Why both paths:** vision proves it works on *any* screen (the brief, and the generality story). The DOM path makes the demo precise, and it is the only reliable way to intercept a save in M3.
 
 ### 4.2 Predict: the AI Novice
-When a decision point opens (invoice opened, field focused), Shadow calls the Novice:
+When a decision point opens (invoice opened, field focused), Tacet calls the Novice:
 - **Input:** the structured screen state, the deliberately incomplete *2019 process doc*, and the current Work Map rules.
 - **Output:** `{predicted_action, p, rationale, fields_relied_on}`, committed with a timestamp and shown live in the panel.
 - Fast path: when a confirmed rule fires, `run_map` predicts directly without the LLM.
-- **Bayesian layer:** for repeated, discrete parameters (capex threshold, net vs gross, tolerance %, per-supplier hold), Shadow keeps a posterior. Thresholds use a logistic boundary with a Gaussian prior on the cutoff. Weights use the v2 conditional-logit. These posteriors are what BALD probes sharpen (§5.2).
+- **Bayesian layer:** for repeated, discrete parameters (capex threshold, net vs gross, tolerance %, per-supplier hold), Tacet keeps a posterior. Thresholds use a logistic boundary with a Gaussian prior on the cutoff. Weights use the v2 conditional-logit. These posteriors are what BALD probes sharpen (§5.2).
 
 ### 4.3 When to ask: pause detection (Apprentice Test 1)
 ```
@@ -175,7 +175,7 @@ Every question references the screen moment: *"You moved 4471 to capex. What mad
 5. Contradictions (e.g. the expert held one December invoice but not another).
 
 ### 5.2 Unseen-case probes (BALD)
-Shadow synthesizes small hypothetical invoices that best separate its competing hypotheses or sharpen a posterior. For example:
+Tacet synthesizes small hypothetical invoices that best separate its competing hypotheses or sharpen a posterior. For example:
 - *"Same laptop, €4,900, capex or opex?"*
 - *"€5,200 gross but €4,370 net?"*
 - *"The December double-biller, but in March. Still hold?"*
@@ -188,13 +188,13 @@ Each answer becomes a synthetic episode, weighted β ≈ 0.6 because of hypothet
 
 ### 5.3 When it has understood (Apprentice Test 3)
 The debrief ends when all of these hold:
-- **Shadow passes its own exam.** On k = 5 fresh synthetic cases spanning the rule boundaries, `run_map` predictions match the expert's quick answers (≥ 4/5), and predictive entropy on a larger held-out probe pool is below τ.
+- **Tacet passes its own exam.** On k = 5 fresh synthetic cases spanning the rule boundaries, `run_map` predictions match the expert's quick answers (≥ 4/5), and predictive entropy on a larger held-out probe pool is below τ.
 - Every decision step has a confirmed rule *or* an explicit "expert's discretion" marker.
 - Every step has a guardrail or an explicit "none".
 - Agenda EVOI falls below cost.
 
-Then comes the **teach-back**. Shadow narrates the process by *walking the executable map* ("Step 4: if it's equipment over €5,000 net, it goes to capex 0400, but only with an asset number; otherwise stop…").
-- When the expert corrects it ("gross, not net"), Shadow patches the rule, re-runs the exam on affected cases, and re-states that step.
+Then comes the **teach-back**. Tacet narrates the process by *walking the executable map* ("Step 4: if it's equipment over €5,000 net, it goes to capex 0400, but only with an asset number; otherwise stop…").
+- When the expert corrects it ("gross, not net"), Tacet patches the rule, re-runs the exam on affected cases, and re-states that step.
 - It ends when the expert says "yes, that's how it works". That confirmation is logged as a provenance event.
 
 ### 5.4 The Work Map UI
@@ -224,7 +224,7 @@ The new hire works an **unseen** case, generated from the rule space to exercise
 ### 6.2 Tutor agent
 - Same persistent-session pattern.
 - Work Map JSON goes into the agent's knowledge base / Procedures, as the brief suggests.
-- Live lookups through an **MCP server** exposed by Shadow Core: `get_rule`, `get_guardrail`, `get_screen_moment`, `next_case`, `record_mastery`. (The brief explicitly points at ElevenLabs MCP tools.)
+- Live lookups through an **MCP server** exposed by Tacet Core: `get_rule`, `get_guardrail`, `get_screen_moment`, `next_case`, `record_mastery`. (The brief explicitly points at ElevenLabs MCP tools.)
 
 ### 6.3 Did they learn? (Apprentice Test 4)
 - **Bayesian Knowledge Tracing per rule** (Corbett & Anderson 1994): P(mastered) is updated on each opportunity (correct predict-next, correct action, needed intervention).
@@ -246,15 +246,15 @@ Required by the brief, and cheap:
 ## 8. Voice: ElevenAgents integration
 
 - **Two agents:** *Interviewer* (curious, patient; Expressive Mode) and *Tutor* (warm, Socratic). Each runs one persistent session per mode.
-- **Custom LLM = Shadow Core.** Both agents' LLM is set to a Custom LLM pointing at FastAPI `/v1/chat/completions` (OpenAI-compatible; ElevenLabs appends `/chat/completions`). [Docs](https://elevenlabs.io/docs/eleven-agents/customization/llm/custom-llm)
-  - On each turn, Shadow Core decides the reply using planner state and calls Claude to phrase it, streaming tokens back.
-  - The agent's voice is ElevenLabs. Its mind is Shadow.
+- **Custom LLM = Tacet Core.** Both agents' LLM is set to a Custom LLM pointing at FastAPI `/v1/chat/completions` (OpenAI-compatible; ElevenLabs appends `/chat/completions`). [Docs](https://elevenlabs.io/docs/eleven-agents/customization/llm/custom-llm)
+  - On each turn, Tacet Core decides the reply using planner state and calls Claude to phrase it, streaming tokens back.
+  - The agent's voice is ElevenLabs. Its mind is Tacet.
 - **Screen events → agent context:** `sendContextualUpdate(event)`. It doesn't trigger speech. [React SDK](https://elevenlabs.io/docs/agents-platform/libraries/react)
 - **Speaking at a pause:** when the planner releases a question, the client calls `sendUserMessage("[[shadow:ask q_17]]")`. That triggers a turn, and the Custom LLM returns the question text. The tag is hidden from the transcript UI.
-- **Staying quiet:** if the expert talks to the agent mid-task, Shadow Core may return a minimal acknowledgement or use the `skip_turn` system tool. [Docs](https://elevenlabs.io/docs/eleven-agents/customization/tools/system-tools/skip-turn)
+- **Staying quiet:** if the expert talks to the agent mid-task, Tacet Core may return a minimal acknowledgement or use the `skip_turn` system tool. [Docs](https://elevenlabs.io/docs/eleven-agents/customization/tools/system-tools/skip-turn)
 - **Client tools:** `pause_capture`, `resume_capture`, `mark_answer(q_id)`, `seek_screen_moment(ts)` (tutor replay).
 - **Multilingual stretch:** the Interviewer runs in German and the Tutor in English. Rules are stored language-neutral, and quotes are kept in the original with a translation.
-- **Fallback** if the Custom LLM route misbehaves: a built-in LLM, with Shadow Core injecting the exact question via `sendUserMessage("Ask exactly: …")`.
+- **Fallback** if the Custom LLM route misbehaves: a built-in LLM, with Tacet Core injecting the exact question via `sendUserMessage("Ask exactly: …")`.
 
 ---
 
@@ -269,7 +269,7 @@ Required by the brief, and cheap:
 **Where I disagree, and why the active loop *is* the data strategy**
 
 1. **Passive data is mostly worthless for this goal.** Screen and click logs are about 90% happy path that a frontier model already handles. Interloom already mines millions of historical tickets, and task-mining vendors already have click logs. More of that isn't a moat. The scarce, valuable data is the **residual**: the decisions where an expert does something an AI wouldn't, *with the reason, the boundary and the guardrail attached*. You only get that by predicting first and asking at the divergence. **The policy is the data-collection instrument.** It decides which 5% of an expert's hour turns into training data.
-2. **This is the DAgger insight** (Ross et al. 2011). Imitation learners fail on states the expert never demonstrates. The fix is expert labels on exactly the states where the *learner* goes wrong. Shadow is DAgger with rationales: the AI Novice proposes, the expert corrects, and the correction is the datum.
+2. **This is the DAgger insight** (Ross et al. 2011). Imitation learners fail on states the expert never demonstrates. The fix is expert labels on exactly the states where the *learner* goes wrong. Tacet is DAgger with rationales: the AI Novice proposes, the expert corrects, and the correction is the datum.
 3. **Every gap episode is a training example in four formats at once:**
    - **SFT:** (screen state → expert action + expert rationale)
    - **Preference pair:** expert action ≻ AI Novice action, with the reason. These are DPO/RLHF pairs for free, on exactly the cases the AI gets wrong.
@@ -302,7 +302,7 @@ The core is domain-agnostic once you name the primitive:
 
 > **Decision point** = (state, the alternatives the AI would consider, the expert's action, the AI's predicted action). The residual is the distance between the last two.
 
-For discrete desk work, alternatives are explicit. For open-ended work they're implicit: the AI Novice *generates* what a competent non-expert would do, and Shadow diffs that against the expert.
+For discrete desk work, alternatives are explicit. For open-ended work they're implicit: the AI Novice *generates* what a competent non-expert would do, and Tacet diffs that against the expert.
 
 | Domain | Capture adapter | AI Novice | What a "gap" looks like | Readiness |
 |---|---|---|---|---|
@@ -312,9 +312,9 @@ For discrete desk work, alternatives are explicit. For open-ended work they're i
 | Clinical / surgical | video + narration + device data | clinical model / guideline | deviates from guideline or the model's next step | Long-term; regulated |
 | Field / physical trades | head-cam + voice | vision model | different tool or sequence | Long-term |
 
-- **Pitch framing:** *"Anywhere an AI can make a guess, Shadow can find where the expert knows better."*
-- **Expansion path:** the AI Novice gets stronger every year, which means the residual gets *smaller and more valuable*, and Shadow gets *quieter and sharper*. The product improves as frontier models improve instead of being commoditized by them.
-- **Engineering wedge:** the Claude Code adapter is the most credible second domain ("senior engineer rejects the agent's fix → Shadow asks why at the next pause → rule added to the team's agent instructions"). Show it on the moonshot slide; build it only if all three modules are done.
+- **Pitch framing:** *"Anywhere an AI can make a guess, Tacet can find where the expert knows better."*
+- **Expansion path:** the AI Novice gets stronger every year, which means the residual gets *smaller and more valuable*, and Tacet gets *quieter and sharper*. The product improves as frontier models improve instead of being commoditized by them.
+- **Engineering wedge:** the Claude Code adapter is the most credible second domain ("senior engineer rejects the agent's fix → Tacet asks why at the next pause → rule added to the team's agent instructions"). Show it on the moonshot slide; build it only if all three modules are done.
 
 ---
 
@@ -325,7 +325,7 @@ The challenge asks for teaching. The brief's own moonshot list includes "**peopl
 The same executable Work Map, and the same exam, serve both learners:
 ```
                      ┌──► TUTOR teaches new hire ──► mastery per rule (BKT)
-Expert ──► Shadow ──► Executable Work Map + Exam
+Expert ──► Tacet ──► Executable Work Map + Exam
                      └──► AGENT loads map (skill file / MCP) ──► same exam ──► certified decision classes
                                                    │
                                  fails / low-confidence / guardrail → hand back to human
@@ -333,7 +333,7 @@ Expert ──► Shadow ──► Executable Work Map + Exam
 ```
 - **Agent-ready export (stretch, cheap):** the map compiles to an instruction file plus an MCP server whose `check_step(state, proposed_action)` returns allow / block / ask-human with the quote.
 - **Certification:** an agent is trusted on a decision class only after it passes the same unseen-case exam a new hire passes. Everything else stays with people.
-- **The loop closes:** agent mistakes and human overrides are new residual episodes. Shadow becomes the always-on apprentice of the *agent's* supervisor too.
+- **The loop closes:** agent mistakes and human overrides are new residual episodes. Tacet becomes the always-on apprentice of the *agent's* supervisor too.
 
 **Moonshot slide:** *"Every retiring expert becomes a Work Map, a tutor, and an exam. Humans learn from it first; agents earn the routine steps by passing the same exam; people keep the judgment calls. And every correction makes the map smarter."*
 
@@ -343,14 +343,14 @@ Expert ──► Shadow ──► Executable Work Map + Exam
 
 ```
 ┌─────────────────────────── Browser (React/Vite, Lovable-scaffolded) ─────────────────────────┐
-│ Sandbox ERP (AP inbox, invoice view)  │ Shadow side panel: live prediction · Silence Log ·           │
+│ Sandbox ERP (AP inbox, invoice view)  │ Tacet side panel: live prediction · Silence Log ·           │
 │  shadow-capture.ts + save intercept   │ hypothesis bars · Work Map (belief colors) · threshold curve │
 │ getDisplayMedia → frames → PII blur   │ debrief agenda · tutor mastery · timeline w/ video seek      │
 │ ElevenAgents React SDK (Interviewer / Tutor)  ◄── contextual updates / sendUserMessage            │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
         │ WS /ws (events, frames-as-events up · model diffs down)          ElevenLabs cloud
         ▼                                                                    │ Custom LLM calls
-┌──────────────────────────────────────── FastAPI "Shadow Core" ───────────────────────────▼──────────┐
+┌──────────────────────────────────────── FastAPI "Tacet Core" ───────────────────────────▼──────────┐
 │ Perception (vision events, fusion) → Decision-point detector → AI Novice + run_map (pre-commit) │
 │ → Gap detector → Hypothesis Engine (Claude → DSL → execute on log → attention-weighted)       │
 │ → Inquiry Planner (EVOI + guardrail gap − cost · pause gate · LinTS type · BALD probes)        │
@@ -402,7 +402,7 @@ An oracle "Sabine" with hidden rules (capex threshold on *gross*, December hold 
 **Compare:**
 1. Record-and-summarize (an LLM over the transcript and events)
 2. Ask-always-why
-3. Shadow
+3. Tacet
 
 **Metrics:**
 - Rule and guardrail recovery
@@ -410,7 +410,7 @@ An oracle "Sabine" with hidden rules (capex threshold on *gross*, December hold 
 - Live questions per 10 minutes
 - Robustness as *c* rises
 
-The headline shows Shadow recovering the hidden rules with fewer questions and staying accurate when the expert confabulates. Fill in real numbers; don't promise them in advance.
+The headline shows Tacet recovering the hidden rules with fewer questions and staying accurate when the expert confabulates. Fill in real numbers; don't promise them in advance.
 
 ---
 
@@ -425,7 +425,7 @@ The headline shows Shadow recovering the hidden rules with fewer questions and s
 3. **Debrief (60s).**
    - *"You held the December invoice. Is that for every supplier, and who releases it?"*
    - A BALD probe: *"Same laptop at €4,900?"* The threshold curve snaps tight.
-   - "Shadow passes its own exam: 5/5."
+   - "Tacet passes its own exam: 5/5."
    - Teach-back in under a minute. The judge corrects net → gross, and the map patches live.
 4. **Work Map (20s).** 7 steps, 3 judgment calls, 4 guardrails. Each click seeks the video and plays her quote.
 5. **Teach (50s).** A second judge, as the new hire, opens an unseen €7,200 equipment invoice and reaches for opex.
@@ -474,7 +474,7 @@ The headline shows Shadow recovering the hidden rules with fewer questions and s
   - Cross-customer predicate/guardrail library and question policy (time-to-map falls with scale)
   - The residual episode corpus
   - The exam as a certification standard
-- **Versus Interloom:** they mine historical cases for precedent. Shadow captures live, asks at the residual, and verifies every rule against behavior.
+- **Versus Interloom:** they mine historical cases for precedent. Tacet captures live, asks at the residual, and verifies every rule against behavior.
 
 ---
 

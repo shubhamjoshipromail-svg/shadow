@@ -4,9 +4,9 @@ import { mmss } from '../lib/api'
 
 /* ------------------------------------------------------------------ provenance
  * Every claim carries its state in two channels: a glyph and an ink. Hue alone is never enough.
- *   observed ▮  a human did or said this         inferred ◌  Shadow thinks this
+ *   observed ▮  a human did or said this         inferred ◌  Tacet thinks this
  *   confirmed ✓ behavior agreed with it          binding ■   a guardrail: it forbids
- *   contested ✗ later behavior contradicted it   query ?     Shadow is asking
+ *   contested ✗ later behavior contradicted it   query ?     Tacet is asking
  */
 export type Prov = 'observed' | 'inferred' | 'confirmed' | 'binding' | 'contested' | 'query' | 'written'
 
@@ -85,7 +85,7 @@ export function Wordmark({ size = 13 }: { size?: number }) {
         <span className="absolute inset-0 translate-x-[3px] -translate-y-[3px] bg-[#c9d1bb]" />
         <span className="absolute inset-0 bg-confirmed" />
       </span>
-      shadow
+      tacet
     </span>
   )
 }

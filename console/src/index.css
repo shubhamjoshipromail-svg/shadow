@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 /*
- * Shadow design system — "the knowledge document".
+ * Tacet design system — "the knowledge document".
  * Warm paper, ink, one sage accent. Serif is reserved for the expert's words and page titles;
  * sans for interface; mono for codes, amounts and evidence. See design/DESIGN.md.
  *
- * Provenance is the one non-negotiable token set: observed (a human did it), inferred (Shadow thinks it),
+ * Provenance is the one non-negotiable token set: observed (a human did it), inferred (Tacet thinks it),
  * confirmed (behavior agreed), binding (a guardrail), contested (contradicted). Each is also carried by a
  * glyph (see <Mark/>), never by hue alone.
  */

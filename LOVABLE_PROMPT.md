@@ -1,8 +1,8 @@
 # Lovable prompt — "Nordwerk ERP" sandbox (paste everything below the line)
 
 Notes for you, not for Lovable:
-- Build this as its own Lovable project. Shadow observes it in two ways: through screen share, and through a small `capture.js` script that Shadow hosts.
-- Lovable only needs to get three things exactly right: the `data-shadow-*` attributes, `window.shadowERP`, and the `beforeSave` hook. All of the intelligence lives in Shadow.
+- Build this as its own Lovable project. Tacet observes it in two ways: through screen share, and through a small `capture.js` script that Tacet hosts.
+- Lovable only needs to get three things exactly right: the `data-shadow-*` attributes, `window.shadowERP`, and the `beforeSave` hook. All of the intelligence lives in Tacet.
 - Once Lovable is done, connect it to GitHub and send me the repo URL (or clone it into `erp/` in this folder).
 
 ---
@@ -75,7 +75,7 @@ type Case = {
 Persist edits in React state only. On an action, `POST ${VITE_SHADOW_API}/api/erp/cases/:id/action` with `{action, booking, reason?, approver?}`, and ignore any failure.
 
 ## Instrumentation contract (CRITICAL, implement exactly)
-The app is observed by an AI apprentice called Shadow. Add the following.
+The app is observed by an AI apprentice called Tacet. Add the following.
 
 1. **Load the observer script** in `index.html`:
    ```html
@@ -105,7 +105,7 @@ The app is observed by an AI apprentice called Shadow. Add the following.
    const verdict = await (window.shadow?.beforeSave?.({ action, caseId, booking, reason, approver }) ?? Promise.resolve({ allow: true }));
    if (!verdict.allow) { /* keep the user on the form, do not post, do not advance */ return; }
    ```
-   When it is blocked, show nothing yourself. Shadow will speak and show its own overlay. Also expose `window.shadowERP.highlight(field: string)`, which pulses a yellow ring around that booking field for 3 seconds.
+   When it is blocked, show nothing yourself. Tacet will speak and show its own overlay. Also expose `window.shadowERP.highlight(field: string)`, which pulses a yellow ring around that booking field for 3 seconds.
 
 ## Look & feel
 - Neutral greys, one corporate accent (deep teal), compact 13px table text, monospace for amounts.

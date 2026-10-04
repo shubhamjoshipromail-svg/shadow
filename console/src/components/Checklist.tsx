@@ -21,7 +21,7 @@ export default function Checklist({ u }: { u: Understood }) {
         ))}
       </div>
       <div className={`mt-3 border-t pt-2.5 text-[13px] ${u.done ? 'border-confirmed text-confirmed' : 'border-rule text-ink-2'}`}>
-        {u.done ? <span className="testimony text-[16px]">Shadow has understood this process.</span> : 'Not done yet. Still learning.'}
+        {u.done ? <span className="testimony text-[16px]">Mira has understood this process.</span> : 'Not done yet. Still learning.'}
       </div>
     </div>
   )

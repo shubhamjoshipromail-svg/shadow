@@ -47,7 +47,7 @@ async function inject(tabId, serverUrl) {
       window.SHADOW_API = api;
       window.SHADOW_NAME = name;
     },
-    args: [serverUrl, NAME],
+    args: [serverUrl, "Mira"],  // the companion on the page is Mira; the product is Tacet
   });
 
   // One file per call: the order is then guaranteed, so the companion's socket exists

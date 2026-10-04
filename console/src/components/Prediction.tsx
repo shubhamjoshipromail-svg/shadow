@@ -1,7 +1,7 @@
 import type { Snapshot } from '../lib/types'
 import { Mark, SourceChip, fieldLabel, valueLabel } from './ui'
 
-/** Shadow's committed guess, and the expert's act written over it. The guess is struck, never erased. */
+/** Tacet's committed guess, and the expert's act written over it. The guess is struck, never erased. */
 export default function PredictionCard({ snap, caseId }: { snap: Snapshot; caseId: string | null }) {
   const pred = caseId ? snap.predictions[caseId] : null
   const kase = snap.cases.find((c) => c.id === caseId)
@@ -10,7 +10,7 @@ export default function PredictionCard({ snap, caseId }: { snap: Snapshot; caseI
     return (
       <div className="panel px-6 py-10">
         <div className="testimony text-[22px] text-ink-2">Waiting for the expert to open a case.</div>
-        <div className="mt-2 max-w-md text-[12.5px] text-ink-3">Shadow writes down its guess the moment a case opens, before anything is decided, so every surprise is on the record.</div>
+        <div className="mt-2 max-w-md text-[12.5px] text-ink-3">Mira writes down her guess the moment a case opens, before anything is decided, so every surprise is on the record.</div>
       </div>
     )
   }

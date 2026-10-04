@@ -118,10 +118,10 @@ export default function MapPage() {
             </div>
           ) : (
             <div className="border-l border-rule-strong pl-4 text-[13px] leading-relaxed text-ink-2">
-              Select a clause or a guardrail to see the rule Shadow runs, her words, and the behavior that confirmed or contradicted it.
+              Select a clause or a guardrail to see the rule Mira runs, her words, and the behavior that confirmed or contradicted it.
               <div className="num mt-4 space-y-1 text-[11px] text-ink-3">
                 <div><Mark state="observed" />stated by her</div>
-                <div><Mark state="inferred" />inferred by Shadow</div>
+                <div><Mark state="inferred" />inferred by Mira</div>
                 <div><Mark state="confirmed" />confirmed by later behavior</div>
                 <div><Mark state="binding" />guardrail: stops the work</div>
                 <div><Mark state="written" />2019 written process</div>

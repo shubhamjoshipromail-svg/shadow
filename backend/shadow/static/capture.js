@@ -1,8 +1,8 @@
-/* Shadow capture script — loaded by the observed app (e.g. the sandbox ERP).
+/* Tacet capture script — loaded by the observed app (e.g. the sandbox ERP).
  *
  * Sends semantic events (what was opened, which field changed, which panel the
  * expert looked at) and activity *kinds* (typing / scrolling / pointer) to
- * Shadow. It never sends keystroke contents. It also exposes
+ * Tacet. It never sends keystroke contents. It also exposes
  * window.shadow.beforeSave, the save intercept the tutor uses to step in
  * before a guardrail is broken.
  *
@@ -17,7 +17,7 @@
   var script = document.currentScript;
   var API = (window.SHADOW_API && window.SHADOW_API.indexOf("%") < 0 && window.SHADOW_API) ||
             (script ? new URL(script.src).origin : "http://localhost:8000");
-  var NAME = window.SHADOW_NAME || "Shadow";  // the product name lives here and nowhere else
+  var NAME = window.SHADOW_NAME || "Mira";  // the companion's name (product: Tacet) lives here and nowhere else
   var CONSOLE = window.SHADOW_CONSOLE || "";   // notebook origin: /api/config console_url, else the API origin
   var CONFIG = null;
   var EXPERT = window.SHADOW_EXPERT || "Sabine";
@@ -147,7 +147,7 @@
         return v;
       }).catch(function () {
         if (MODE === "tutor") {
-          var iv = { say: "Shadow tutor is unreachable \u2014 try saving again in a moment." };
+          var iv = { say: "Mira can\u2019t reach Tacet right now \u2014 try saving again in a moment." };
           overlay(iv);
           return { allow: false, intervention: iv };
         }
@@ -273,7 +273,7 @@
     if (SID) return;
     var b = $("b-start");
     if (b) b.disabled = true;
-    // starting a session also starts the voice: one click, and Shadow can actually speak
+    // starting a session also starts the voice: one click, and Tacet can actually speak
     ensureSession().then(function () { render(); return startVoice().catch(function () {}); }).catch(function () {
       toast(["Couldn\u2019t start a session \u2014 the notebook may be offline."]);
     }).then(function () { if (b) b.disabled = false; });
@@ -906,8 +906,8 @@
   }
 
   // ------------------------------------------------------------- voice (ElevenLabs, inside the observed app)
-  // Shadow decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
-  // triggers turns at the moments Shadow picks, and reports who is speaking for pause detection.
+  // Tacet decides what to say (server, via the agents' Custom LLM); this only starts the conversation,
+  // triggers turns at the moments Tacet picks, and reports who is speaking for pause detection.
   var V = { conv: null, role: null, status: "off", speaking: false, userTalking: false, quiet: 0 };
   var EL_CDN = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.26.0/+esm";
 
@@ -960,7 +960,7 @@
     }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) {
       V.conv = null;
       var msg = /permission|notallowed|denied/i.test(String(e && (e.name + " " + e.message)))
-        ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then click Start Shadow again."
+        ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then press Talk again."
         : "Voice couldn\u2019t start: " + e.message;
       voiceStatus(msg);
       toast([msg], "amber");
@@ -1064,7 +1064,7 @@
     var showMe = iv.show_me || [];
     var el = document.createElement("div");
     el.className = "card";
-    el.innerHTML = '<h4>Shadow stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
+    el.innerHTML = '<h4>Mira stepped in</h4><div class="say"></div>' + (quote ? "<q></q>" : "") +
       (showMe.length ? '<div class="look"></div>' : "") +
       '<div class="acts">' + (showMe.length ? '<button class="btn accent" data-k="showme">Show me</button>' : "") +
 

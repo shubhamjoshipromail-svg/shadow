@@ -12,7 +12,7 @@ const VERDICT: Record<Receipt['summary']['verdict'], [Prov, string]> = {
 
 const fmt = (v: number | null) => (v == null ? '—' : v.toLocaleString('de-DE', { maximumFractionDigits: 1 }))
 
-/** Proof of learning: what Shadow predicted before, what it was told, what changed, and whether it held up. */
+/** Proof of learning: what Tacet predicted before, what it was told, what changed, and whether it held up. */
 export default function Receipts({ snap, limit }: { snap: Snapshot; limit?: number }) {
   const list = [...snap.receipts].filter((r) => !r.evaluation).reverse().slice(0, limit)
   if (!list.length) return <div className="text-[12px] text-ink-3">Nothing learned yet. Every answer is entered here: the guess before, her words, the change to the map, and every later case that tested it.</div>

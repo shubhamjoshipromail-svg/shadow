@@ -121,7 +121,7 @@ async def _small_talk(session: Session, messages: list[dict[str, Any]]) -> Async
     if not llm.available():
         yield "Mm-hm."
         return
-    system = (f"You are Shadow, a quiet, curious apprentice watching {session.expert} work. They just said "
+    system = (f"You are Mira, the quiet, curious apprentice inside Tacet, watching {session.expert} work. They just said "
               "something to you. Reply in at most one short sentence of plain spoken words. Never describe "
               "actions or use stage directions. Do not ask questions now; you'll ask at natural pauses. If they "
               "ask what you've learned, summarize in one sentence."
@@ -154,7 +154,7 @@ async def _tutor_turn(session: Session, messages: list[dict[str, Any]], text: st
     rules = [{"title": n.title, "quote": n.quote.english() if n.quote else None}
              for n in [*session.wm.rules, *session.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
     case = session.cases.get(session.current_case or "")
-    system = (f"You are Shadow, a patient tutor teaching {session.trainee or 'a new hire'} how {session.expert} "
+    system = (f"You are Mira, a patient tutor teaching {session.trainee or 'a new hire'} how {session.expert} "
               f"processes invoices. Use Socratic questions first, then explain using {session.expert}'s own words "
               "(quote them). Max two short sentences per turn. Never invent rules beyond these:\n"
               f"{json.dumps(rules, ensure_ascii=False)}\n"

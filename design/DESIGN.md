@@ -1,4 +1,4 @@
-# Shadow design system
+# Tacet design system
 
 One register across the console, Work Map, sealed test, landing page and the in-app companion: **the knowledge
 document**. Warm paper, ink, one sage accent. Derived from DeepSeek's Direction B (`design/shadow-v3/DIRECTIONS.md`)
@@ -22,7 +22,7 @@ query `#8f6420` (ochre), candidate `#6f5a7e`, written process `#8a8378`.
 Use `<Mark state>` / `<BeliefBadge>`; a component never colors a claim by itself.
 
 ## Laws
-1. The expert's work is the stage; Shadow annotates.
+1. The expert's work is the stage; Tacet annotates.
 2. Separation by 1px rules and surface value. Radius ≤ 4px (the companion and ERP keep their own).
 3. Guardrails are structural: a plate with a 3px brick left rule, never a chip.
 4. Uncertainty is an interval or a curve drawn in hairline, never a shimmer.

@@ -85,7 +85,7 @@ function ConsoleInner({ sid }: { sid: string }) {
   const question = asked ?? lastAnswered
 
   if (!snap) {
-    return <div className="flex h-full items-center justify-center text-[13px] text-ink-2">{connected ? 'Opening the session…' : 'Connecting to Shadow Core…'}</div>
+    return <div className="flex h-full items-center justify-center text-[13px] text-ink-2">{connected ? 'Opening the session…' : 'Connecting to Tacet Core…'}</div>
   }
 
   const openMoment = (ts: number | null, node?: MapNode) => setMoment({ ts, quote: node?.quote, title: node?.title })
@@ -180,7 +180,7 @@ function ConsoleInner({ sid }: { sid: string }) {
 
           <Section title="When to ask">
             <div className={`text-[13px] ${activity?.paused ? 'text-confirmed' : 'text-ink-2'}`}>
-              {activity?.paused ? 'Natural pause. Shadow may speak.' : 'She is working. Shadow stays quiet.'}
+              {activity?.paused ? 'Natural pause. Mira may speak.' : 'She is working. Mira stays quiet.'}
             </div>
             {(activity?.blocking ?? []).length > 0 && (
               <div className="num mt-1.5 text-[10.5px] text-ink-3">waiting on: {(activity?.blocking ?? []).join(' · ')}</div>
@@ -193,11 +193,11 @@ function ConsoleInner({ sid }: { sid: string }) {
               {voiceOn ? 'Stop voice' : 'Start voice'}
             </Btn>
           }>
-            <div className="num text-[10.5px] text-ink-3">{voiceOn ? (voice.conv.isSpeaking ? 'Shadow is speaking' : 'listening') : voice.conv.status}</div>
+            <div className="num text-[10.5px] text-ink-3">{voiceOn ? (voice.conv.isSpeaking ? 'Mira is speaking' : 'listening') : voice.conv.status}</div>
             <div className="scroll-thin mt-2 max-h-[280px] divide-y divide-rule overflow-y-auto">
               {lines.map((l, i) => (
                 <div key={i} className="grid grid-cols-[52px_1fr] gap-2 py-1.5 text-[12.5px] leading-snug">
-                  <span className={`num pt-px text-[10px] uppercase tracking-[.06em] ${l.who === 'agent' ? 'text-query' : 'text-ink-3'}`}>{l.who === 'agent' ? 'Shadow' : mode === 'tutor' ? snap.trainee : snap.expert}</span>
+                  <span className={`num pt-px text-[10px] uppercase tracking-[.06em] ${l.who === 'agent' ? 'text-query' : 'text-ink-3'}`}>{l.who === 'agent' ? 'Tacet' : mode === 'tutor' ? snap.trainee : snap.expert}</span>
                   <span className={l.who === 'agent' ? 'text-ink-1' : 'testimony text-[14px] text-ink-1'}>{l.who === 'agent' ? l.text : `“${l.text}”`}</span>
                 </div>
               ))}
@@ -229,7 +229,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           )}
         </div>
 
-        {/* MIDDLE: what Shadow thinks, asks, and learned */}
+        {/* MIDDLE: what Tacet thinks, asks, and learned */}
         <div className="scroll-thin flex min-h-0 flex-col gap-5 overflow-y-auto">
           <PredictionCard snap={snap} caseId={snap.current_case} />
           {question && <div className="px-1"><Question key={question.id} q={question} live={!!asked && asked.id === question.id} /></div>}
@@ -257,7 +257,7 @@ function ConsoleInner({ sid }: { sid: string }) {
           {mode === 'tutor' ? (
             <Section title={`${snap.trainee}’s mastery`}><Mastery snap={snap} /></Section>
           ) : (
-            <Section title="Has Shadow understood?"><Checklist u={snap.understood} /></Section>
+            <Section title="Has Tacet understood?"><Checklist u={snap.understood} /></Section>
           )}
           {posteriors.length > 0 && (
             <Section title="Learned parameters"><div className="space-y-4">{posteriors.map((p) => <Threshold key={p.name} p={p} />)}</div></Section>

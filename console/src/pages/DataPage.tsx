@@ -6,7 +6,7 @@ import { Mark, Section, Testimony, Wordmark } from '../components/ui'
 /*
  * "What was collected" — the honest document, not a dashboard.
  *
- * Reads GET /api/data/inventory?session=<sid> and prints exactly what Shadow stored for this session:
+ * Reads GET /api/data/inventory?session=<sid> and prints exactly what Tacet stored for this session:
  * where each kind of row lives, what is never recorded, the newest five rows per ledger table, and the
  * totals. No cards, no pills, no icons; separation by 1px rules, field values in mono, the expert's words
  * in serif. See design/DESIGN.md and design/tasks/DEEPSEEK_DATA_PAGE.md.
@@ -146,7 +146,7 @@ export default function DataPage() {
             <div className="label">Data inventory · session {sid}</div>
             <h1 className="testimony mb-0 mt-3 text-[40px] leading-[1.08] tracking-[-0.015em]">What was collected</h1>
             <p className="mt-3 text-[13.5px] leading-relaxed text-ink-2">
-              Everything below is what Shadow has stored about this session: the guess it wrote down before each
+              Everything below is what Tacet has stored about this session: the guess it wrote down before each
               decision, the questions it asked and the answers it heard, and what a new hire did on unseen cases —
               together with where each of those lives and who else can reach them.
             </p>
@@ -233,7 +233,7 @@ export default function DataPage() {
               {/* ------------------------------------------------------- explanations */}
               <h3 className="label mt-10">Explanations</h3>
               {explanations.length === 0 ? (
-                <Empty>No answers yet. When Shadow asks a question and the expert explains, the question and the scrubbed answer are recorded here.</Empty>
+                <Empty>No answers yet. When Tacet asks a question and the expert explains, the question and the scrubbed answer are recorded here.</Empty>
               ) : (
                 <table className="mt-2 w-full border-collapse text-[12.5px]">
                   <thead>

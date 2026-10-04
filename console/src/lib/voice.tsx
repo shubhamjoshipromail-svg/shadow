@@ -12,8 +12,8 @@ const TAG = /\[\[shadow:[^\]]*\]\]/g
 export interface VoiceLine { who: 'agent' | 'user'; text: string; at: number }
 
 /**
- * Bridges Shadow and the ElevenLabs agent.
- * Shadow decides what to say (server, via Custom LLM); this hook only triggers turns at the right time,
+ * Bridges Tacet and the ElevenLabs agent.
+ * Tacet decides what to say (server, via Custom LLM); this hook only triggers turns at the right time,
  * reports who is speaking (for pause detection), and keeps a transcript.
  */
 export function useVoiceBridge(opts: {
@@ -51,7 +51,7 @@ export function useVoiceBridge(opts: {
     },
   })
 
-  // Shadow's planner decides *when*; we just trigger the agent's turn.
+  // Tacet's planner decides *when*; we just trigger the agent's turn.
   useEffect(() => opts.on((e) => {
     if (conv.status !== 'connected') return
     if (e.type === 'ask' && optsRef.current.mode === 'capture') conv.sendUserMessage(`[[shadow:ask ${e.inquiry.id}]]`)

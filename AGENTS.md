@@ -10,10 +10,10 @@
 <!-- LOVABLE:END -->
 
 ## Architecture
-- AP case data lives in a React context (src/lib/erp/store.tsx), seeded from src/data/seed.json and replaced by the Shadow API when reachable — no backend/DB by spec.
-- Shadow observer contract (data-shadow-* attributes, window.shadowERP, beforeSave hook) is in src/lib/erp/shadow.ts; every action must await beforeSave before mutating state.
+- AP case data lives in a React context (src/lib/erp/store.tsx), seeded from src/data/seed.json and replaced by the Tacet API when reachable — no backend/DB by spec.
+- Tacet observer contract (data-shadow-* attributes, window.shadowERP, beforeSave hook) is in src/lib/erp/shadow.ts; every action must await beforeSave before mutating state.
 
-## Shadow multi-agent coordination
+## Tacet multi-agent coordination
 See `CLAUDE.md` (project context, run instructions, conventions). Summary:
 - Claude Code (Opus) owns `backend/shadow/**`, `console/**`, integration, commits and pushes. Lovable owns the ERP UI at the repo root.
 - Codex and other agents work only on bounded tasks assigned in `advisory/codex-coordination/OPUS_TASKS.md`, edit only the files listed there, report in `advisory/codex-coordination/CODEX_STATUS.md`, and do not commit or push.

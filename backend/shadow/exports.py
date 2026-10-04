@@ -82,7 +82,7 @@ def to_agent_skill(wm: WorkMap) -> str:
         "---",
         f"name: {wm.task}",
         f"description: How {wm.expert} performs '{wm.task.replace('_', ' ')}', including unwritten judgment and "
-        "the points where a human must decide. Captured and verified by Shadow.",
+        "the points where a human must decide. Captured and verified by Tacet.",
         "---",
         "",
         f"# {wm.task.replace('_', ' ').title()}",

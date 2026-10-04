@@ -33,25 +33,50 @@ API = "https://api.elevenlabs.io/v1/convai/agents"
 VOICE_ID = os.getenv("SHADOW_VOICE_ID", "cgSgspJ2msm6clMCkdW9")
 
 PROMPT = (
-    "You are Shadow, a quiet, curious apprentice. SHADOW_SESSION={{shadow_session}} MODE={{shadow_mode}}\n"
+    "You are Mira, the quiet, curious apprentice inside Tacet. SHADOW_SESSION={{shadow_session}} MODE={{shadow_mode}}\n"
     "Keep every reply to one or two short sentences. Never lecture."
 )
 
 AGENTS = {
     "interviewer": dict(
-        name="Shadow – Interviewer",
-        first_message="Hi, I'm Shadow. Just work as you normally would. I'll stay quiet and only ask when something isn't obvious.",
+        name="Tacet – Interviewer",
+        first_message="Hi, I'm Mira. Just work as you normally would. I'll stay quiet and only ask when something isn't obvious.",
         language="en",
     ),
     "tutor": dict(
-        name="Shadow – Tutor",
+        name="Tacet – Tutor",
         first_message="Hi Lena, I'm your tutor. Work the invoice as you think is right. I'll jump in if Sabine would have done it differently.",
         language="en",
     ),
 }
 
 
-def payload(role: str, public_url: str) -> dict:
+MCP_API = "https://api.elevenlabs.io/v1/convai/mcp-servers"
+MCP_NAME = "Tacet Work Map"
+
+
+def ensure_mcp_server(http: httpx.Client, headers: dict, public_url: str) -> str | None:
+    """The Work Map as MCP tools (list_steps, list_guardrails, check_decision, explain_rule), registered once."""
+    url = public_url.rstrip("/") + "/mcp"
+    http.patch("https://api.elevenlabs.io/v1/convai/settings", headers=headers, json={"can_use_mcp_servers": True})
+    r = http.get(MCP_API, headers=headers)
+    if r.status_code < 400:
+        for srv in r.json().get("mcp_servers", []):
+            cfg = srv.get("config") or {}
+            if cfg.get("name") == MCP_NAME and cfg.get("url") == url:
+                return srv["id"]
+    body = {"config": {"url": url, "name": MCP_NAME, "transport": "STREAMABLE_HTTP",
+                       "approval_policy": "auto_approve_all",
+                       "description": "The expert's learned Work Map: steps, guardrails, and check_decision, which "
+                                      "returns the expert's objections in their own words."}}
+    r = http.post(MCP_API, headers=headers, json=body)
+    if r.status_code >= 400:
+        print(f"mcp server: HTTP {r.status_code}: {r.text[:400]}", file=sys.stderr)
+        return None
+    return r.json().get("id")
+
+
+def payload(role: str, public_url: str, mcp_id: str | None = None) -> dict:
     a = AGENTS[role]
     return {
         "name": a["name"],
@@ -64,6 +89,7 @@ def payload(role: str, public_url: str) -> dict:
                     "prompt": PROMPT,
                     "llm": "custom-llm",
                     "custom_llm": {"url": public_url.rstrip("/") + "/v1", "model_id": "shadow"},
+                    **({"mcp_server_ids": [mcp_id]} if mcp_id else {}),
                     # lets Shadow stay silent properly (an empty reply makes ElevenLabs retry and stall)
                     "built_in_tools": {"skip_turn": {"type": "system", "name": "skip_turn", "description": "",
                                                      "params": {"system_tool_type": "skip_turn"}}},
@@ -89,6 +115,7 @@ def payload(role: str, public_url: str) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--mcp", action="store_true", help="register the Work Map MCP server and attach it to both agents")
     ap.add_argument("--public-url", default=os.getenv("SHADOW_PUBLIC_URL", "http://localhost:8000"))
     args = ap.parse_args()
 
@@ -106,8 +133,11 @@ def main() -> int:
     ids = json.loads(IDS_FILE.read_text()) if IDS_FILE.exists() else {}
     headers = {"xi-api-key": key, "Content-Type": "application/json"}
     with httpx.Client(timeout=30) as http:
+        mcp_id = ensure_mcp_server(http, headers, args.public_url) if args.mcp else None
+        if args.mcp:
+            print(f"mcp server: {mcp_id or 'not registered'}")
         for role in AGENTS:
-            body = payload(role, args.public_url)
+            body = payload(role, args.public_url, mcp_id)
             if ids.get(role):
                 r = http.patch(f"{API}/{ids[role]}", headers=headers, json=body)
                 verb = "updated"

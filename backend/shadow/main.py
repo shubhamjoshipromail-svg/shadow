@@ -59,12 +59,12 @@ async def _ticker() -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     task = asyncio.create_task(_ticker())
-    log.info("Shadow Core up. LLM %s. Public URL %s", "enabled" if llm.available() else "DISABLED", config.PUBLIC_URL)
+    log.info("Tacet Core up. LLM %s. Public URL %s", "enabled" if llm.available() else "DISABLED", config.PUBLIC_URL)
     yield
     task.cancel()
 
 
-app = FastAPI(title="Shadow Core", lifespan=lifespan)
+app = FastAPI(title="Tacet Core", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -705,7 +705,7 @@ async def chat_completions(request: Request):
                     yield frame({"content": c})
         if not spoke and skip_tool is not None:
             # stay silent the way ElevenLabs expects: call its skip_turn system tool
-            args = {k: "Shadow is staying quiet while the expert works." for k in
+            args = {k: "Tacet is staying quiet while the expert works." for k in
                     (skip_tool.get("function", {}).get("parameters", {}).get("required") or [])}
             yield frame({"tool_calls": [{"index": 0, "id": f"call_{uuid.uuid4().hex[:10]}", "type": "function",
                                          "function": {"name": "skip_turn", "arguments": json.dumps(args)}}]})
@@ -743,7 +743,7 @@ async def data_inventory(session: str | None = None) -> dict[str, Any]:
         "database": db, "counts": store.ledger_counts(session),
         "samples": {t: store.ledger_rows(t, session, limit=5) for t in ("decisions", "explanations", "learner_attempts")},
         "locations": [
-            {"where": f"Shadow server · {db}", "what": "Decisions (case facts, the guess written down before, the expert's "
+            {"where": f"Tacet server · {db}", "what": "Decisions (case facts, the guess written down before, the expert's "
              "choice), questions and scrubbed answers, rules and every Work Map version, receipts, sealed tests, "
              "new-hire attempts. Tagged live or rehearsal, with workspace, workflow and expert."},
             {"where": "This browser only", "what": "Screen frames for replays (in memory, at most a few minutes, gone on "

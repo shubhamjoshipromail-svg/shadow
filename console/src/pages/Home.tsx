@@ -87,8 +87,8 @@ export default function Home() {
 
         <section className="divide-y divide-rule border-b border-rule">
           {([
-            ['capture', 'Capture an expert', 'Work real cases while Shadow watches. A few questions at natural pauses, then a short debrief and teach-back.', 'observed'],
-            ['tutor', 'Teach a new hire', 'The trainee works cases the expert never showed. Shadow stops a wrong save before it happens, in the expert’s words.', 'binding'],
+            ['capture', 'Capture an expert', 'Work real cases while Mira watches. A few questions at natural pauses, then a short debrief and teach-back.', 'observed'],
+            ['tutor', 'Teach a new hire', 'The trainee works cases the expert never showed. Mira stops a wrong save before it happens, in the expert’s words.', 'binding'],
           ] as const).map(([mode, title, text, prov]) => (
             <button key={mode} disabled={busy} onClick={() => start(mode)} className="group grid w-full grid-cols-[28px_1fr_auto] items-baseline gap-3 py-5 text-left disabled:opacity-50">
               <Mark state={prov} className="text-[15px]" />

@@ -9,7 +9,7 @@ import Threshold from '../components/Threshold'
 const eur = (v: number | undefined) => (v == null ? '—' : v.toLocaleString('de-DE', { maximumFractionDigits: 0 }))
 const groups = (h: string) => h.match(/.{1,4}/g)?.join(' ') ?? h
 
-/** The evaluator's page: pick a threshold, let the expert teach it, then test Shadow on sealed, unseen cases. */
+/** The evaluator's page: pick a threshold, let the expert teach it, then test Tacet on sealed, unseen cases. */
 export default function ProofPage() {
   const { sid } = useParams()
   const nav = useNavigate()
@@ -66,11 +66,11 @@ export default function ProofPage() {
         <div className="grid grid-cols-[1fr_340px] items-end gap-12 border-b border-rule pb-10">
           <div>
             <div className="label">Sealed boundary test</div>
-            <h1 className="testimony mb-0 mt-3 text-[44px] leading-[1.05] tracking-[-0.015em]">Did Shadow learn what {snap.expert} taught?</h1>
+            <h1 className="testimony mb-0 mt-3 text-[44px] leading-[1.05] tracking-[-0.015em]">Did Mira learn what {snap.expert} taught?</h1>
           </div>
           <ol className="m-0 list-none space-y-1.5 p-0 text-[12.5px] leading-relaxed text-ink-2">
             <li><span className="num text-ink-3">1 </span>Pick any threshold; {snap.expert} teaches it live.</li>
-            <li><span className="num text-ink-3">2 </span>Shadow writes invoices it has never seen and commits to its answers with a hash.</li>
+            <li><span className="num text-ink-3">2 </span>Mira writes invoices she has never seen and commits to her answers with a hash.</li>
             <li><span className="num text-ink-3">3 </span>You label each one here or in the ERP. Answers stay sealed until labelled.</li>
             <li><span className="num text-ink-3">4 </span>Each miss teaches. The next round tests the correction on new invoices.</li>
           </ol>
@@ -89,7 +89,7 @@ export default function ProofPage() {
               </div>
             }>
               {params.length === 0 ? (
-                <p className="m-0 text-[13px] text-ink-2">No threshold learned yet. A discovery spread covers the whole supported range, so even a threshold above every demo invoice shows up as a surprise Shadow will ask about.</p>
+                <p className="m-0 text-[13px] text-ink-2">No threshold learned yet. A discovery spread covers the whole supported range, so even a threshold above every demo invoice shows up as a surprise Tacet will ask about.</p>
               ) : (
                 <div className="space-y-4">{params.map((p) => <Threshold key={p} p={snap.posteriors[p]} />)}</div>
               )}
@@ -152,7 +152,7 @@ function ProofSheet({ p, snap, sid }: { p: Proof; snap: Snapshot; sid: string })
             <th className="border-b border-rule px-5 py-2 font-normal">Unseen invoice</th>
             <th className="border-b border-rule py-2 pr-4 text-right font-normal">net / gross €</th>
             <th className="border-b border-rule py-2 pr-4 font-normal">Your answer</th>
-            <th className="border-b border-rule py-2 pr-4 font-normal">Shadow, frozen</th>
+            <th className="border-b border-rule py-2 pr-4 font-normal">Mira, frozen</th>
             <th className="w-8 border-b border-rule py-2 pr-5 font-normal" />
           </tr>
         </thead>
