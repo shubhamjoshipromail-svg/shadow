@@ -9,22 +9,24 @@ export default function Home() {
   const [health, setHealth] = useState<{ ok: boolean; llm: boolean; spend?: { usd: number; calls: number } } | null>(null)
   const [rehearsal, setRehearsal] = useState(false)
   const [check, setCheck] = useState<Record<string, { ok: boolean; why?: string; model?: string }> | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [checkError, setCheckError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const runCheck = async () => {
-    setCheck(null)
-    const r = await api<{ providers: Record<string, { ok: boolean; why?: string; model?: string }> }>('/api/llm/check', { method: 'POST' })
-    setCheck(r.providers)
-    if (!Object.values(r.providers).some((p) => p.ok)) setRehearsal(true)
-  }
   const [sessions, setSessions] = useState<{ id: string; mode: string; expert: string; metrics: any }[]>([])
   const [interviewer, setInterviewer] = useState(AGENTS.interviewer())
   const [tutor, setTutor] = useState(AGENTS.tutor())
   const [lang, setLang] = useState('en')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<'capture' | 'tutor' | null>(null)
   const [continueSaved, setContinueSaved] = useState(false)
   const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number }[]>([])
+  const [wfState, setWfState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [workflow, setWorkflow] = useState('ap_invoices')
-  useEffect(() => { api('/api/workflows').then(setWorkflows).catch(() => {}) }, [])
+
+  useEffect(() => {
+    api('/api/workflows')
+      .then((w) => { setWorkflows(w); setWfState('ready') })
+      .catch(() => setWfState('error'))
+  }, [])
 
   useEffect(() => {
     api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => {
@@ -37,6 +39,20 @@ export default function Home() {
     api('/api/sessions').then(setSessions).catch(() => {})
   }, [])
 
+  const runCheck = async () => {
+    setCheck(null)
+    setCheckError(null)
+    setChecking(true)
+    try {
+      const r = await api<{ providers: Record<string, { ok: boolean; why?: string; model?: string }> }>('/api/llm/check', { method: 'POST' })
+      setCheck(r.providers)
+      if (!Object.values(r.providers).some((p) => p.ok)) setRehearsal(true)
+    } catch (e) {
+      setCheckError(String(e))
+    }
+    setChecking(false)
+  }
+
   const save = () => {
     localStorage.setItem('shadow.agent.interviewer', interviewer.trim())
     localStorage.setItem('shadow.agent.tutor', tutor.trim())
@@ -44,7 +60,7 @@ export default function Home() {
 
   const start = async (mode: 'capture' | 'tutor') => {
     save()
-    setBusy(true)
+    setBusy(mode)
     setError(null)
     const capture = sessions.slice().reverse().find((s) => s.mode !== 'tutor')
     try {
@@ -57,117 +73,208 @@ export default function Home() {
       nav(`/s/${snap.id}`)
     } catch (e) {
       setError(String(e))
-      setBusy(false)
+      setBusy(null)
     }
   }
+
+  const core = health === null ? 'Connecting' : health.ok ? 'Connected' : 'Unavailable'
+  const coreDot = health === null ? 'bg-ink-3' : health.ok ? 'bg-confirmed' : 'bg-binding'
 
   const field = 'num mt-1.5 w-full rounded-[3px] border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12px] text-ink-1 outline-none focus:border-ink-2'
   return (
     <div className="min-h-full bg-paper">
-      <header className="mx-auto flex max-w-5xl items-center gap-4 border-b border-rule-strong px-6 py-4">
-        <Wordmark />
-        <div className="num ml-auto flex items-center gap-4 text-[10.5px] text-ink-3">
-          <span className={health?.ok ? 'text-confirmed' : 'text-binding'}>{health?.ok ? '■ core online' : '□ core offline'}</span>
-          <span className={health?.llm ? 'text-confirmed' : 'text-query'}>{health?.llm ? 'LLM key present' : 'no LLM key'}</span>
-          {health?.spend && <span>${health.spend.usd.toFixed(3)} · {health.spend.calls} calls</span>}
+      <header className="border-b border-rule-strong">
+        <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-6 py-4">
+          <Wordmark />
+          <a href="/" className="ml-auto text-[12px] text-ink-2 hover:text-ink-1">Product home</a>
+          <span className="num flex items-center gap-1.5 text-[11px] text-ink-2">
+            <span className={`inline-block h-[6px] w-[6px] ${coreDot}`} aria-hidden />
+            {core}
+          </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 pb-20">
-        <section className="border-b border-rule pb-10 pt-14">
-          <div className="label">Expert knowledge capture · Nordwerk</div>
-          <h1 className="testimony mb-0 mt-3 max-w-[22ch] text-[40px] leading-[1.1] tracking-[-0.015em]">
-            Learns the part of the job nobody wrote down.
+      <main className="mx-auto max-w-[1180px] px-6 pb-20">
+        <section className="border-b border-rule pb-9 pt-12">
+          <div className="label">Your notebook</div>
+          <h1 className="testimony mb-0 mt-3 max-w-[20ch] text-[34px] leading-[1.06] tracking-[-0.015em] sm:text-[48px]">
+            Teach Mira how you work.
           </h1>
-          <p className="mb-0 mt-4 max-w-[60ch] text-[14px] leading-relaxed text-ink-2">
-            It writes down its guess before the expert acts. When she does something it can’t explain, it waits for a
-            pause, asks one question, turns the answer into a tested rule, and teaches it to the next hire.
+          <p className="mb-0 mt-4 max-w-[64ch] text-[17px] leading-relaxed text-ink-2">
+            Show the decisions you make. Mira learns the rules, then helps someone else follow them.
           </p>
         </section>
 
-        <section className="divide-y divide-rule border-b border-rule">
-          {([
-            ['capture', 'Capture an expert', 'Work real cases while Mira watches. A few questions at natural pauses, then a short debrief and teach-back.', 'observed'],
-            ['tutor', 'Teach a new hire', 'The trainee works cases the expert never showed. Mira stops a wrong save before it happens, in the expert’s words.', 'binding'],
-          ] as const).map(([mode, title, text, prov]) => (
-            <button key={mode} disabled={busy} onClick={() => start(mode)} className="group grid w-full grid-cols-[28px_1fr_auto] items-baseline gap-3 py-5 text-left disabled:opacity-50">
-              <Mark state={prov} className="text-[15px]" />
-              <span>
-                <span className="testimony block text-[22px] leading-tight group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{title}</span>
-                <span className="mt-1.5 block max-w-xl text-[13.5px] text-ink-2">{text}</span>
-              </span>
-              <span className="num text-[12px] text-ink-2 group-hover:text-ink-1">{mode === 'capture' ? 'start session' : 'start tutoring'} →</span>
-            </button>
-          ))}
-        </section>
-
-        <section className="mt-10">
-          <div className="label border-b border-rule pb-2">Workflows</div>
-          <div className="divide-y divide-rule">
-            {workflows.map((w) => (
-              <label key={w.id} className="grid cursor-pointer grid-cols-[22px_1fr_auto] items-baseline gap-2 py-2.5 text-[13px]">
-                <input type="radio" name="wf" checked={workflow === w.id} onChange={() => setWorkflow(w.id)} className="accent-[#4e6b44]" />
-                <span>
-                  <span className="text-ink-1">{w.name}</span>
-                  <span className="num ml-2 text-[10.5px] text-ink-3">{w.kind === 'learned' ? `learned · v${w.version}` : 'built in'}</span>
-                </span>
-                <span className="num text-[11px] text-ink-2">
-                  {w.experts.length ? `taught by ${w.experts.join(', ')}` : 'not taught yet'}{w.learners.length ? ` · training ${w.learners.join(', ')}` : ''}
-                </span>
-              </label>
-            ))}
-            {workflows.length === 0 && <div className="py-2.5 text-[12.5px] text-ink-3">Loading workflows…</div>}
+        <section className="border-b border-rule py-9">
+          <h2 className="m-0 text-[16px] font-medium text-ink-1">Choose a workflow</h2>
+          <div className="mt-4">
+            {wfState === 'loading' && <div className="text-[14px] text-ink-3">Loading workflows…</div>}
+            {wfState === 'error' && <div className="text-[14px] text-ink-3">Couldn’t load workflows — using the default.</div>}
+            {wfState === 'ready' && workflows.length === 0 && (
+              <div className="text-[14px] text-ink-3">No workflows yet. Learn one from a work page with the extension.</div>
+            )}
+            {workflows.length > 0 && (
+              <div className="divide-y divide-rule">
+                {workflows.map((w) => {
+                  const on = workflow === w.id
+                  return (
+                    <label
+                      key={w.id}
+                      className={`grid cursor-pointer grid-cols-[18px_minmax(0,1fr)] items-start gap-3 border-l-2 py-3.5 pl-3 pr-1 ${on ? 'border-l-confirmed' : 'border-l-transparent'}`}
+                    >
+                      <input type="radio" name="wf" checked={on} onChange={() => setWorkflow(w.id)} className="mt-1 accent-[#4e6b44]" />
+                      <span className="min-w-0">
+                        <span className="block text-[16px] leading-snug text-ink-1">{w.name}</span>
+                        <span className="mt-0.5 block text-[14px] leading-snug text-ink-2">
+                          <Mark state={w.kind === 'learned' ? 'observed' : 'written'} className="mr-1" />
+                          {w.kind === 'learned' ? 'Learned from a person' : 'Built in'}
+                          <span className="text-ink-3">
+                            {' · '}
+                            {w.experts.length ? `taught by ${w.experts.join(', ')}` : 'not taught yet'}
+                            {w.learners.length ? ` · training ${w.learners.join(', ')}` : ''}
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
           </div>
-          <div className="mt-2 text-[11.5px] text-ink-3">A new workflow is learned by showing it: turn Mira on in the browser extension on the page where the work happens, then choose “Learn this task”.</div>
         </section>
 
-        <details className="mt-10">
-          <summary className="label cursor-pointer">Settings</summary>
-        <section className="mt-4 grid grid-cols-3 gap-x-6 gap-y-4">
-          <label className="text-[12px] text-ink-2">ElevenLabs interviewer agent
-            <input value={interviewer} onChange={(e) => setInterviewer(e.target.value)} onBlur={save} placeholder="agent_…" className={field} />
-          </label>
-          <label className="text-[12px] text-ink-2">ElevenLabs tutor agent
-            <input value={tutor} onChange={(e) => setTutor(e.target.value)} onBlur={save} placeholder="agent_…" className={field} />
-          </label>
-          <label className="text-[12px] text-ink-2">Expert speaks
-            <select value={lang} onChange={(e) => setLang(e.target.value)} className={field}>
-              <option value="en">English</option>
-              <option value="de">Deutsch (tutor teaches in English)</option>
-            </select>
-          </label>
-          <div className="col-span-3 flex flex-wrap items-center gap-5 border-t border-rule pt-4 text-[12px]">
-            <div className="flex border border-rule-strong">
-              <button onClick={() => setRehearsal(false)} className={`px-3 py-1 ${!rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Live</button>
-              <button onClick={() => setRehearsal(true)} className={`border-l border-rule-strong px-3 py-1 ${rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Practice run · simulated expert</button>
+        <section className="border-b border-rule py-9">
+          {rehearsal && (
+            <div className="mb-7 border-l-[3px] border-query bg-wash px-4 py-3 text-[13px] leading-relaxed text-ink-2">
+              <Mark state="query" className="mr-1" />
+              <span className="text-ink-1">Practice mode.</span> This run uses a simulated expert. It is labelled everywhere and never feeds a saved Work Map.
             </div>
-            <label className="flex items-center gap-1.5 text-ink-2" title="Capture continues from the last saved Work Map instead of the written process only">
-              <input type="checkbox" checked={continueSaved} onChange={(e) => setContinueSaved(e.target.checked)} className="accent-[#4e6b44]" />
-              continue from saved map
-            </label>
-            <button onClick={runCheck} className="text-inferred hover:underline">check LLM providers</button>
-            {check && Object.entries(check).map(([p, s]) => (
-              <span key={p} className={`num text-[11px] ${s.ok ? 'text-confirmed' : 'text-binding'}`} title={s.why}>{p}: {s.ok ? `ok (${s.model})` : s.why}</span>
-            ))}
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
+            <div className="flex flex-col pb-8 md:pb-0 md:pr-10">
+              <div className="num text-[11px] text-ink-3">1</div>
+              <h2 className="testimony mb-0 mt-1.5 text-[30px] leading-[1.1] tracking-[-0.01em]">Learn from an expert</h2>
+              <p className="mb-0 mt-3 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
+                Work as usual. Mira watches your decisions and asks a question when you pause.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 md:mt-auto md:pt-6">
+                <button
+                  disabled={busy !== null}
+                  onClick={() => start('capture')}
+                  className="inline-flex h-11 items-center rounded-[3px] bg-ink-1 px-5 text-[13.5px] font-medium text-sheet hover:bg-[#3a3732] disabled:opacity-40"
+                >
+                  Start capture
+                </button>
+                <label className="flex items-center gap-2 text-[14px] text-ink-2">
+                  Expert speaks
+                  <select value={lang} onChange={(e) => setLang(e.target.value)} className="num rounded-[3px] border border-rule-strong bg-sheet px-2 py-1 text-[14px] text-ink-1 outline-none focus:border-ink-2">
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                  </select>
+                </label>
+              </div>
+              {busy === 'capture' && <div className="num mt-3 text-[12px] text-ink-2">Starting capture…</div>}
+            </div>
+
+            <div className="flex flex-col border-t border-rule pt-8 md:border-l md:border-t-0 md:pl-10 md:pt-0">
+              <div className="num text-[11px] text-ink-3">2</div>
+              <h2 className="testimony mb-0 mt-1.5 text-[30px] leading-[1.1] tracking-[-0.01em]">Teach someone new</h2>
+              <p className="mb-0 mt-3 max-w-[46ch] text-[16px] leading-relaxed text-ink-2">
+                Put the learned rules into practice. Mira guides the next person in the expert’s words.
+              </p>
+              <div className="mt-6 md:mt-auto md:pt-6">
+                <button
+                  disabled={busy !== null}
+                  onClick={() => start('tutor')}
+                  className="inline-flex h-11 items-center rounded-[3px] border border-rule-strong px-5 text-[13.5px] font-medium text-ink-1 hover:border-ink-2 disabled:opacity-40"
+                >
+                  Start tutoring
+                </button>
+              </div>
+              {busy === 'tutor' && <div className="num mt-3 text-[12px] text-ink-2">Starting tutoring…</div>}
+            </div>
           </div>
-          {error && <div className="col-span-3 text-[12px] text-binding">{error}</div>}
-          <div className="col-span-3 text-[11.5px] text-ink-3">Live sessions learn only from real people. Practice runs use a simulated expert, are labelled everywhere, and never feed a saved Work Map.</div>
+          {error && (
+            <div role="alert" className="mt-6 border-l-[3px] border-binding pl-3 text-[13px] leading-relaxed text-binding">
+              Couldn’t start the session. {error}
+            </div>
+          )}
         </section>
-        </details>
+
+        <section className="border-b border-rule py-8">
+          <h2 className="m-0 text-[16px] font-medium text-ink-1">Working in another app?</h2>
+          <p className="mb-0 mt-2 max-w-[76ch] text-[16px] leading-relaxed text-ink-2">
+            Open the Tacet extension on your work page, turn Mira on, and choose <span className="text-ink-1">Learn this task</span>. The workflow will appear here.
+          </p>
+        </section>
 
         {sessions.length > 0 && (
-          <section className="mt-10">
-            <div className="label border-b border-rule pb-2">Recent sessions</div>
-            <div className="divide-y divide-rule">
+          <section className="border-b border-rule py-8">
+            <h2 className="m-0 text-[16px] font-medium text-ink-1">Continue a session</h2>
+            <div className="mt-4">
               {sessions.slice().reverse().map((s) => (
-                <button key={s.id} onClick={() => nav(`/s/${s.id}`)} className="num grid w-full grid-cols-[120px_100px_1fr_auto] py-2 text-left text-[12px] text-ink-2 hover:text-ink-1">
-                  <span className="text-ink-1">{s.id}</span><span>{s.mode}</span><span>{s.expert}</span>
-                  <span>{s.metrics.episodes} cases · {s.metrics.rules_learned} rules</span>
+                <button
+                  key={s.id}
+                  onClick={() => nav(`/s/${s.id}`)}
+                  className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-t border-rule py-3 text-left"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[14px] text-ink-1">
+                      <span className="num mr-2 text-[10.5px] uppercase tracking-[.06em] text-ink-3">
+                        {s.mode === 'tutor' ? 'New hire' : 'Expert'}
+                      </span>
+                      {s.expert}
+                    </span>
+                    <span className="num mt-0.5 block truncate text-[11px] text-ink-3">{s.id}</span>
+                  </span>
+                  <span className="num shrink-0 text-[14px] text-ink-2">
+                    {s.metrics.episodes} cases · {s.metrics.rules_learned} rules
+                  </span>
                 </button>
               ))}
             </div>
           </section>
         )}
+
+        <details className="mt-9">
+          <summary className="label cursor-pointer">Settings &amp; diagnostics</summary>
+          <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="text-[12px] text-ink-2">ElevenLabs interviewer agent
+              <input value={interviewer} onChange={(e) => setInterviewer(e.target.value)} onBlur={save} placeholder="agent_…" className={field} />
+            </label>
+            <label className="text-[12px] text-ink-2">ElevenLabs tutor agent
+              <input value={tutor} onChange={(e) => setTutor(e.target.value)} onBlur={save} placeholder="agent_…" className={field} />
+            </label>
+            <div className="text-[12px] text-ink-2">
+              <div className="label">Connection</div>
+              <div className="num mt-2 space-y-1 text-[12px] text-ink-2">
+                <div>core · {health === null ? 'checking…' : health.ok ? 'connected' : 'unavailable'}</div>
+                <div>LLM key · {health === null ? 'checking…' : health.llm ? 'present' : 'missing'}</div>
+                <div>spend · {health?.spend ? `$${health.spend.usd.toFixed(3)} · ${health.spend.calls} calls` : '—'}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-5 border-t border-rule pt-4 text-[12px] sm:col-span-2 lg:col-span-3">
+              <div className="flex border border-rule-strong">
+                <button onClick={() => setRehearsal(false)} className={`px-3 py-1 ${!rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Live</button>
+                <button onClick={() => setRehearsal(true)} className={`border-l border-rule-strong px-3 py-1 ${rehearsal ? 'bg-ink-1 text-sheet' : 'text-ink-2'}`}>Practice run · simulated expert</button>
+              </div>
+              <label className="flex items-center gap-1.5 text-ink-2" title="Capture continues from the last saved Work Map instead of the written process only">
+                <input type="checkbox" checked={continueSaved} onChange={(e) => setContinueSaved(e.target.checked)} className="accent-[#4e6b44]" />
+                continue from saved map
+              </label>
+              <button onClick={runCheck} disabled={checking} className="text-inferred hover:underline disabled:opacity-40">
+                {checking ? 'checking…' : 'check LLM providers'}
+              </button>
+              {check && Object.entries(check).map(([p, s]) => (
+                <span key={p} className={`num text-[11px] ${s.ok ? 'text-confirmed' : 'text-binding'}`} title={s.why}>{p}: {s.ok ? `ok (${s.model})` : s.why}</span>
+              ))}
+              {checkError && <span className="num text-[11px] text-binding">check failed · {checkError}</span>}
+            </div>
+            <div className="text-[11.5px] text-ink-3 sm:col-span-2 lg:col-span-3">
+              Live sessions learn only from real people. Practice runs use a simulated expert, are labelled everywhere, and never feed a saved Work Map.
+            </div>
+          </div>
+        </details>
       </main>
     </div>
   )

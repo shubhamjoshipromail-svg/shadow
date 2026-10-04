@@ -1,0 +1,126 @@
+{
+  "consoleErrors": [],
+  "checks": [
+    {
+      "name": "desktop: no horizontal overflow",
+      "ok": true,
+      "detail": "scrollW-innerW=0"
+    },
+    {
+      "name": "header: 1180px container",
+      "ok": true
+    },
+    {
+      "name": "intro heading present",
+      "ok": true
+    },
+    {
+      "name": "intro sentence present",
+      "ok": true
+    },
+    {
+      "name": "legacy tagline removed",
+      "ok": true
+    },
+    {
+      "name": "Nordwerk intro removed",
+      "ok": true
+    },
+    {
+      "name": "connected state shown",
+      "ok": true
+    },
+    {
+      "name": "product-home link",
+      "ok": true
+    },
+    {
+      "name": "diagnostics collapsed by default",
+      "ok": true
+    },
+    {
+      "name": "diagnostics content not visible",
+      "ok": true
+    },
+    {
+      "name": "settings moved health/cost inside details",
+      "ok": true
+    },
+    {
+      "name": "spend shown inside details",
+      "ok": true
+    },
+    {
+      "name": "mobile390: no horizontal overflow",
+      "ok": true,
+      "detail": "scrollW-innerW=0"
+    },
+    {
+      "name": "mobile390: primary CTA present",
+      "ok": true
+    },
+    {
+      "name": "mobile390: secondary CTA present",
+      "ok": true
+    },
+    {
+      "name": "workflow options rendered",
+      "ok": true
+    },
+    {
+      "name": "default workflow selected",
+      "ok": true
+    },
+    {
+      "name": "no technical version/counts at top of workflow",
+      "ok": true,
+      "detail": "Choose a workflow | Supplier invoice approval | §Built in · taught by Sabine | Expense claim review | ▮Learned from a person · taught by Jonas · training Lena"
+    },
+    {
+      "name": "built-in/learned metadata present + subordinate",
+      "ok": true
+    },
+    {
+      "name": "selection retained after click",
+      "ok": true
+    },
+    {
+      "name": "capture payload unchanged",
+      "ok": true,
+      "detail": "{\"mode\":\"capture\",\"lang\":\"de\",\"pack\":\"expense_claims\",\"simulate\":false,\"fresh\":true}"
+    },
+    {
+      "name": "tutor payload unchanged",
+      "ok": true,
+      "detail": "{\"mode\":\"tutor\",\"trainee\":\"Lena\",\"pack\":\"ap_invoices\",\"from_session\":\"S-2026-0001\",\"simulate\":false}"
+    },
+    {
+      "name": "busy: both CTAs disabled",
+      "ok": true,
+      "detail": "capture=true tutor=true"
+    },
+    {
+      "name": "busy: only one POST issued",
+      "ok": true,
+      "detail": "posts=1"
+    },
+    {
+      "name": "start error visible as role=alert outside details",
+      "ok": true
+    },
+    {
+      "name": "start error mentions failure",
+      "ok": true
+    },
+    {
+      "name": "practice notice visible before starts",
+      "ok": true
+    }
+  ],
+  "shots": [
+    "/private/tmp/tacet-home-smoke/home-desktop-1440.png",
+    "/private/tmp/tacet-home-smoke/home-mobile-390.png"
+  ],
+  "passed": 27,
+  "failed": 0
+}
