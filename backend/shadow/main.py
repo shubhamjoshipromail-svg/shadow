@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from pydantic import BaseModel
 
 from shadow import config, converse, exports, llm, perception, sim
-from shadow import compare, mcp_server, onboard
+from shadow import certify, compare, mcp_server, onboard
 from shadow import proof as proof_mod
 from shadow import workflows as wf
 from shadow.packs import add_loader, register
@@ -83,7 +83,17 @@ def _mcp_pack(workflow: str | None = None):
     return sessions[workflow].pack if workflow in sessions else get_pack(workflow or config.DEFAULT_PACK)
 
 
-app.include_router(mcp_server.make_router(_mcp_map, _mcp_pack), prefix="/mcp")  # Work Map as agent tools
+def _mcp_cert(workflow: str | None = None) -> dict[str, Any] | None:
+    """The newest live certification for a session or workflow: what an agent may do on its own."""
+    if workflow in sessions:
+        rows = store.certifications_for(session_id=workflow, live_only=True)
+    else:
+        pid = workflow or (sessions[latest[-1]].pack.id if latest else config.DEFAULT_PACK)
+        rows = store.certifications_for(pack_id=pid, live_only=True)
+    return _cert_refresh(rows[0]) if rows else None
+
+
+app.include_router(mcp_server.make_router(_mcp_map, _mcp_pack, _mcp_cert), prefix="/mcp")  # Work Map as agent tools
 
 
 def _session(sid: str | None) -> Session:
@@ -367,6 +377,98 @@ async def label_proof(sid: str, pid: str, body: ProofLabel) -> dict[str, Any]:
         raise HTTPException(404, "no such test case")
     await s.on_label(body.case_id, {p["field"]: body.value})
     return proof_mod.view(p)
+
+
+# ---------------------------------------------------------------- certify an agent (permission slips)
+def _cert_wm(cert: dict[str, Any]) -> WorkMap | None:
+    """The map as it is now: the live session's, else the newest saved one (so staleness survives a restart)."""
+    s = sessions.get(cert["session"])
+    if s is not None:
+        return s.wm
+    row = store.latest_map_any(cert["pack"])
+    return WorkMap(**row["map"]) if row else None
+
+
+def _cert(cid: str) -> dict[str, Any]:
+    cert = store.certification(cid)
+    if cert is None:
+        raise HTTPException(404, "no such certification")
+    return cert
+
+
+def _cert_refresh(cert: dict[str, Any]) -> dict[str, Any]:
+    before = json.dumps(cert["result"], sort_keys=True, default=str)
+    certify.refresh(cert, sessions.get(cert["session"]))
+    if json.dumps(cert["result"], sort_keys=True, default=str) != before:
+        store.save_certification(cert)
+    return cert
+
+
+class CertifyRequest(BaseModel):
+    fresh: bool = False  # force a new sealed exam even if a human has already labelled cases
+    param: str | None = None
+    seed: int | None = None
+    min_cases: int = certify.MIN_CASES
+
+
+@app.post("/api/sessions/{sid}/certify")
+async def start_certification(sid: str, body: CertifyRequest) -> dict[str, Any]:
+    """Freeze an outside agent's answers on fresh cases and commit to them, before any label exists."""
+    s = _session(sid)
+    if s.simulated:
+        raise HTTPException(409, "Certifying an agent needs human labels, so it doesn't run on a Rehearsal "
+                                 "(simulated expert) session.")
+    if not llm.available():
+        raise HTTPException(503, "No LLM key is configured, so there is no agent to certify.")
+    try:
+        cert = await certify.start(s, fresh=body.fresh, param=body.param, seed=body.seed, min_cases=body.min_cases)
+    except (certify.CertError, proof_mod.ProofError) as e:
+        raise HTTPException(400, str(e)) from e
+    store.save_certification(cert)
+    return certify.view(cert, s.wm)
+
+
+@app.get("/api/sessions/{sid}/certifications")
+async def list_certifications(sid: str) -> list[dict[str, Any]]:
+    return [certify.summary(_cert_refresh(c)) for c in store.certifications_for(session_id=sid)]
+
+
+@app.get("/api/certifications/{cid}")
+async def get_certification(cid: str) -> dict[str, Any]:
+    cert = _cert_refresh(_cert(cid))
+    return certify.view(cert, _cert_wm(cert))
+
+
+class CertLabel(BaseModel):
+    case_id: str
+    field: str
+    value: str
+
+
+@app.post("/api/certifications/{cid}/label")
+async def label_certification(cid: str, body: CertLabel) -> dict[str, Any]:
+    """A human's answer for one exam case (the sealed-test field, or the action a guardrail governs)."""
+    cert = _cert(cid)
+    s = sessions.get(cert["session"])
+    if s is None:
+        raise HTTPException(409, "That session is not running any more; labelling needs it open.")
+    if cert["provenance"] != "live" or s.simulated:
+        raise HTTPException(409, "Only a live session takes human labels.")
+    if body.case_id not in {i["case_id"] for i in cert["items"]}:
+        raise HTTPException(404, "no such exam case")
+    if body.field not in (cert["field"], "action"):
+        raise HTTPException(400, f"label '{cert['field']}' or 'action'")
+    if body.field == "action" and body.value not in s.pack.actions:
+        raise HTTPException(400, f"action must be one of {', '.join(s.pack.actions)}")
+    item = next(i for i in cert["items"] if i["case_id"] == body.case_id)
+    if body.field in item["labels"]:
+        raise HTTPException(409, "that case already has a label for this field")
+    await s.on_label(body.case_id, {body.field: body.value})
+    certify.refresh(cert, s)
+    if body.field not in item["labels"]:  # an action label has no sealed-test twin, so record it here
+        certify.add_label(cert, body.case_id, body.field, body.value, "label", s.now())
+    store.save_certification(cert)
+    return certify.view(cert, s.wm)
 
 
 @app.get("/api/history")

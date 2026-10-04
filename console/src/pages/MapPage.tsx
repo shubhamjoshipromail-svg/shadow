@@ -39,7 +39,8 @@ export default function MapPage() {
       <header className="flex items-center gap-4 border-b border-rule-strong bg-sheet px-6 py-2.5">
         <Link to={`/s/${sid}`} className="text-[12px] text-ink-2 hover:text-ink-1">← session</Link>
         <Wordmark />
-        <div className="ml-auto flex gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
+          <Link to={`/s/${sid}/agent`} className="mr-2 text-[12px] text-ink-2 hover:text-ink-1">What may an agent do alone? →</Link>
           <Link to={`/w/${snap.pack.id}/compare?a=${encodeURIComponent(snap.expert)}`}><Btn tone="ghost">Compare experts</Btn></Link>
           <a href={`${API}/api/sessions/${sid}/export/md`} target="_blank"><Btn>SOP ↗</Btn></a>
           <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn>Agent skill ↗</Btn></a>
