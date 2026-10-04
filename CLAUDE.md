@@ -55,7 +55,7 @@ Known gaps / next (see `advisory/product-engine-investigation-2026-10-03/OPUS_HA
 6. Stable deploy on Railway (user sets keys in Railway themselves) instead of ngrok.
 
 ## Handoff (2026-10-03, end of session)
-- Deployed on Railway project `hacknation-apprentice` (us-west2): core https://core-production-c5ac.up.railway.app (API + notebook + capture.js, Postgres), erp https://erp-production-e3b0.up.railway.app. Pending: user sets API keys in Railway; then run `setup_elevenlabs.py --public-url <core>` (ask first).
+- Deployed on Railway project `hacknation-apprentice` (us-west2): core https://tacet.up.railway.app (API + notebook + capture.js, Postgres), erp https://erp-production-e3b0.up.railway.app. Pending: user sets API keys in Railway; then run `setup_elevenlabs.py --public-url <core>` (ask first).
 - Design system: `design/DESIGN.md`. DeepSeek delegation pattern + rules: memory `delegate-to-deepseek`; specs in `design/tasks/`.
 - DeepSeek queue running: `design/tasks/QUEUE_2026-10-03.md` (T1 coach, T2 task-agnostic taskdef + generic pack, T3 landing site, T4 video storyboard/recorder, T5 rename dry-run). Each writes new files + `*_REPORT.md`; review diffs (new files only), judge, then integrate. Logs: `design/tasks/queue-T*.log`.
 - Open decisions for the user: product name (recommend Tacet; character Mira; reports in design/tasks/DEEPSEEK_NAMES*_REPORT.md); proactive tutor before video (recommended).

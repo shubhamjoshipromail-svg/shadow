@@ -92,3 +92,11 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 Static — deploy as-is (any static host, or a Railway static service rooted at `site/`). Brand slots stay name-free;
 the CTAs render from `NAME` and point at `/app` (the product's home) and `mailto:hello@tacet.work`. Nothing here
 imports from the app or `console/`.
+
+## Public URLs
+
+Product: https://tacet.up.railway.app/
+Notebook: https://tacet.up.railway.app/app
+Privacy policy: https://tacet.up.railway.app/privacy.html
+
+The earlier Railway address remains an active compatibility alias.

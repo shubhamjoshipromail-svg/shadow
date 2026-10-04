@@ -1,7 +1,7 @@
 /* Values shared by the service worker and the popup. The product name lives here and nowhere else. */
 
 export const NAME = "Tacet";
-export const DEFAULT_SERVER = "https://core-production-c5ac.up.railway.app";
+export const DEFAULT_SERVER = "https://tacet.up.railway.app";
 
 /* Storage keys. */
 export const SERVER_KEY = "serverUrl";

@@ -41,7 +41,7 @@ English
 
 **Homepage URL**
 ```
-https://core-production-c5ac.up.railway.app/
+https://tacet.up.railway.app/
 ```
 
 **Support email**
@@ -51,7 +51,7 @@ hello@tacet.work
 
 **Privacy policy URL**
 ```
-https://core-production-c5ac.up.railway.app/privacy.html
+https://tacet.up.railway.app/privacy.html
 ```
 (the source for that page is `site/privacy.html` in this repo)
 
@@ -207,7 +207,7 @@ three permanent certifications. The wording below is checked line by line agains
 
 ### Where it is sent and stored
 Observations are sent over the companion's WebSocket to the configured Tacet Core
-(default `https://core-production-c5ac.up.railway.app`), stored in its Postgres
+(default `https://tacet.up.railway.app`), stored in its Postgres
 database, and used to produce predictions, questions, and Work Maps. See the privacy
 policy for retention, deletion, sub-processors, and the voice provider.
 
