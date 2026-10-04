@@ -97,3 +97,8 @@ providers moved into closed Settings & diagnostics. Build passes and focused moc
 smoke27/27; live assets match local build. Deployment
 b2d1d7c4-6f42-49e2-8446-770ee4282868 SUCCESS. Screenshot and reports committed.
 No push, real review session creation or new voice call.
+
+
+## 2026-10-04 — Sol Home and landing polish
+
+Direct user assignment `design/tasks/SOL_HOME_POLISH.md` supersedes the older file ownership list for this bounded task. Changed only Home.tsx, site/index.html, and site/privacy.html, plus this status, the requested report, and screenshot artifacts. Contact dialog, notebook Mira layout, persistent AP/Support picker, and whole-block process-owner navigation implemented. TypeScript/build and focused markup/fixture checks pass. Live owner entries verified once each; one saved-map capture session created, no learning or labels. Desktop console and desktop/mobile contact evidence saved. Console mobile raw CDP verification was rejected due to previously declined permission; no bypass attempted. No commits, pushes, backend changes, or deployments. See `design/tasks/SOL_HOME_POLISH_REPORT.md`.
