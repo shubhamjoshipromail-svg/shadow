@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Copy the companion (capture.js) and generic observer (observe.js) that Tacet injects
 # from Shadow Core into ./vendor/. Run this after Shadow Core changes; the extension
-# itself never loads remote code.
+# bundles these files. The companion's voice CDN import still needs local bundling
+# before a Chrome Web Store submission; see store/listing.md.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

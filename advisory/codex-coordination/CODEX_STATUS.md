@@ -63,3 +63,6 @@ The user explicitly appointed Codex as Opus's replacement and authorized DeepSee
 
 ### Completed Sol integration review
 Primary-agent verification supersedes the worker's pending visual-check note: final-source ordinary browser onboarding checked and sol-final-* evidence captured; backend suite independently passes 268 tests (2 xfailed/2 xpassed); extension source/vendor sync and icon references verified. Workflow code/report/tests/fixtures will be committed separately from the first reviewed checkpoint 8ee04b2.
+
+### Final assembly
+Completed work saved in checkpoint 8ee04b2 and cold-start commit 753146c; final film controls/report/evidence and integration documentation saved in the subsequent final commit. Both workers stopped; no active file ownership remains. All known release limits are preserved in readiness and worker reports. No push, history rewrite or deployment performed.

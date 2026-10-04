@@ -1,0 +1,734 @@
+{
+  "checks": [
+    {
+      "name": "A controls become visible once the clip is ready",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "A no fake \"Sound on\" while muted",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "A sound status is honest",
+      "pass": true,
+      "detail": {
+        "muted": true,
+        "status": "Sound muted · browser blocked autoplay"
+      }
+    },
+    {
+      "name": "A language selection explicit (exactly one pressed)",
+      "pass": true,
+      "detail": {
+        "en": "true",
+        "de": "false"
+      }
+    },
+    {
+      "name": "A 44px hit target: language English",
+      "pass": true,
+      "detail": 44
+    },
+    {
+      "name": "A 44px hit target: language Deutsch",
+      "pass": true,
+      "detail": 44
+    },
+    {
+      "name": "A 44px hit target: sound",
+      "pass": true,
+      "detail": 44
+    },
+    {
+      "name": "A 44px hit target: play (when shown)",
+      "pass": true,
+      "detail": {
+        "hidden": true,
+        "height": 0
+      }
+    },
+    {
+      "name": "A sound status is a live region",
+      "pass": true,
+      "detail": {
+        "role": "status",
+        "live": "polite"
+      }
+    },
+    {
+      "name": "A real default autoplay policy blocked unmuted autoplay → muted fallback",
+      "pass": true,
+      "detail": {
+        "unmutedAllowed": false,
+        "status": "Sound muted · browser blocked autoplay"
+      }
+    },
+    {
+      "name": "A muted state shows a truthful status + Enable sound action",
+      "pass": true,
+      "detail": {
+        "status": "Sound muted · browser blocked autoplay",
+        "action": "Enable sound"
+      }
+    },
+    {
+      "name": "A muted Enable sound is the prominent action",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "A click-to-sound turns sound on",
+      "pass": true,
+      "detail": {
+        "muted": false,
+        "volume": 1
+      }
+    },
+    {
+      "name": "A sound-on state is labelled truthfully",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "B German selection is explicit",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "B timestamp preserved across EN→DE (paused)",
+      "pass": true,
+      "detail": {
+        "before": 6,
+        "after": 6
+      }
+    },
+    {
+      "name": "B sound preference preserved across EN→DE",
+      "pass": true,
+      "detail": {
+        "before": false,
+        "after": false
+      }
+    },
+    {
+      "name": "B paused playback state preserved across EN→DE",
+      "pass": true,
+      "detail": {
+        "before": true,
+        "after": true
+      }
+    },
+    {
+      "name": "B German caption track loaded for the German clip",
+      "pass": true,
+      "detail": "de"
+    },
+    {
+      "name": "B back to English explicit",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "B playing state preserved across DE→EN",
+      "pass": true,
+      "detail": {
+        "before": false,
+        "after": false
+      }
+    },
+    {
+      "name": "B timestamp kept (did not restart) across DE→EN",
+      "pass": true,
+      "detail": {
+        "before": 6.55,
+        "after": 7.07
+      }
+    },
+    {
+      "name": "B explicit mute preserved across EN→DE",
+      "pass": true,
+      "detail": {
+        "muted": true,
+        "status": "Sound muted"
+      }
+    },
+    {
+      "name": "B Enable sound after explicit mute",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "C blocked player is paused",
+      "pass": true,
+      "detail": true
+    },
+    {
+      "name": "C blocked player retains visible Play with sound",
+      "pass": true,
+      "detail": {
+        "hidden": false,
+        "text": "Play with sound"
+      }
+    },
+    {
+      "name": "C blocked player never fakes Sound on",
+      "pass": true,
+      "detail": {
+        "muted": true,
+        "status": "Sound muted · browser blocked autoplay"
+      }
+    },
+    {
+      "name": "C Play click defaults to sound ON",
+      "pass": true,
+      "detail": {
+        "paused": false,
+        "muted": false
+      }
+    },
+    {
+      "name": "C play button hidden while playing",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "D reduced motion does not autoplay",
+      "pass": true,
+      "detail": true
+    },
+    {
+      "name": "D reduced motion shows Play with sound",
+      "pass": true,
+      "detail": {
+        "hidden": false,
+        "text": "Play with sound"
+      }
+    },
+    {
+      "name": "D reduced-motion Play click starts with sound ON",
+      "pass": true,
+      "detail": {
+        "paused": false,
+        "muted": false
+      }
+    },
+    {
+      "name": "D keyboard focus is visibly outlined on a film control",
+      "pass": true,
+      "detail": {
+        "id": "film-lang-en",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(78, 107, 68)"
+      }
+    },
+    {
+      "name": "E mobile: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "scrollW": 390,
+        "innerW": 390
+      }
+    },
+    {
+      "name": "E mobile: language targets ≥44px",
+      "pass": true,
+      "detail": {
+        "en": 44,
+        "de": 44
+      }
+    },
+    {
+      "name": "E mobile: sound target ≥44px",
+      "pass": true,
+      "detail": 44
+    },
+    {
+      "name": "E mobile: sound/play actions are full-width rows",
+      "pass": true,
+      "detail": 350
+    },
+    {
+      "name": "F missing film: no video shown (poster holds)",
+      "pass": true,
+      "detail": false
+    },
+    {
+      "name": "F missing film: controls hidden, no dead buttons",
+      "pass": true,
+      "detail": {
+        "controlsHidden": true,
+        "soundHeight": 0,
+        "playHeight": 0,
+        "enHeight": 0
+      }
+    },
+    {
+      "name": "F missing film: poster still visible",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "G brand renders from the NAME constant",
+      "pass": true,
+      "detail": "Tacet"
+    },
+    {
+      "name": "G privacy ledger still opens from its one-line link",
+      "pass": true,
+      "detail": {
+        "before": false,
+        "after": true
+      }
+    },
+    {
+      "name": "G no legacy tiny text links remain",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "name": "G controls expose accessible state attributes",
+      "pass": true,
+      "detail": {
+        "groups": 2,
+        "pressed": 3
+      }
+    },
+    {
+      "name": "G no uncaught page errors",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "out": {
+    "A_initial": {
+      "readyState": 4,
+      "paused": false,
+      "muted": true,
+      "volume": 1,
+      "currentTime": 1.41,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "false",
+      "soundText": "Enable sound",
+      "soundPrimary": true,
+      "soundHeight": 44,
+      "soundWidth": 119,
+      "statusText": "Sound muted · browser blocked autoplay",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": false,
+      "captionText": "Sabine has processed invoices for\ntwenty-four years.",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "A_autoplayPolicy": "unavailable",
+    "A_unmuted_autoplay_allowed": false,
+    "A_muted": {
+      "readyState": 4,
+      "paused": false,
+      "muted": true,
+      "volume": 1,
+      "currentTime": 1.41,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "false",
+      "soundText": "Enable sound",
+      "soundPrimary": true,
+      "soundHeight": 44,
+      "soundWidth": 119,
+      "statusText": "Sound muted · browser blocked autoplay",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": false,
+      "captionText": "Sabine has processed invoices for\ntwenty-four years.",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "shot_muted": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-muted-fallback.png",
+    "A_sound_on": {
+      "readyState": 4,
+      "paused": false,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 3.77,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": false,
+      "captionText": "Sabine has processed invoices for\ntwenty-four years.",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "shot_sound": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-sound-on.png",
+    "B_de": {
+      "readyState": 4,
+      "paused": true,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 6,
+      "duration": 77.07,
+      "src": "assets/film.de.mp4",
+      "vlang": "de",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": false,
+      "playText": "Play with sound",
+      "playHeight": 44,
+      "playWidth": 134,
+      "enPressed": "false",
+      "dePressed": "true",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "She retires Friday. The written process\ncovers half.",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "shot_de": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-deutsch.png",
+    "B_back_en": {
+      "readyState": 4,
+      "paused": false,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 7.07,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": false,
+      "captionText": "She retires Friday. The written process\ncovers half.",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "C_blocked": {
+      "readyState": 4,
+      "paused": true,
+      "muted": true,
+      "volume": 1,
+      "currentTime": 0,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "false",
+      "soundText": "Enable sound",
+      "soundPrimary": true,
+      "soundHeight": 44,
+      "soundWidth": 119,
+      "statusText": "Sound muted · browser blocked autoplay",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": false,
+      "playText": "Play with sound",
+      "playHeight": 44,
+      "playWidth": 134,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "shot_blocked": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-blocked.png",
+    "C_play_sound": {
+      "readyState": 4,
+      "paused": false,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 0.44,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "D_reduce": {
+      "readyState": 4,
+      "paused": true,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 0,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": false,
+      "playText": "Play with sound",
+      "playHeight": 44,
+      "playWidth": 134,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "shot_reduce": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-reduced-motion.png",
+    "D_play": {
+      "readyState": 4,
+      "paused": false,
+      "muted": false,
+      "volume": 1,
+      "currentTime": 0.43,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "true",
+      "soundText": "Mute",
+      "soundPrimary": false,
+      "soundHeight": 44,
+      "soundWidth": 66,
+      "statusText": "Sound on",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440
+    },
+    "D_focus": {
+      "id": "film-lang-en",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "outlineColor": "rgb(78, 107, 68)"
+    },
+    "E_mobile": {
+      "readyState": 4,
+      "paused": false,
+      "muted": true,
+      "volume": 1,
+      "currentTime": 0.97,
+      "duration": 77,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": true,
+      "controlsHidden": false,
+      "soundHidden": false,
+      "soundPressed": "false",
+      "soundText": "Enable sound",
+      "soundPrimary": true,
+      "soundHeight": 44,
+      "soundWidth": 350,
+      "statusText": "Sound muted · browser blocked autoplay",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 44,
+      "deHeight": 44,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 390,
+      "innerW": 390
+    },
+    "shot_mobile": "/Users/shubhamjoshi/Hacknation 2/design/tasks/shots/film-controls-mobile-390.png",
+    "F_missing": {
+      "readyState": 0,
+      "paused": true,
+      "muted": true,
+      "volume": 1,
+      "currentTime": 0,
+      "duration": null,
+      "src": "assets/film.mp4",
+      "vlang": "en",
+      "hasVideo": false,
+      "controlsHidden": true,
+      "soundHidden": false,
+      "soundPressed": "false",
+      "soundText": "Enable sound",
+      "soundPrimary": false,
+      "soundHeight": 0,
+      "soundWidth": 0,
+      "statusText": "Sound muted",
+      "statusRole": "status",
+      "statusLive": "polite",
+      "playHidden": true,
+      "playText": "Play with sound",
+      "playHeight": 0,
+      "playWidth": 0,
+      "enPressed": "true",
+      "dePressed": "false",
+      "enHeight": 0,
+      "deHeight": 0,
+      "enLang": "en",
+      "deLang": "de",
+      "captionHidden": true,
+      "captionText": "",
+      "autoplayPolicy": "unavailable",
+      "docScrollW": 1440,
+      "innerW": 1440,
+      "posterVisible": true
+    },
+    "G": {
+      "brand": "Tacet",
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "legacyTextbtn": 0,
+      "controlsRole": {
+        "groups": 2,
+        "pressed": 3
+      },
+      "pageErrors": []
+    },
+    "summary": {
+      "total": 45,
+      "passed": 45,
+      "failed": []
+    }
+  }
+}

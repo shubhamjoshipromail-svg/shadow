@@ -25,3 +25,6 @@ Replay images are optional local capture of the user-selected surface, not struc
 
 ## Sol final review completed
 Worker stopped; final report reviewed. Independently ran 268 passing backend tests with 2 xfailed/2 xpassed; source/vendor byte comparison and JS syntax checks passed. Final ordinary-browser check produced sol-final-watching, sol-final-three-demos and sol-final-live-session screenshots; three demos created a live learned workflow through the final companion. Four prepared icons now referenced by manifest and dimensions checked. Sol's evidence ends with 5/5 exam + confirmed teach-back, $0.0144 estimated for that isolated run. Original before/after traces remain preserved as explicitly synthetic scripted-expert evidence.
+
+## Final media-controls review completed
+DeepSeek exited after 45/45 real-browser checks. Accepted final site source/report/six screenshots and preserved exact verification JSON. Site README now describes committed EN/DE film assets and final controls. Landing ledger matches optional local replay vs vision behavior and manual deletion requests. Extension README/sync comments reflect completed cold-start wiring, prepared icons, and remaining CDN voice blocker. This checkpoint commits the complete reviewed working tree from Opus, DeepSeek, Sol and this chat, without claiming deployment or store approval.

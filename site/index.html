@@ -29,6 +29,7 @@
   }
 
   *,*::before,*::after{box-sizing:border-box}
+  [hidden]{display:none!important}
   html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
   body{
     margin:0;background:var(--paper);color:var(--ink-1);
@@ -117,15 +118,28 @@
                 border-top:1px solid var(--rule);color:var(--ink-1);
                 font-family:var(--mono);font-size:clamp(12px,.95vw,14px);line-height:1.45}
   .film-caption[hidden]{display:none}
-  .film-bar{display:flex;align-items:center;justify-content:space-between;gap:10px 22px;
+  .film-bar{display:flex;align-items:center;justify-content:space-between;gap:14px 22px;
             margin-top:12px;flex-wrap:wrap}
   .film-meta{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
-  .film-tools{display:flex;align-items:center;gap:18px}
-  .textbtn{background:none;border:0;padding:2px 0;cursor:pointer;color:var(--ink-2);
-           font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-           border-bottom:1px solid var(--rule-strong);transition:color .16s var(--ease),border-color .16s var(--ease)}
-  .textbtn:hover{color:var(--ink-1);border-color:var(--ink-2)}
-  .textbtn[hidden]{display:none}
+  /* film controls: real bordered controls, 44px hit targets, state from the element */
+  .film-controls{display:flex;align-items:center;gap:10px 22px;flex-wrap:wrap}
+  .ctl{display:flex;align-items:center;gap:9px}
+  .ctl-label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+             text-transform:uppercase;color:var(--ink-3)}
+  .ctl-status{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
+              text-transform:uppercase;color:var(--ink-2)}
+  .seg{display:inline-flex;background:var(--sheet);border:1px solid var(--rule-strong);
+       border-radius:3px;overflow:hidden}
+  .seg-btn{appearance:none;-webkit-appearance:none;background:transparent;border:0;
+           border-left:1px solid var(--rule);min-height:44px;min-width:66px;padding:10px 16px;
+           font-family:var(--sans);font-size:13.5px;font-weight:500;color:var(--ink-2);cursor:pointer;
+           transition:background .16s var(--ease),color .16s var(--ease)}
+  .seg-btn:first-child{border-left:0}
+  .seg-btn:hover{background:var(--wash);color:var(--ink-1)}
+  .seg-btn[aria-pressed="true"]{background:var(--ink-1);color:var(--paper)}
+  .seg-btn[aria-pressed="true"]:hover{background:#3a3732;color:var(--paper)}
+  .film-controls .btn{min-height:44px;padding:10px 16px}
+  .film-controls :focus-visible{outline:2px solid var(--confirmed);outline-offset:2px;border-radius:3px}
 
   /* ── the three moments: one row, bottom-aligned visuals ─────────────────── */
   .moments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 30px;
@@ -261,6 +275,11 @@
     .nav{display:none}
     .mast-actions{margin-left:0;width:100%}
     .film-bar{flex-direction:column;align-items:flex-start;gap:12px}
+    .film-controls{width:100%;gap:14px}
+    .ctl{width:100%;flex-direction:column;align-items:flex-start;gap:7px}
+    .ctl .seg{width:100%}
+    .seg-btn{flex:1;min-width:0}
+    .ctl .btn,.film-controls>.btn{width:100%;justify-content:center}
     .sprites{align-items:center}
     .hero .kicker{margin-bottom:16px}
   }
@@ -314,17 +333,28 @@
         <figure class="film" id="film-slot">
           <img class="poster" id="film-poster" src="assets/poster.jpg" alt="An invoice with its net amount annotated and the expert's rule written beside it: equipment over five thousand net is always capex.">
           <video id="film" src="assets/film.mp4" poster="assets/poster.svg"
-                 muted loop playsinline preload="metadata"
+                 loop playsinline preload="metadata" lang="en"
                  aria-label="The product film: an expert books an invoice and the apprentice asks one question"></video>
           <figcaption class="film-caption" id="film-caption" hidden></figcaption>
         </figure>
         <div class="film-bar">
           <span class="film-meta">The product film · 01:17 · one rule learned, from guess to sealed test</span>
-          <span class="film-tools">
-            <button class="textbtn" id="film-lang" type="button" hidden aria-label="Switch the film to German">Deutsch</button>
-            <button class="textbtn" id="film-sound" type="button" hidden>Sound on</button>
-            <button class="textbtn" id="film-play" type="button" hidden>Play film</button>
-          </span>
+          <div class="film-controls" id="film-controls" hidden>
+            <div class="ctl" role="group" aria-labelledby="film-lang-label">
+              <span class="ctl-label" id="film-lang-label">Language</span>
+              <span class="seg">
+                <button class="seg-btn" id="film-lang-en" type="button" lang="en"
+                        aria-pressed="true">English</button>
+                <button class="seg-btn" id="film-lang-de" type="button" lang="de"
+                        aria-pressed="false">Deutsch</button>
+              </span>
+            </div>
+            <div class="ctl" role="group" aria-label="Film sound">
+              <span class="ctl-status" id="film-sound-status" role="status" aria-live="polite">Sound muted</span>
+              <button class="btn" id="film-sound" type="button" aria-pressed="false">Enable sound</button>
+            </div>
+            <button class="btn primary" id="film-play" type="button" hidden>Play with sound</button>
+          </div>
         </div>
       </div>
     </div>
@@ -487,7 +517,7 @@
       </div>
 
       <div class="privacy-line">
-        <p><span class="mk wri" aria-hidden="true">§</span> Bank accounts, cards and emails are scrubbed before storage; screen frames never leave the device; nothing is captured when capture is off.</p>
+        <p><span class="mk wri" aria-hidden="true">§</span> Structured observations are filtered for sensitive values. Local replays stay on your device; optional vision sends frames to Tacet Core and its vision provider. Collection stops when you go off the record.</p>
         <a href="#data" data-open="data">The whole ledger</a>
       </div>
 
@@ -500,6 +530,7 @@
               <li><b>The decision.</b> The fields on the case and the action taken, at the moment of the save.</li>
               <li><b>The guess.</b> What the apprentice predicted before the save, kept to measure the gap.</li>
               <li><b>Your answer.</b> The transcript of the one question, in your own words.</li>
+              <li><b>Optional vision.</b> Screen frames sent for a reading, with personal regions masked where the observed app identifies them.</li>
               <li><b>Case ids and timestamps</b> so a claim can be traced back to a real case.</li>
               <li><b>Frozen predictions</b> for a sealed test, committed before anyone labels it.</li>
             </ul>
@@ -519,16 +550,16 @@
           <div class="col">
             <span class="label"><span class="mk bin" aria-hidden="true">■</span> Never collected</span>
             <ul>
-              <li>Passwords, keystrokes, or anything outside the observed tab.</li>
-              <li>Screen frames: they stay on the observer's device and are dropped when capture stops.</li>
-              <li>Raw microphone audio. Only the transcript of the answer is kept.</li>
-              <li>Your other browser tabs, files, or clipboard.</li>
+              <li>Passwords or the text of individual keystrokes from the structured form observer.</li>
+              <li>Local replay frames on the server: they stay in browser memory and are dropped when replays stop.</li>
+              <li>Background microphone capture. Voice starts when you choose Talk; ElevenLabs processes the audio and Tacet stores the transcript.</li>
+              <li>Automatic reads of your other browser tabs, files, or clipboard.</li>
               <li>Anything at all when capture is off — the default.</li>
             </ul>
           </div>
         </div>
         <p class="kept">
-          The Work Map is exportable as data and the session can be deleted. A rule is only trusted once
+          The Work Map is exportable as data. Ending a session keeps its records; contact us to request deletion. Read the <a href="privacy.html">privacy policy</a>. A rule is only trusted once
           <span class="mk con" aria-hidden="true">✓</span> later cases agree with it; until then it says so.
         </p>
       </details>
@@ -579,21 +610,37 @@
     NAME.product + ' sits beside an expert as she works, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
 
   /* ── the film ──────────────────────────────────────────────────────────────
-     Autoplays muted, inline and looping; poster holds until the clip loads;
-     the caption bar is rendered here from assets/film.vtt (never the native
-     track UI); a text button unmutes; reduced motion shows the poster with a
-     "Play film" button instead. A missing clip leaves the page whole.        */
+     The controls are real bordered buttons with ≥44px targets and an honest
+     state read from the element itself. We try to autoplay WITH sound; if the
+     browser's autoplay policy rejects it (NotAllowedError) we fall back to
+     muted autoplay, say so, and make Enable sound the primary action. Reduced
+     motion never autoplays: the poster holds and Play with sound waits for a
+     click. A missing clip leaves the page whole (poster, no dead controls).
+     Captions are rendered here from assets/film.vtt / film.de.vtt, never the
+     native track UI.                                                          */
   (function () {
     var slot = document.getElementById('film-slot');
     var video = document.getElementById('film');
     var poster = document.getElementById('film-poster');
     var bar = document.getElementById('film-caption');
-    var sound = document.getElementById('film-sound');
-    var play = document.getElementById('film-play');
+    var controls = document.getElementById('film-controls');
+    var soundBtn = document.getElementById('film-sound');
+    var soundStatus = document.getElementById('film-sound-status');
+    var playBtn = document.getElementById('film-play');
+    var langEn = document.getElementById('film-lang-en');
+    var langDe = document.getElementById('film-lang-de');
     if (!slot || !video) return;
 
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var cues = [];
+    var lang = 'en';
+    var hasMeta = false;        /* the clip's metadata is known: the player is real */
+    var hasVideo = false;       /* a frame decoded: show the picture */
+    var switching = false;      /* a language swap is loading */
+    var blockedSound = false;   /* the policy refused sound without a gesture */
+    var explicitMuted = false;  /* the viewer chose silence */
+    var switchState = null;     /* restored state for the swap in flight */
+    var cueToken = 0;           /* drops a stale caption response */
 
     /* Poster .jpg when the film build provides one, .svg otherwise. The
        complete/naturalWidth probe catches a 404 that landed before this script. */
@@ -607,21 +654,69 @@
       if (poster.complete && poster.naturalWidth === 0) posterFallback();
     }
 
-    function reveal() {
-      slot.classList.add('has-video');
-      if (sound) sound.hidden = false;
-      if (play && !reduce) play.hidden = true;
+    /* Every label is derived from the element's real muted/volume/paused state,
+       so "Sound on" is only ever shown when sound would actually be audible. */
+    function soundIsOn() { return !video.muted && video.volume > 0; }
+
+    function updateControls() {
+      if (!controls) return;
+      /* The controls appear as soon as the clip's metadata is known, so a
+         player whose autoplay was blocked still shows Play with sound even
+         before a frame decodes (loadeddata may never fire then). */
+      controls.hidden = !hasMeta;
+      if (!hasMeta) return;
+
+      var on = soundIsOn();
+
+      /* explicit current-language selection */
+      if (langEn) langEn.setAttribute('aria-pressed', String(lang === 'en'));
+      if (langDe) langDe.setAttribute('aria-pressed', String(lang === 'de'));
+
+      /* sound status + action */
+      if (soundBtn) {
+        soundBtn.setAttribute('aria-pressed', String(on));
+        soundBtn.textContent = on ? 'Mute' : 'Enable sound';
+        soundBtn.classList.toggle('primary', !on);
+      }
+      if (soundStatus) {
+        soundStatus.textContent = on ? 'Sound on'
+          : (blockedSound ? 'Sound muted · browser blocked autoplay' : 'Sound muted');
+      }
+
+      /* Play stays visible whenever the clip is ready and paused (blocked or
+         reduced motion); loadeddata must never hide it while paused. */
+      if (playBtn) {
+        playBtn.hidden = !video.paused || switching;
+        playBtn.textContent = explicitMuted ? 'Play muted' : 'Play with sound';
+      }
     }
-    video.addEventListener('loadeddata', reveal);
-    video.addEventListener('playing', function () { if (play) play.hidden = true; });
-    video.addEventListener('error', function () {
-      slot.classList.remove('has-video');
-      if (sound) sound.hidden = true;
-      if (play) play.hidden = true;
-    });
-    video.addEventListener('loadedmetadata', function () {
-      if (reduce && play) play.hidden = false;
-    });
+
+    function requestPlay(withSound) {
+      if (withSound) {
+        video.volume = 1;
+        video.muted = false;
+        blockedSound = false;
+      }
+      var p;
+      try { p = video.play(); } catch (e) { updateControls(); return; }
+      if (!p || typeof p.then !== 'function') { updateControls(); return; }
+      p.then(function () {
+        if (withSound) blockedSound = false;
+        updateControls();
+      }).catch(function (err) {
+        if (!withSound || !err || err.name !== 'NotAllowedError') { updateControls(); return; }
+        /* The policy refused sound before any gesture: autoplay muted instead,
+           keep the label truthful, and make Enable sound the fix. */
+        blockedSound = true;
+        video.muted = true;
+        var p2;
+        try { p2 = video.play(); } catch (e) { updateControls(); return; }
+        if (p2 && typeof p2.then === 'function') {
+          p2.then(function () { updateControls(); }).catch(function () { updateControls(); });
+        }
+        updateControls();
+      });
+    }
 
     /* VTT-PARSER-START — extracted verbatim by the L2 acceptance check */
     function parseVTT(text) {
@@ -653,7 +748,7 @@
       for (var i = 0; i < cues.length; i++) {
         if (t >= cues[i].start && t < cues[i].end) { cue = cues[i]; break; }
       }
-      if (cue && slot.classList.contains('has-video')) {
+      if (cue && hasVideo) {
         bar.textContent = cue.text;
         bar.hidden = false;
       } else {
@@ -662,50 +757,113 @@
     }
     video.addEventListener('timeupdate', function () { renderCue(video.currentTime || 0); });
 
-    function loadCues(lang) {
-      if (!window.fetch) return;
-      fetch(lang === 'de' ? 'assets/film.de.vtt' : 'assets/film.vtt').then(function (r) { return r.ok ? r.text() : ''; })
-        .then(function (t) { cues = parseVTT(t); })
-        .catch(function () { cues = []; });
+    function loadCues(next) {
+      var token = ++cueToken;
+      cues = [];
+      if (!window.fetch) return Promise.resolve();
+      return fetch(next === 'de' ? 'assets/film.de.vtt' : 'assets/film.vtt')
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (t) { if (token === cueToken) cues = parseVTT(t); })
+        .catch(function () { if (token === cueToken) cues = []; });
     }
-    loadCues('en');
 
-    /* English / German: the same film, dubbed with ElevenLabs; captions follow the audio. */
-    var lang = 'en', langBtn = document.getElementById('film-lang');
-    if (langBtn) {
-      video.addEventListener('loadeddata', function () { langBtn.hidden = false; });
-      langBtn.addEventListener('click', function () {
-        var t = video.currentTime || 0, wasPaused = video.paused;
-        lang = lang === 'en' ? 'de' : 'en';
-        langBtn.textContent = lang === 'en' ? 'Deutsch' : 'English';
-        langBtn.setAttribute('aria-label', lang === 'en' ? 'Switch the film to German' : 'Switch the film to English');
-        video.setAttribute('lang', lang);
-        video.src = lang === 'de' ? 'assets/film.de.mp4' : 'assets/film.mp4';
-        loadCues(lang);
-        video.addEventListener('loadedmetadata', function once() {
-          video.removeEventListener('loadedmetadata', once);
-          try { video.currentTime = Math.min(t, (video.duration || t) - 0.1); } catch (e) {}
-          if (!wasPaused) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
-        });
+    /* English / Deutsch: the same film, dubbed with ElevenLabs. A switch keeps
+       the timestamp, the playback state, the sound preference and the captions. */
+    function setLang(next) {
+      if (next === lang || switching) return;
+      var t = video.currentTime || 0;
+      var wasPlaying = !video.paused;
+      var wasMuted = video.muted;
+      var wasBlocked = blockedSound;
+      switching = true;
+      lang = next;
+      video.setAttribute('lang', lang);
+      if (bar) bar.hidden = true;
+      if (langEn) langEn.setAttribute('aria-pressed', String(lang === 'en'));
+      if (langDe) langDe.setAttribute('aria-pressed', String(lang === 'de'));
+      updateControls();
+
+      loadCues(lang).then(function () {
+        if (!switching) renderCue(video.currentTime || t);
       });
+
+      switchState = { t: t, wasPlaying: wasPlaying, wasMuted: wasMuted, wasBlocked: wasBlocked };
+      video.src = lang === 'de' ? 'assets/film.de.mp4' : 'assets/film.mp4';
     }
+    if (langEn) langEn.addEventListener('click', function () { setLang('en'); });
+    if (langDe) langDe.addEventListener('click', function () { setLang('de'); });
 
-    if (sound) sound.addEventListener('click', function () {
-      video.muted = !video.muted;
-      sound.textContent = video.muted ? 'Sound on' : 'Sound off';
-    });
-    if (play) play.addEventListener('click', function () {
-      var p = video.play();
-      if (p && p.catch) p.catch(function () {});
+    video.addEventListener('loadedmetadata', function () {
+      hasMeta = true;
+      if (!switchState) { updateControls(); return; }
+      var s = switchState;
+      switchState = null;
+      video.muted = s.wasMuted;
+      blockedSound = s.wasBlocked;
+      var d = video.duration;
+      try {
+        video.currentTime = Math.min(s.t, (isFinite(d) && d > 0 ? d : s.t + 1) - 0.05);
+        if (video.currentTime < 0) video.currentTime = 0;
+      } catch (e) {}
+      switching = false;
+      updateControls();
+      if (s.wasPlaying) requestPlay(!s.wasMuted);
+      else renderCue(video.currentTime || 0);
     });
 
+    video.addEventListener('loadeddata', function () {
+      hasVideo = true;
+      slot.classList.add('has-video');
+      updateControls();
+    });
+    video.addEventListener('playing', updateControls);
+    video.addEventListener('pause', updateControls);
+    video.addEventListener('volumechange', updateControls);
+    video.addEventListener('error', function () {
+      hasMeta = false;
+      hasVideo = false;
+      switchState = null;
+      switching = false;
+      slot.classList.remove('has-video');
+      if (bar) bar.hidden = true;
+      updateControls();
+    });
+
+    /* Sound: a real gesture. Enabling also starts a paused film, because that
+       click is exactly the activation the autoplay policy was waiting for. */
+    if (soundBtn) soundBtn.addEventListener('click', function () {
+      if (soundIsOn()) {
+        explicitMuted = true;
+        blockedSound = false;
+        video.muted = true;
+        updateControls();
+      } else {
+        explicitMuted = false;
+        blockedSound = false;
+        video.volume = 1;
+        video.muted = false;
+        updateControls();
+        if (video.paused && hasMeta) requestPlay(true);
+      }
+    });
+
+    /* Play defaults to sound ON unless the viewer explicitly muted. */
+    if (playBtn) playBtn.addEventListener('click', function () {
+      if (explicitMuted) { video.muted = true; requestPlay(false); }
+      else requestPlay(true);
+    });
+
+    /* A cached clip may already have metadata/frames before this script ran. */
+    if (video.readyState >= 1) hasMeta = true;
+    if (video.readyState >= 2) { hasVideo = true; slot.classList.add('has-video'); }
+    updateControls();
+
+    loadCues(lang);
     if (reduce) {
-      /* no autoplay: the poster holds and the viewer starts it */
+      /* no autoplay: the poster holds and Play with sound waits for a click */
+      updateControls();
     } else {
-      var started = video.play();
-      if (started && started.catch) started.catch(function () {
-        if (play && video.readyState > 0) play.hidden = false;   // blocked, but the clip is here
-      });
+      requestPlay(true);
     }
   })();
 
