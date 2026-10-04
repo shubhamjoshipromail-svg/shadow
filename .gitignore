@@ -51,3 +51,12 @@ design/video/node_modules/
 extension/test/out/
 extension/test/.chrome*/
 dist/
+
+# film scratch (renders, backups, per-line voice takes)
+design/film/out/bak/
+design/film/out/silent.mp4
+design/film/out/vo_v4/
+design/film/out/vo_v4_de/
+design/film/out/stills/
+# local extension packages
+tacet-extension*.zip

@@ -41,21 +41,26 @@ Keys live in `backend/.env` (gitignored): ANTHROPIC_API_KEY, OPENAI_API_KEY, ELE
 - Astra writes reviews into `advisory/<topic>-<date>/` only. Treat as advice; adopt only what makes the product meaningfully better.
 - Never have two agents edit `engine.py` at once.
 
-## Status (checkpoint tag `v0.1-checkpoint`)
-Working end to end in the ERP: live predictions → gap → question in ~0.2s at a pause → real Claude compile of spoken/typed answers (rules + net/gross threshold + guardrails) → debrief → tutor blocks a wrong save with the expert's words. Voice via ElevenLabs agents (Custom LLM → Tacet) with proper silence. Eval (simulated, oracle-assisted, held out): exact agreement doc-only 38% / always-ask-why 73% / Tacet 98% at 0% confabulation; 70% at 40% confabulation.
+## Status (2026-10-03, submission-ready)
+Product is **Tacet**, apprentice character **Mira** (tutor teaches **Lena**). Live at https://tacet.up.railway.app (landing + film, console `/app`, sealed test `/app/s/<sid>/proof`, Work Map MCP `/mcp`); ERP sandbox https://erp-production-e3b0.up.railway.app (Invoices = built-in AP pack; `/support` = Support desk learned from scratch). Railway project `hacknation-apprentice`, us-west2: `core` (API + console + site, Postgres) and `erp`.
 
-Live learning proof (done): every answer, and every counterexample that moves a threshold, gets a receipt; independent checks only count predictions committed after the receipt on other cases. Evaluator flow: teach any threshold live → "Test it" → freeze sealed test → label (console or ERP) → misses correct the map → next round on fresh cases → "Restart from saved map" proves persistence. Proofs refuse Rehearsal sessions; `/sim/step` refuses live sessions. Verified live 2026-10-03 (real compile of a typed answer, taught 3,600, evaluator labelled at 4,000: round 1 9/11 with both misses in the 3,600–4,000 band, T moved to 4,069, after restart 11/11). `/api/history` lists receipts + proofs across sessions.
+Working end to end: live predictions → gap → one question at a pause → real Claude compile of spoken/typed answers → receipts → sealed boundary tests → debrief (self-exam, teach-back) → tutor blocks a wrong save with the expert's words → report card. Voice: two ElevenLabs agents (interviewer, tutor) on **Eleven v4 Turbo**, Custom LLM → `/v1/chat/completions`, Work Map MCP attached (`setup_elevenlabs.py --mcp`).
+- **New-workflow path ("Learn this task") verified live on the Support desk**: goal + demos → runtime task definition → question → compiled rules; questions read like speech (item named by its own id, lowercase scraped labels, open decision controls never treated as facts). Verified on one structured form only, not arbitrary sites.
+- Live proof (2026-10-03): taught 3,600, evaluator labelled at 4,000: round 1 9/11 (misses in the 3,600-4,000 band), T moved to 4,069, after restart 11/11.
+- Eval (scripted expert, oracle-assisted, held out; not a human result): doc-only 38% / always-ask-why 73% / Tacet 98%; 70% vs 60% at 40% corrupted answers.
+- Stretch goals shipped: vision frames → events, tutor report card, Work Map MCP, two experts (`compare.py`, offline-tested), German expert / English tutor (tests; 2 xfail leaks), Chrome extension (unpacked, store pack prepared, not submitted), film with German dub (ElevenLabs TTS v4 + Music + dubbing).
+- Tests: `cd backend && .venv/bin/pytest -q` = 269 passed, 2 xfailed, 2 xpassed.
+- Submission docs: `README.md` (judge path, brief mapping, honest limits) and `SUBMISSION.md` (form text). Keep them truthful when behavior changes.
 
-Known gaps / next (see `advisory/product-engine-investigation-2026-10-03/OPUS_HANDOFF.md`):
-1. Receipt panel is per session; a restarted session shows earlier receipts only via `/api/history` (proof page lists earlier proofs).
-2. Rules referencing facts not on screen compile but never fire → should trigger "I can't see X — where do you look it up?"
-3. Explicit session/workflow identity (today: unpinned observers follow the latest session), persistent session recovery.
-4. **Task-agnostic learning** (cold start: goal + demonstrations → runtime TaskDefinition/FeatureSchema; vision readings → decision points; generalize `inv.`-specific paths). Packs become optional adapters/priors.
-5. Browser extension with persistent side panel (bundle the voice SDK; no CDN imports in MV3).
-6. Stable deploy on Railway (user sets keys in Railway themselves) instead of ngrok.
+Known gaps (see `design/tasks/PRODUCT_READINESS_REVIEW_2026-10-03.md`):
+1. Universal tutor enforcement: arbitrary sites don't await `window.shadow.beforeSave`; only the ERP blocks saves.
+2. One capture owner per session (console vision vs companion replay are separate streams).
+3. Sessions are in memory (a restart ends them; maps persist); receipts per session, `/api/history` across sessions. No self-service delete.
+4. Rules referencing facts not on screen compile but never fire → should ask "where do you look it up?".
+5. Extension: bundle is local, but voice needs a live mic smoke test in MV3; store submission pending.
+6. No LICENSE file (owner to choose).
 
-## Handoff (2026-10-03, end of session)
-- Deployed on Railway project `hacknation-apprentice` (us-west2): core https://tacet.up.railway.app (API + notebook + capture.js, Postgres), erp https://erp-production-e3b0.up.railway.app. Pending: user sets API keys in Railway; then run `setup_elevenlabs.py --public-url <core>` (ask first).
-- Design system: `design/DESIGN.md`. DeepSeek delegation pattern + rules: memory `delegate-to-deepseek`; specs in `design/tasks/`.
-- DeepSeek queue running: `design/tasks/QUEUE_2026-10-03.md` (T1 coach, T2 task-agnostic taskdef + generic pack, T3 landing site, T4 video storyboard/recorder, T5 rename dry-run). Each writes new files + `*_REPORT.md`; review diffs (new files only), judge, then integrate. Logs: `design/tasks/queue-T*.log`.
-- Open decisions for the user: product name (recommend Tacet; character Mira; reports in design/tasks/DEEPSEEK_NAMES*_REPORT.md); proactive tutor before video (recommended).
+## Handoff
+- Film audio is being regenerated (`design/film/`, `site/assets/`): don't touch those while it runs.
+- Keys live only in `backend/.env` and Railway variables; `setup_elevenlabs.py --public-url https://tacet.up.railway.app --mcp` re-points the agents (ask first).
+- DeepSeek delegation pattern + rules: memory `delegate-to-deepseek`; specs and reports in `design/tasks/`. Design system: `design/DESIGN.md`.
