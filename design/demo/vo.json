@@ -15,6 +15,10 @@
     {"id": "N09", "voice": "narrator", "text": "An agent takes the same sealed test before it may act alone. And when two experts disagree, Mira shows exactly where, and who to ask."},
     {"id": "N10", "voice": "narrator", "text": "Monday. Lena books a hydraulic press, codes it to capex, and reaches for Post."},
     {"id": "M03", "voice": "mira", "text": "[warmly] Sabine would stop here. Why do you think? Her rule: hold a capex booking until asset accounting provides an asset number."},
+    {"id": "P0", "voice": "narrator", "text": "Sabine retires on Friday. Half of what she knows was never written down."},
+    {"id": "P1", "voice": "narrator", "text": "Then Mira proves it: fresh invoices, every answer sealed with a hash before any label. Eleven of eleven."},
+    {"id": "P2", "voice": "narrator", "text": "Monday, the new hire. Mira stops the mistake, in Sabine's own words."},
+    {"id": "P3", "voice": "narrator", "text": "Every rule lands in a Work Map, for people and for agents."},
     {"id": "N11", "voice": "narrator", "text": "And it isn't tied to one workflow. On a support desk it had never seen, Mira learned the task from a few demonstrations, and started asking her own questions."}
   ]
 }

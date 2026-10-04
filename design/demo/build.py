@@ -68,6 +68,28 @@ SHOTS = [
          quote=True),
     dict(kind="card", card="end", dur=6.5, xf=0.6),
 ]
+# 60-second cut (DEMO=60): same footage, the money moments only
+SHOTS60 = [
+    dict(kind="full", src=str(ROOT / "design/film/assets/flow-desk-friday.mp4"), segs=[(0, 5.6)], vo=[("P0", 0.15)], xf=0),
+    dict(kind="face", src=str(FACE), segs=[(2.55, 3.3), (26.75, 32.05)], audio=True, xf=0.4, who="face"),
+    dict(kind="card", card="title", dur=3.0, vo=[("N03", 0.15)], xf=0.4),
+    dict(kind="screen", src=rec("2.26.29"), segs=[(45.5, 60.8)], speed=4.0, box=WIDE_BAR, act=1, xf=0.3),
+    dict(kind="screen", src=rec("2.26.29"), segs=[(61.0, 69.2), (70.1, 76.3)], box=BR, audio=[(70.1, 76.3)],
+         vo=[("M01", 0.1)], act=1, xf=0.25, who="sabine"),
+    dict(kind="screen", src=rec("2.39.22"), segs=[(4.5, 26.0)], speed=2.55, box=WIDE, vo=[("P1", 0.15)], act=2, xf=0.3),
+    dict(kind="screen", src=rec("2.29.16"), segs=[(137.5, 148.2)], speed=3.0, box=WIDE, vo=[("P2", 0.2)], act=4, xf=0.3),
+    dict(kind="screen", src=rec("2.29.16"), segs=[(148.2, 151.9)], box=TR, act=4, xf=0.25),
+    dict(kind="screen", src=rec("2.36.50"), segs=[(5.5, 19.0)], speed=2.5, box=WIDE, vo=[("P3", 0.15)], act=3, xf=0.3),
+    dict(kind="face", src=str(FACE), segs=[(54.0, 58.9), (59.1, 60.6)], audio=True, xf=0.4, who="face", quote=True),
+    dict(kind="card", card="end", dur=2.7, xf=0.4),
+]
+import os
+if os.environ.get("DEMO") == "60":
+    SHOTS, OUT = SHOTS60, D / "out60"
+    OUT.mkdir(exist_ok=True)
+    for _n in ("vo", "music.mp3", "stt"):
+        if not (OUT / _n).exists():
+            (OUT / _n).symlink_to(D / "out" / _n)
 SPEAKER = {"sabine": "Sabine · played by Shubham", "lena": "Lena · the new hire"}
 
 
