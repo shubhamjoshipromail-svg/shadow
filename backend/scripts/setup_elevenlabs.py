@@ -95,7 +95,7 @@ def payload(role: str, public_url: str, mcp_id: str | None = None) -> dict:
                                                      "params": {"system_tool_type": "skip_turn"}}},
                 },
             },
-            "tts": {"voice_id": VOICE_ID},
+            "tts": {"voice_id": VOICE_ID, "model_id": "eleven_v4_turbo"},
             # the expert is working, not chatting: don't prompt them after silence
             "turn": {"turn_eagerness": "patient", "turn_timeout": 30},
             "conversation": {"max_duration_seconds": 1800},
