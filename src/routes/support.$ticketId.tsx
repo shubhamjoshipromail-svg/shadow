@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useSupport, type Priority, type Team, type Ticket } from "@/lib/support/store";
-import { SampleNote, StatusTag } from "./support.index";
+import { SampleNote, StatusTag } from "@/components/support/parts";
 
 export const Route = createFileRoute("/support/$ticketId")({
   head: ({ params }) => ({
