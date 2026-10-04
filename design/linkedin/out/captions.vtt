@@ -1,0 +1,31 @@
+WEBVTT
+
+00:00:00.250 --> 00:00:03.250
+The written process says 4711 Opex. The expert picks 0400 Capex.
+
+00:00:04.936 --> 00:00:10.618
+Mira: You coded invoice 4471 to 0400 instead of 4711.
+
+00:00:11.073 --> 00:00:12.250
+Mira: What made you do that?
+
+00:00:12.400 --> 00:00:15.750
+Sabine: “Equipment over five thousand euros are always capex,”
+
+00:00:15.750 --> 00:00:17.550
+Sabine: “so it goes to zero four hundred.”
+
+00:00:17.550 --> 00:00:21.650
+Click the rule: the moment on screen, the field she changed, her exact words.
+
+00:00:22.050 --> 00:00:26.150
+Live run: 9 of 11. It learned from the two misses. Next round: 11 of 11.
+
+00:00:26.350 --> 00:00:27.600
+Capex booking. No asset number yet.
+
+00:00:27.750 --> 00:00:30.350
+Mira: Sabine would stop here. Why do you think?
+
+00:00:30.550 --> 00:00:35.700
+Mira: Her rule: hold a capex booking until asset accounting provides an asset number.

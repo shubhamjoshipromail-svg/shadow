@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const WS = createRequire(join(ROOT, 'package.json'))('ws')
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-const PORT = 9347, W = 1920, H = 1080
+const PORT = 9347, W = +process.env.PNG_W || 1920, H = +process.env.PNG_H || 1080
 const jobs = JSON.parse(readFileSync(process.argv[2], 'utf8'))
 const prof = join(tmpdir(), 'tacet-demo-' + process.pid)
 const ch = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${prof}`, '--hide-scrollbars',

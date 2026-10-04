@@ -1,0 +1,5 @@
+out*/*
+!out*/tacet-linkedin*.mp4
+!out*/cover.jpg
+!out*/captions.vtt
+vo/
