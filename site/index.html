@@ -118,28 +118,41 @@
                 border-top:1px solid var(--rule);color:var(--ink-1);
                 font-family:var(--mono);font-size:clamp(12px,.95vw,14px);line-height:1.45}
   .film-caption[hidden]{display:none}
-  .film-bar{display:flex;align-items:center;justify-content:space-between;gap:14px 22px;
-            margin-top:12px;flex-wrap:wrap}
-  .film-meta{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
-  /* film controls: real bordered controls, 44px hit targets, state from the element */
-  .film-controls{display:flex;align-items:center;gap:10px 22px;flex-wrap:wrap}
-  .ctl{display:flex;align-items:center;gap:9px}
-  .ctl-label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
-             text-transform:uppercase;color:var(--ink-3)}
-  .ctl-status{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
-              text-transform:uppercase;color:var(--ink-2)}
-  .seg{display:inline-flex;background:var(--sheet);border:1px solid var(--rule-strong);
-       border-radius:3px;overflow:hidden}
-  .seg-btn{appearance:none;-webkit-appearance:none;background:transparent;border:0;
-           border-left:1px solid var(--rule);min-height:44px;min-width:66px;padding:10px 16px;
-           font-family:var(--sans);font-size:13.5px;font-weight:500;color:var(--ink-2);cursor:pointer;
-           transition:background .16s var(--ease),color .16s var(--ease)}
-  .seg-btn:first-child{border-left:0}
-  .seg-btn:hover{background:var(--wash);color:var(--ink-1)}
-  .seg-btn[aria-pressed="true"]{background:var(--ink-1);color:var(--paper)}
-  .seg-btn[aria-pressed="true"]:hover{background:#3a3732;color:var(--paper)}
-  .film-controls .btn{min-height:44px;padding:10px 16px}
-  .film-controls :focus-visible{outline:2px solid var(--confirmed);outline-offset:2px;border-radius:3px}
+  /* film bar: one slim row — the metadata left, the controls right */
+  .film-bar{display:flex;align-items:center;justify-content:space-between;gap:10px 20px;
+            margin-top:10px;flex-wrap:nowrap}
+  .film-meta{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3);
+             min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* film controls: 13px transparent text tabs and actions, thin rules. The visual
+     row is 36px; each control carries an invisible 44px touch area. No pill, no box. */
+  .film-controls{display:flex;align-items:center;flex:none;min-height:36px}
+  .film-controls>*+*{border-left:1px solid var(--rule);margin-left:16px;padding-left:16px}
+  .film-controls button{position:relative;appearance:none;-webkit-appearance:none;background:transparent;
+                        border:0;padding:0;font-family:var(--sans);font-size:13px;font-weight:500;
+                        color:var(--ink-2);cursor:pointer;
+                        transition:color .16s var(--ease),border-color .16s var(--ease)}
+  .film-controls button::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;
+                               height:44px;transform:translateY(-50%)}
+  .film-controls button:hover{color:var(--ink-1)}
+  .film-controls :focus-visible{outline:2px solid var(--confirmed);outline-offset:3px;border-radius:2px}
+  .lang-tabs{display:inline-flex;align-items:center}
+  .film-controls .lang-tab{display:inline-flex;align-items:center;min-height:36px;
+                           border-bottom:1px solid transparent}
+  .lang-tab+.lang-tab{margin-left:16px}
+  .lang-tab[aria-pressed="true"]{color:var(--ink-1);border-bottom-color:var(--ink-1)}
+  .lang-tab[data-pending="true"]{color:var(--ink-3);border-bottom-color:var(--rule-strong);
+                                 cursor:progress}
+  .sound-btn{display:inline-flex;align-items:center;gap:8px;min-height:36px}
+  .sound-btn svg{width:15px;height:15px;flex:none;display:block}
+  .sound-btn[aria-pressed="true"]{color:var(--confirmed)}
+  .sound-btn[aria-pressed="true"]:hover{color:var(--confirmed)}
+  .sound-btn[aria-pressed="false"] .snd-waves{display:none}
+  .sound-btn[aria-pressed="true"] .snd-off{display:none}
+  .play-btn{display:inline-flex;align-items:center;gap:7px;min-height:36px}
+  .play-btn svg{width:11px;height:11px;flex:none;display:block}
+  .film-status{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-3)}
+  .film-status.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+                  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 
   /* ── the three moments: one row, bottom-aligned visuals ─────────────────── */
   .moments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 30px;
@@ -274,12 +287,10 @@
     body{font-size:15px}
     .nav{display:none}
     .mast-actions{margin-left:0;width:100%}
-    .film-bar{flex-direction:column;align-items:flex-start;gap:12px}
-    .film-controls{width:100%;gap:14px}
-    .ctl{width:100%;flex-direction:column;align-items:flex-start;gap:7px}
-    .ctl .seg{width:100%}
-    .seg-btn{flex:1;min-width:0}
-    .ctl .btn,.film-controls>.btn{width:100%;justify-content:center}
+    .film-bar{gap:8px 12px}
+    .film-meta{font-size:10px}
+    .film-controls>*+*{margin-left:12px;padding-left:12px}
+    .lang-tab+.lang-tab{margin-left:12px}
     .sprites{align-items:center}
     .hero .kicker{margin-bottom:16px}
   }
@@ -340,20 +351,25 @@
         <div class="film-bar">
           <span class="film-meta">The product film · 01:17 · one rule learned, from guess to sealed test</span>
           <div class="film-controls" id="film-controls" hidden>
-            <div class="ctl" role="group" aria-labelledby="film-lang-label">
-              <span class="ctl-label" id="film-lang-label">Language</span>
-              <span class="seg">
-                <button class="seg-btn" id="film-lang-en" type="button" lang="en"
-                        aria-pressed="true">English</button>
-                <button class="seg-btn" id="film-lang-de" type="button" lang="de"
-                        aria-pressed="false">Deutsch</button>
-              </span>
-            </div>
-            <div class="ctl" role="group" aria-label="Film sound">
-              <span class="ctl-status" id="film-sound-status" role="status" aria-live="polite">Sound muted</span>
-              <button class="btn" id="film-sound" type="button" aria-pressed="false">Enable sound</button>
-            </div>
-            <button class="btn primary" id="film-play" type="button" hidden>Play with sound</button>
+            <span class="lang-tabs" id="film-lang-tabs" role="group" aria-label="Film language">
+              <button class="lang-tab" id="film-lang-en" type="button" lang="en"
+                      aria-pressed="true">English</button>
+              <button class="lang-tab" id="film-lang-de" type="button" lang="de"
+                      aria-pressed="false">Deutsch</button>
+            </span>
+            <button class="sound-btn" id="film-sound" type="button" aria-pressed="false">
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M2.4 6.1h2.3L7.9 3.2v9.6L4.7 9.9H2.4z" fill="currentColor"/>
+                <path class="snd-waves" d="M10.1 6a2.7 2.7 0 0 1 0 4M11.9 4.4a5.1 5.1 0 0 1 0 7.2" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+                <path class="snd-off" d="M10.4 6.4l3.2 3.2M13.6 6.4l-3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+              </svg>
+              <span id="film-sound-label">Sound off</span>
+            </button>
+            <button class="play-btn" id="film-play" type="button" hidden>
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 2.6l8 5.4-8 5.4z" fill="currentColor"/></svg>
+              <span id="film-play-label">Play</span>
+            </button>
+            <span class="film-status sr" id="film-sound-status" role="status" aria-live="polite"></span>
           </div>
         </div>
       </div>
@@ -610,14 +626,18 @@
     NAME.product + ' sits beside an expert as she works, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
 
   /* ── the film ──────────────────────────────────────────────────────────────
-     The controls are real bordered buttons with ≥44px targets and an honest
-     state read from the element itself. We try to autoplay WITH sound; if the
-     browser's autoplay policy rejects it (NotAllowedError) we fall back to
-     muted autoplay, say so, and make Enable sound the primary action. Reduced
-     motion never autoplays: the poster holds and Play with sound waits for a
-     click. A missing clip leaves the page whole (poster, no dead controls).
-     Captions are rendered here from assets/film.vtt / film.de.vtt, never the
-     native track UI.                                                          */
+     A slim 13px control row: English / Deutsch text tabs with a thin underline
+     on the confirmed language, one quiet speaker button, and Play only while
+     the film is paused. Every label is read from the element itself, so "Sound
+     on" is only shown when sound is actually audible. We ask for sound first;
+     if the browser's autoplay policy rejects it (NotAllowedError) we fall back
+     to muted playback and a real click on Sound off starts sound during that
+     gesture — even while the clip is buffering or switching. A language switch
+     keeps the position and the sound choice, clears the old caption before the
+     new one, and the latest click wins over a swap still in flight. Reduced
+     motion never autoplays; a clip that fails leaves the switch controls in
+     place to retry. Captions are rendered here from assets/film.vtt /
+     film.de.vtt, never the native track UI.                                   */
   (function () {
     var slot = document.getElementById('film-slot');
     var video = document.getElementById('film');
@@ -625,22 +645,37 @@
     var bar = document.getElementById('film-caption');
     var controls = document.getElementById('film-controls');
     var soundBtn = document.getElementById('film-sound');
+    var soundText = document.getElementById('film-sound-label');
     var soundStatus = document.getElementById('film-sound-status');
     var playBtn = document.getElementById('film-play');
+    var playText = document.getElementById('film-play-label');
     var langEn = document.getElementById('film-lang-en');
     var langDe = document.getElementById('film-lang-de');
     if (!slot || !video) return;
 
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var cues = [];
-    var lang = 'en';
-    var hasMeta = false;        /* the clip's metadata is known: the player is real */
+    var confirmed = 'en';       /* the language whose metadata has been accepted */
+    var requested = 'en';       /* the latest language the viewer asked for */
+    var switching = false;      /* a source swap is in flight */
+    var failed = false;         /* the current source did not load */
+    var hasMeta = false;        /* the clip's metadata is known */
     var hasVideo = false;       /* a frame decoded: show the picture */
-    var switching = false;      /* a language swap is loading */
-    var blockedSound = false;   /* the policy refused sound without a gesture */
+    var srcGen = 0;             /* every src assignment bumps this; stale work bails */
+    var cueGen = 0;             /* drops a stale caption response */
+    var expectedSrc = '';       /* the src an event must belong to */
+    var preferSound = true;     /* the viewer's intent: audible unless they muted */
     var explicitMuted = false;  /* the viewer chose silence */
-    var switchState = null;     /* restored state for the swap in flight */
-    var cueToken = 0;           /* drops a stale caption response */
+    var blockedSound = false;   /* the policy refused sound without a gesture */
+    var wantPlaying = false;    /* resume after a swap if playback was wanted */
+    var intendPlay = !reduce;   /* the viewer means the film to run */
+    var soundGesture = false;   /* the viewer has chosen a sound state themselves */
+    var resumeAt = 0;           /* the timestamp a swap must keep */
+    var resumeArmed = false;    /* waiting for seeked/canplay to resume */
+    var resumeGen = 0;
+    var seekPending = false;
+    var loadTimer = null;       /* clears a hung switching state */
+    var resumeTimer = null;
 
     /* Poster .jpg when the film build provides one, .svg otherwise. The
        complete/naturalWidth probe catches a 404 that landed before this script. */
@@ -658,45 +693,53 @@
        so "Sound on" is only ever shown when sound would actually be audible. */
     function soundIsOn() { return !video.muted && video.volume > 0; }
 
+    /* A concise status line, shown only for loading or failure; visually hidden
+       (but still a live region) when there is nothing actionable to say. */
+    function setStatus(msg) {
+      if (!soundStatus) return;
+      soundStatus.textContent = msg || '';
+      soundStatus.classList.toggle('sr', !msg);
+    }
+
     function updateControls() {
       if (!controls) return;
-      /* The controls appear as soon as the clip's metadata is known, so a
-         player whose autoplay was blocked still shows Play with sound even
-         before a frame decodes (loadeddata may never fire then). */
-      controls.hidden = !hasMeta;
-      if (!hasMeta) return;
+      controls.hidden = false;
 
       var on = soundIsOn();
 
-      /* explicit current-language selection */
-      if (langEn) langEn.setAttribute('aria-pressed', String(lang === 'en'));
-      if (langDe) langDe.setAttribute('aria-pressed', String(lang === 'de'));
+      /* The pressed language is always the confirmed one. A tab whose swap is
+         still in flight is only marked busy — never selected — until metadata
+         for that source has been accepted. */
+      if (langEn) {
+        langEn.setAttribute('aria-pressed', String(confirmed === 'en'));
+        langEn.setAttribute('aria-busy', String(switching && requested === 'en'));
+        langEn.setAttribute('data-pending', String(switching && requested === 'en'));
+      }
+      if (langDe) {
+        langDe.setAttribute('aria-pressed', String(confirmed === 'de'));
+        langDe.setAttribute('aria-busy', String(switching && requested === 'de'));
+        langDe.setAttribute('data-pending', String(switching && requested === 'de'));
+      }
 
-      /* sound status + action */
+      /* Sound state + action, derived from the element, never faked. */
       if (soundBtn) {
         soundBtn.setAttribute('aria-pressed', String(on));
-        soundBtn.textContent = on ? 'Mute' : 'Enable sound';
-        soundBtn.classList.toggle('primary', !on);
-      }
-      if (soundStatus) {
-        soundStatus.textContent = on ? 'Sound on'
-          : (blockedSound ? 'Sound muted · browser blocked autoplay' : 'Sound muted');
+        if (soundText) soundText.textContent = on ? 'Sound on' : 'Sound off';
+        soundBtn.setAttribute('aria-label', on ? 'Sound on'
+          : (blockedSound ? 'Sound off. Browser blocked autoplay — turn sound on.'
+                          : 'Sound off. Turn sound on.'));
       }
 
-      /* Play stays visible whenever the clip is ready and paused (blocked or
-         reduced motion); loadeddata must never hide it while paused. */
+      /* Play is shown only while the confirmed clip is paused and playable. */
       if (playBtn) {
-        playBtn.hidden = !video.paused || switching;
-        playBtn.textContent = explicitMuted ? 'Play muted' : 'Play with sound';
+        playBtn.hidden = !(hasMeta && !failed && !switching && video.paused);
+        if (playText) playText.textContent = 'Play';
+        playBtn.setAttribute('aria-label', explicitMuted ? 'Play muted' : 'Play with sound');
       }
     }
 
-    function requestPlay(withSound) {
-      if (withSound) {
-        video.volume = 1;
-        video.muted = false;
-        blockedSound = false;
-      }
+    function tryPlay(withSound) {
+      if (withSound) { video.volume = 1; video.muted = false; }
       var p;
       try { p = video.play(); } catch (e) { updateControls(); return; }
       if (!p || typeof p.then !== 'function') { updateControls(); return; }
@@ -705,8 +748,8 @@
         updateControls();
       }).catch(function (err) {
         if (!withSound || !err || err.name !== 'NotAllowedError') { updateControls(); return; }
-        /* The policy refused sound before any gesture: autoplay muted instead,
-           keep the label truthful, and make Enable sound the fix. */
+        /* The policy refused sound before any gesture: keep the picture moving
+           muted, keep the label truthful, and let a real click fix it. */
         blockedSound = true;
         video.muted = true;
         var p2;
@@ -744,126 +787,219 @@
 
     function renderCue(t) {
       if (!bar) return;
+      if (switching || !hasVideo) { bar.hidden = true; return; }
       var cue = null;
       for (var i = 0; i < cues.length; i++) {
         if (t >= cues[i].start && t < cues[i].end) { cue = cues[i]; break; }
       }
-      if (cue && hasVideo) {
+      if (cue) {
         bar.textContent = cue.text;
         bar.hidden = false;
       } else {
         bar.hidden = true;
       }
     }
-    video.addEventListener('timeupdate', function () { renderCue(video.currentTime || 0); });
+    video.addEventListener('timeupdate', function () {
+      if (!switching) renderCue(video.currentTime || 0);
+    });
 
-    function loadCues(next) {
-      var token = ++cueToken;
-      cues = [];
-      if (!window.fetch) return Promise.resolve();
-      return fetch(next === 'de' ? 'assets/film.de.vtt' : 'assets/film.vtt')
+    function loadCues(next, gen) {
+      if (!window.fetch) return;
+      fetch(next === 'de' ? 'assets/film.de.vtt' : 'assets/film.vtt')
         .then(function (r) { return r.ok ? r.text() : ''; })
-        .then(function (t) { if (token === cueToken) cues = parseVTT(t); })
-        .catch(function () { if (token === cueToken) cues = []; });
+        .then(function (t) {
+          if (gen !== cueGen) return;
+          cues = parseVTT(t);
+          if (!switching) renderCue(video.currentTime || 0);
+        })
+        .catch(function () { if (gen === cueGen) cues = []; });
     }
 
-    /* English / Deutsch: the same film, dubbed with ElevenLabs. A switch keeps
-       the timestamp, the playback state, the sound preference and the captions. */
-    function setLang(next) {
-      if (next === lang || switching) return;
-      var t = video.currentTime || 0;
-      var wasPlaying = !video.paused;
-      var wasMuted = video.muted;
-      var wasBlocked = blockedSound;
-      switching = true;
-      lang = next;
-      video.setAttribute('lang', lang);
-      if (bar) bar.hidden = true;
-      if (langEn) langEn.setAttribute('aria-pressed', String(lang === 'en'));
-      if (langDe) langDe.setAttribute('aria-pressed', String(lang === 'de'));
+    /* Resume once the swap has both metadata and (if needed) its seek. seeked is
+       authoritative when a seek is pending; canplay/loadeddata are the fallback
+       so a switch can never hang waiting for an event that will not fire. */
+    function onReady(source) {
+      if (!resumeArmed || resumeGen !== srcGen) return;
+      if (source !== 'seeked' && source !== 'timeout' && seekPending) return;
+      seekPending = false;
+      resumeArmed = false;
+      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+      renderCue(video.currentTime || 0);
+      if (wantPlaying && video.paused) tryPlay(preferSound);
       updateControls();
-
-      loadCues(lang).then(function () {
-        if (!switching) renderCue(video.currentTime || t);
-      });
-
-      switchState = { t: t, wasPlaying: wasPlaying, wasMuted: wasMuted, wasBlocked: wasBlocked };
-      video.src = lang === 'de' ? 'assets/film.de.mp4' : 'assets/film.mp4';
     }
-    if (langEn) langEn.addEventListener('click', function () { setLang('en'); });
-    if (langDe) langDe.addEventListener('click', function () { setLang('de'); });
+
+    /* English / Deutsch: the same film, dubbed with ElevenLabs. A click swaps the
+       source immediately, keeps the timestamp and the sound choice, clears the
+       old caption, and a later click replaces a swap still in flight. */
+    function chooseLang(next) {
+      if (!switching && !failed && next === confirmed) return;
+      if (switching && next === requested) return;
+
+      if (!switching) {
+        resumeAt = video.currentTime || 0;
+        wantPlaying = intendPlay;
+      }
+      requested = next;
+      failed = false;
+      switching = true;
+      var gen = ++srcGen;
+      resumeGen = gen;
+      resumeArmed = false;
+      seekPending = false;
+      cues = [];
+      cueGen = gen;
+      if (bar) { bar.textContent = ''; bar.hidden = true; }
+      hasVideo = false;
+      slot.classList.remove('has-video');
+
+      loadCues(next, gen);
+      expectedSrc = next === 'de' ? 'assets/film.de.mp4' : 'assets/film.mp4';
+      setStatus(next === 'de' ? 'Loading Deutsch' : 'Loading English');
+      updateControls();
+      video.setAttribute('src', expectedSrc);
+      try { video.load(); } catch (e) {}
+
+      if (loadTimer) clearTimeout(loadTimer);
+      loadTimer = setTimeout(function () {
+        if (gen === srcGen && switching) {
+          switching = false;
+          failed = true;
+          requested = confirmed;
+          setStatus('Couldn’t load the film');
+          updateControls();
+        }
+      }, 12000);
+    }
+    if (langEn) langEn.addEventListener('click', function () { chooseLang('en'); });
+    if (langDe) langDe.addEventListener('click', function () { chooseLang('de'); });
 
     video.addEventListener('loadedmetadata', function () {
+      if (video.getAttribute('src') !== expectedSrc) return;   /* a stale load */
       hasMeta = true;
-      if (!switchState) { updateControls(); return; }
-      var s = switchState;
-      switchState = null;
-      video.muted = s.wasMuted;
-      blockedSound = s.wasBlocked;
-      var d = video.duration;
-      try {
-        video.currentTime = Math.min(s.t, (isFinite(d) && d > 0 ? d : s.t + 1) - 0.05);
-        if (video.currentTime < 0) video.currentTime = 0;
-      } catch (e) {}
-      switching = false;
+      failed = false;
+      if (switching) {
+        confirmed = requested;
+        video.setAttribute('lang', confirmed);
+      }
+      /* Restore the sound intent only for a gesture-driven load (a switch, or a
+         viewer who chose sound while the clip was still buffering). A first
+         load leaves the browser's own autoplay decision untouched, so a policy
+         block is never silently undone. */
+      if (switching || soundGesture) {
+        video.volume = 1;
+        video.muted = !preferSound;
+        blockedSound = false;
+      }
+
+      if (switching) {
+        switching = false;
+        if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+        setStatus('');
+        var d = video.duration;
+        var target = resumeAt;
+        if (isFinite(d) && d > 0) target = Math.min(target, d - 0.05);
+        if (target < 0) target = 0;
+        if (Math.abs(target - (video.currentTime || 0)) > 0.05) {
+          seekPending = true;
+          try { video.currentTime = target; } catch (e) { seekPending = false; }
+        } else {
+          seekPending = false;
+        }
+        if (wantPlaying) {
+          resumeArmed = true;
+          resumeGen = srcGen;
+          if (resumeTimer) clearTimeout(resumeTimer);
+          resumeTimer = setTimeout(function () {
+            if (resumeArmed && resumeGen === srcGen) onReady('timeout');
+          }, 1500);
+        }
+      }
       updateControls();
-      if (s.wasPlaying) requestPlay(!s.wasMuted);
-      else renderCue(video.currentTime || 0);
     });
 
     video.addEventListener('loadeddata', function () {
       hasVideo = true;
       slot.classList.add('has-video');
+      renderCue(video.currentTime || 0);
+      updateControls();
+      onReady('loadeddata');
+    });
+    video.addEventListener('seeked', function () { onReady('seeked'); });
+    video.addEventListener('canplay', function () { onReady('canplay'); });
+    video.addEventListener('playing', function () {
+      wantPlaying = true;
+      intendPlay = true;
       updateControls();
     });
-    video.addEventListener('playing', updateControls);
     video.addEventListener('pause', updateControls);
     video.addEventListener('volumechange', updateControls);
     video.addEventListener('error', function () {
+      if (video.getAttribute('src') !== expectedSrc) return;
+      if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+      switching = false;
+      resumeArmed = false;
+      seekPending = false;
       hasMeta = false;
       hasVideo = false;
-      switchState = null;
-      switching = false;
+      failed = true;
+      requested = confirmed;
       slot.classList.remove('has-video');
-      if (bar) bar.hidden = true;
-      updateControls();
+      if (bar) { bar.textContent = ''; bar.hidden = true; }
+      setStatus('Couldn’t load the film');
+      updateControls();   /* the switch controls stay put so a retry is possible */
     });
 
-    /* Sound: a real gesture. Enabling also starts a paused film, because that
-       click is exactly the activation the autoplay policy was waiting for. */
+    /* Sound: a real gesture. Turning it on also starts the film during that
+       gesture, even while the clip is buffering or mid-swap — no restart. */
     if (soundBtn) soundBtn.addEventListener('click', function () {
       if (soundIsOn()) {
         explicitMuted = true;
+        preferSound = false;
         blockedSound = false;
+        soundGesture = true;
         video.muted = true;
         updateControls();
       } else {
         explicitMuted = false;
+        preferSound = true;
         blockedSound = false;
+        soundGesture = true;
         video.volume = 1;
         video.muted = false;
+        wantPlaying = true;
+        intendPlay = true;
+        tryPlay(true);
         updateControls();
-        if (video.paused && hasMeta) requestPlay(true);
       }
     });
 
     /* Play defaults to sound ON unless the viewer explicitly muted. */
     if (playBtn) playBtn.addEventListener('click', function () {
-      if (explicitMuted) { video.muted = true; requestPlay(false); }
-      else requestPlay(true);
+      wantPlaying = true;
+      intendPlay = true;
+      if (explicitMuted) { video.muted = true; tryPlay(false); }
+      else { preferSound = true; tryPlay(true); }
+      updateControls();
     });
 
     /* A cached clip may already have metadata/frames before this script ran. */
+    expectedSrc = video.getAttribute('src') || '';
     if (video.readyState >= 1) hasMeta = true;
     if (video.readyState >= 2) { hasVideo = true; slot.classList.add('has-video'); }
     updateControls();
 
-    loadCues(lang);
-    if (reduce) {
-      /* no autoplay: the poster holds and Play with sound waits for a click */
+    loadCues(confirmed, cueGen);
+    if (video.error) {
+      failed = true;
+      setStatus('Couldn’t load the film');
+      updateControls();
+    } else if (reduce) {
+      /* no autoplay: the poster holds and Play waits for a click */
       updateControls();
     } else {
-      requestPlay(true);
+      tryPlay(true);
     }
   })();
 

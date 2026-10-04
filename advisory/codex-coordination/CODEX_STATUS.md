@@ -75,3 +75,14 @@ package validation, license/provenance files and store guidance. ZIP is generate
 ignored `dist/tacet-extension-0.1.0.zip`. Packaging and offline SDK smoke checks pass.
 See `design/tasks/EXTENSION_PACKAGE_REPORT_2026-10-03.md` for validation limits.
 User authorized integration commits earlier in this chat; no push or upload.
+
+## 2026-10-03 — Live film controls refinement
+
+User rejected chunky controls and requested immediate reliable switching. DeepSeek
+implemented bounded site-only refinement; primary reviewed and deployed it. Slim
+English/Deutsch text tabs, quiet speaker state, latest-click language loading,
+error recovery and preserved playback/mute. Worker 54/54 focused checks; primary
+live Chrome confirms German source, unmuted playback, mute/unmute and underline.
+Railway Core deployment d7f16e48-36ac-4d5f-8c6f-7a1afc6c5ba0 is SUCCESS.
+Live page equals local source. SHADOW_PUBLIC_URL now uses tacet.up.railway.app;
+old alias retained for existing integrations. No Git push.

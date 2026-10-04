@@ -8,8 +8,9 @@ same top/bottom spacing (`--sec`) and the same content grid (`--maxw` 1180 px, `
 
 1. **Hero — the film.** The tagline, one line of copy, then the product film at full content width (1092 px, edge to
    edge within the measure). It first attempts inline, looping playback with sound. If browser policy blocks it,
-   muted playback continues with a prominent **Enable sound** button. **English / Deutsch** selects the dub and
-   captions while preserving playback time. A missing clip leaves the poster holding cleanly.
+   muted playback continues with a speaker + **Sound off** control that enables audio with one click.
+   Slim **English / Deutsch** text tabs select the dub and captions while preserving playback time.
+   Loading and errors show a concise status; a failed clip leaves the poster and retry controls available.
 2. **How it learns** — the three moments in one row: *guess → ask once → stop the next person*, each with a tiny
    visual built from the rules and marks.
 3. **Proof** — the learning receipt (before `€3,600` → after `€4,069`, moved by two counterexamples) beside the sealed
