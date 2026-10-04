@@ -28,7 +28,7 @@ let frameId = (await send('Page.getFrameTree')).frameTree.frame.id
 for (const job of jobs) {
   await send('Page.setDocumentContent', { frameId, html: job.html })
   for (let i = 0; i < 80; i++) {
-    const r = await send('Runtime.evaluate', { expression: 'document.fonts.status === "loaded" && [...document.images].every(i => i.complete)', returnByValue: true })
+    const r = await send('Runtime.evaluate', { expression: '[...document.querySelectorAll("link[rel=stylesheet]")].every(l => l.sheet) && (!document.querySelector("link[rel=stylesheet]") || document.fonts.size > 0) && document.fonts.status === "loaded" && [...document.images].every(i => i.complete)', returnByValue: true })
     if (r.result.value) break
     await new Promise((r) => setTimeout(r, 100))
   }
