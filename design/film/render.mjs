@@ -17,8 +17,8 @@ const DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(DIR, '../..')
 const require = createRequire(join(ROOT, 'package.json'))
 const WS = require('ws')
-const FFMPEG = join(ROOT, 'design/video/node_modules/ffmpeg-static/ffmpeg')
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+const FFMPEG = process.env.FFMPEG || (existsSync(join(ROOT, 'design/video/node_modules/ffmpeg-static/ffmpeg')) ? join(ROOT, 'design/video/node_modules/ffmpeg-static/ffmpeg') : 'ffmpeg')
+const CHROME = process.env.CHROME || (existsSync('/Applications/Google Chrome.app') ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : '/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
 const OUT = join(DIR, 'out'); mkdirSync(OUT, { recursive: true })
 const argv = process.argv.slice(2)
 const flag = (n, d) => { const i = argv.indexOf('--' + n); return i < 0 ? d : (argv[i + 1]?.startsWith('--') || argv[i + 1] === undefined ? true : argv[i + 1]) }
@@ -41,7 +41,7 @@ const vo = readFileSync(join(DIR, TECH ? 'tech-voiceover.txt' : LANG === 'en' ? 
 async function launch() {
   const profile = join(tmpdir(), 'tacet-film-' + process.pid)
   const ch = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--hide-scrollbars',
-    '--force-device-scale-factor=1', '--window-size=1920,1080', '--no-first-run', '--disable-gpu-vsync', 'about:blank'], { stdio: 'ignore' })
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []), '--force-device-scale-factor=1', '--window-size=1920,1080', '--no-first-run', '--disable-gpu-vsync', 'about:blank'], { stdio: 'ignore' })
   let list
   for (let i = 0; i < 60; i++) { try { list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json(); if (list.find((x) => x.type === 'page')) break } catch {} await new Promise((r) => setTimeout(r, 250)) }
   const page = list.find((x) => x.type === 'page')
@@ -53,6 +53,8 @@ async function launch() {
   await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false })
   await send('Page.navigate', { url: pathToFileURL(join(DIR, TECH ? 'tech.html' : 'film.html')).href })
   for (let i = 0; i < 120; i++) { const r = await send('Runtime.evaluate', { expression: 'window.ready===true', returnByValue: true }); if (r.result.value) break; await new Promise((r) => setTimeout(r, 250)) }
+  // off the Mac (no Google Fonts reachable from headless Chrome): FONT_CSS points at local @font-face rules
+  if (process.env.FONT_CSS) await send('Runtime.evaluate', { expression: `(async()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(readFileSync(process.env.FONT_CSS, 'utf8'))};document.head.appendChild(s);await document.fonts.load('300 96px Newsreader');await document.fonts.load('italic 300 96px Newsreader');await document.fonts.load('600 36px Geist');await document.fonts.load('500 30px "IBM Plex Mono"');await document.fonts.ready})()`, awaitPromise: true })
   const shot = async (t, fmt = 'jpeg') => {
     await send('Runtime.evaluate', { expression: `seek(${t})` })
     const r = await send('Page.captureScreenshot', fmt === 'png' ? { format: 'png' } : { format: 'jpeg', quality: 94 })
@@ -77,7 +79,7 @@ function vtt() {
   })
   writeFileSync(join(OUT, `${TECH ? 'tech' : 'film'}${SFX}.vtt`), cues.join('\n'))
 }
-function probe(f) { const r = spawnSync(FFMPEG, ['-i', f], { encoding: 'utf8' }); const m = r.stderr.match(/Duration: (\d+):(\d+):([\d.]+)/); return +m[1] * 3600 + +m[2] * 60 + +m[3] }
+function probe(f) { if (!existsSync(f)) return 0; const r = spawnSync(FFMPEG, ['-i', f], { encoding: 'utf8' }); const m = r.stderr.match(/Duration: (\d+):(\d+):([\d.]+)/); return +m[1] * 3600 + +m[2] * 60 + +m[3] }
 const VO = TECH && !flag('vo', false) ? join(OUT, 'tech_vo_fast') : flag('vo', false) && flag('vo') !== true ? resolve(String(flag('vo'))) : join(ROOT, 'design/video/out/vo')
 const durations = vo.map((_, i) => probe(join(VO, String(i + 1).padStart(2, '0') + '.mp3')))
 durations.forEach((d, i) => { const next = LINES[i + 1] ?? DUR; if (LINES[i] + d > next + 0.001) console.warn(`overlap: line ${i + 1} ends ${LINES[i] + d} > next start ${next}`) })
