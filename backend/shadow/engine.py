@@ -163,6 +163,8 @@ class Session:
         self.page_case: str | None = None
         self.page_identity: tuple | None = None
         self.page_decided = False
+        self._last_tutor_check: tuple[Any, float, dict[str, Any]] | None = None
+        self.voice_owner: dict[str, str] | None = None  # one ElevenLabs conversation per session (see /voice)
         for node in [*self.wm.rules, *self.wm.guardrails]:
             if node.origin != "doc":
                 node.refresh_belief()
@@ -398,7 +400,8 @@ class Session:
             await self.observe_page({"url": self.page_url, "fields": fields})
 
     async def page_action(self, evt: dict[str, Any]) -> dict[str, Any] | None:
-        if not self.page_case or self.page_decided:
+        # capture records one decision per page; the tutor re-checks every save (double reports dedupe below)
+        if not self.page_case or (self.page_decided and self.mode != "tutor"):
             return None
         def token(v):
             return re.sub(r"[^a-z0-9]+", "_", str(v or "").lower()).strip("_")
@@ -413,7 +416,13 @@ class Session:
             if feature and not f.get("redacted") and feature.name in {d.name for d in self.pack.decision_fields}:
                 case["booking"][feature.name] = f.get("value")
         if self.mode == "tutor":
+            # The page's save hook and the observer's click both report one save: judge it once.
+            key = (case["id"], action, repr(sorted(case["booking"].items())))
+            last = self._last_tutor_check
+            if last and last[0] == key and self.now() - last[1] < 3:
+                return last[2]
             verdict = await self.tutor_decision(case["id"], case["booking"], action)
+            self._last_tutor_check = (key, self.now(), verdict)
             self.page_decided = bool(verdict.get("allow"))
             return verdict
         if self.mode != "capture":
@@ -1899,8 +1908,12 @@ class Session:
 
     async def before_save(self, case_id: str, booking: dict[str, Any], action: str) -> dict[str, Any]:
         """Save intercept. In tutor mode, catch guardrail breaks before they're saved."""
-        if self.mode != "tutor" or case_id not in self.cases:
+        if self.mode != "tutor":
             return {"allow": True}
+        if case_id not in self.cases:  # never silent while tutoring: say why this save went unchecked
+            text = await self.to_learner("I can't tell which case this is, so I couldn't check this save.")
+            await self.emit("tutor_ok", {"case_id": case_id, "action": action, "covered": False, "text": text})
+            return {"allow": True, "checked": False, "text": text}
         case = self.cases[case_id]
         violations = check_proposal(self.wm, self.pack, case, booking, action)
         pred = run_map(self.wm, self.pack, case, TRUSTED)
@@ -1927,9 +1940,14 @@ class Session:
                     self._bkt(nid, correct=True)
                 else:
                     self._note_assisted(nid)
+            # A tutored save always gets an answer: confirmed by a learned rule, or honestly unchecked.
+            titles = [n.title for n in (self.wm.node(nid) for nid in relevant) if n and n.title]
+            line = (f"Right, that's what {self.expert} would do: {titles[0]}." if titles else
+                    f"{self.expert} never showed me a case like this, so I can't check it yet. Worth asking {self.expert}.")
+            text = await self.to_learner(line)
             await self.emit("tutor_ok", {"case_id": case_id, "action": action, "mastery": self.mastery,
-                                         "independent": first_attempt})
-            return {"allow": True}
+                                         "independent": first_attempt, "covered": bool(titles), "text": text})
+            return {"allow": True, "checked": bool(titles), "text": text}
         v = violations[0]
         tries = self.tutor_tries[case_id] = self.tutor_tries.get(case_id, 0) + 1
         self.stopped_at[case_id] = self.now()

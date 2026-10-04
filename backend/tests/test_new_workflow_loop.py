@@ -212,3 +212,79 @@ def test_questions_name_the_item_by_its_own_id_and_read_like_speech():
         assert case_ref(P(), {"id": "page-0cca7ca35fbb", "ref": "SR-4106"}) == "support ticket SR-4106"
     finally:
         q.case_noun = noun
+
+
+def test_tutor_never_silent_on_a_learned_workflow_save(client, monkeypatch):
+    """The page's own save hook (Support desk) names the app's ticket id, not Tacet's page case.
+
+    Regression: that hook was never wired, unknown ids were allowed in silence, and a save no
+    learned rule covers only flashed a sparkle. Every tutored save now blocks or says something.
+    """
+    s = start(client)
+    event(client, s, page())
+    event(client, s, {"type": "field_changed", "field": "assigned_team", "before": "Support", "after": "Dispatch"})
+    event(client, s, {"type": "action", "name": "save_ticket"})
+    s.activity.last_input = s.activity.last_screen_change = time.time() - 3
+    client.portal.call(s.tick)
+    client.post(f"/api/sessions/{s.id}/utterance", json={"text": "Premium tickets always go to Dispatch."})
+    client.portal.call(s.drain)
+    client.post(f"/api/sessions/{s.id}/end")
+    monkeypatch.setattr(llm, "available", lambda: True)  # API guard only; no model calls below
+    t = main.sessions[client.post("/api/sessions", json={"mode": "tutor", "pack": s.pack.id,
+                                                         "from_session": s.id}).json()["id"]]
+    t.use_llm = False
+    said = []
+    real_emit = t.emit
+    async def emit(kind, payload):
+        said.append((kind, payload))
+        return await real_emit(kind, payload)
+    t.emit = emit
+
+    def hook(ticket, team, level="Premium", url="https://desk.test/ticket/7"):
+        snap = page(hours=5, level=level, team=team, url=url)
+        return client.post("/api/capture/before_save", json={
+            "session": t.id, "case_id": ticket, "action": "save_ticket",
+            "booking": {"assigned_team": team}, "url": snap["url"], "fields": snap["fields"]}).json()
+
+    # a deviation from a learned rule is blocked, in the expert's words, even with the app's own id
+    blocked = hook("SR-7", "Support")
+    assert not blocked["allow"] and "Alex" in blocked["intervention"]["explain"]
+    # the observer's click reports the same save a moment later: judged once, not a second stop
+    event(client, t, {"type": "action", "name": "save_ticket", "fields": page(hours=5, team="Support")["fields"]})
+    assert sum(k == "intervene" for k, _ in said) == 1
+    # following the rule is confirmed out loud
+    ok = hook("SR-7", "Dispatch")
+    assert ok["allow"] and ok["checked"] and "Alex" in ok["text"]
+    # a case nothing learned covers: allowed, but never in silence
+    said.clear()
+    other = hook("SR-8", "Engineering", level="Standard", url="https://desk.test/ticket/8")
+    assert other["allow"] and not other["checked"] and "never showed me" in other["text"]
+    assert any(k == "tutor_ok" and p.get("text") for k, p in said)
+    # an id the tutor cannot place is reported too
+    said.clear()
+    lost = client.post("/api/capture/before_save", json={"session": t.id, "case_id": "nope",
+                                                          "booking": {}, "action": "save_ticket"}).json()
+    assert lost["allow"] and lost.get("text")
+
+
+def test_capture_save_hook_on_a_learned_workflow_never_breaks_the_save(client):
+    s = start(client)
+    event(client, s, page())
+    r = client.post("/api/capture/before_save", json={"session": s.id, "case_id": "SR-1",
+                                                      "booking": {"assigned_team": "Dispatch"}, "action": "save_ticket"})
+    assert r.status_code == 200 and r.json()["allow"]
+
+
+def test_one_voice_per_session_handoff_reaches_the_companion(client):
+    """Companion and notebook each open an ElevenLabs conversation; the latest claim wins, the other hangs up."""
+    s = start(client)
+    with client.websocket_connect(f"/ws/capture?session={s.id}") as ws:
+        ws.send_json({"type": "hello", "session": s.id})
+        assert ws.receive_json()["type"] == "session"
+        r = client.post(f"/api/sessions/{s.id}/voice", json={"client": "console", "token": "abc"})
+        assert r.status_code == 200 and s.voice_owner == {"client": "console", "token": "abc"}
+        for _ in range(20):
+            m = ws.receive_json()
+            if m["type"] == "voice_owner":
+                break
+        assert m["type"] == "voice_owner" and m["token"] == "abc"

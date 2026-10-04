@@ -144,10 +144,14 @@
   // ------------------------------------------------------------- save intercept
   window.shadow = {
     beforeSave: function (req) {
+      if (!PINNED) return Promise.resolve({ allow: true });  // no session on this page: nothing to check
+      // a learned workflow judges the page it watched, so send the observer's snapshot with the save
+      var snap = GENERIC_PAGE && window.shadowObserve ? window.shadowObserve.snapshot() : null;
       return fetch(API + "/api/capture/before_save", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session: PINNED, action: req.action, case_id: req.caseId || lastCase,
-                               booking: req.booking || {}, reason: req.reason, approver: req.approver })
+                               booking: req.booking || {}, reason: req.reason, approver: req.approver,
+                               url: snap ? snap.url : null, fields: snap ? snap.fields : null })
       }).then(function (r) { return r.json(); }).then(function (v) {
         if (!v.allow && v.intervention) {
           overlay(v.intervention);
@@ -165,6 +169,10 @@
         return { allow: true };
       });
     }
+  };
+  // The Support desk awaits this hook before it saves (src/routes/support.$ticketId.tsx): same intercept.
+  window.tacetSupportBeforeSave = function (p) {
+    return window.shadow.beforeSave({ action: p.action, caseId: p.ticketId, booking: p.booking });
   };
 
   // ------------------------------------------------------------- server messages -> companion state
@@ -215,7 +223,16 @@
         break;
       }
       case "silence": flash("hush", 1200); return;
-      case "tutor_ok": flash("spark", 1400); flash("okc", 1600); return;
+      case "voice_owner":  // another client (the notebook) took the voice: hang up, don't come back on reload
+        if (V.conv && m.token !== V.token) {
+          try { sessionStorage.removeItem("shadow.voice"); } catch (e) {}
+          stopVoice(); voiceStatus("talking in the notebook");
+        }
+        return;
+      case "tutor_ok":  // every tutored save gets an answer, shown and spoken
+        flash("spark", 1400); flash("okc", 1600);
+        if (m.text) toast([m.text], m.covered ? "green" : "amber");
+        return;
       case "prediction":
         if (MODE !== "tutor") { F.guess = true; later("guess", 30000, function () { F.guess = false; render(); }); }
         break;
@@ -357,6 +374,8 @@
         LEARN.demos.push(LEARN.current); LEARN.current = [];
       }
       keepLearning(); renderLearning();
+      // one example opens the Work Map; from then on she watches live, predicts and asks out loud, like on the ERP
+      if (LEARN.demos.length === 1 && !LEARN.current.length && evt.type === "action" && evt.terminal) doneShowing();
     } else if (SID && LEARN.stage === "idle" && !F.off) send(evt);
   }
   function wireObserver() {
@@ -386,8 +405,8 @@
     }).catch(function () { LEARN.error = "I couldn\u2019t check this page. Connect to Tacet, then try again."; renderLearning(); });
   }
   function watchTask() {
-    var goal = $("learn-goal").value.trim();
-    if (!goal) { $("learn-goal").focus(); return; }
+    // the goal is optional: the demonstrations carry the task, and Mira can ask about it out loud afterwards
+    var goal = $("learn-goal").value.trim() || "Do the task on this page (" + (document.title || location.pathname) + ") the way the expert does";
     LEARN.goal = goal; LEARN.stage = "watching"; LEARN.error = "";
     F.off = false; window.shadowObserve.refresh(); keepLearning(); render();
   }
@@ -403,6 +422,9 @@
     storeDel(LEARN_KEY); outbox = [];
     WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert;
     pinSession(snap.id, snap.mode); takeMetrics(snap.metrics); reconnect(); render();
+    // same as Start on the ERP: a session on any page comes with Mira's voice (Talk turns it off)
+    try { sessionStorage.setItem("shadow.voice", "on"); } catch (e) {}
+    startVoice();
   }
   function doneShowing() {
     if (!LEARN.demos.length || LEARN.stage === "creating") return;
@@ -674,11 +696,11 @@
               '<label id="learn-workflow-choice" hidden>Which workflow are you doing?<select id="learn-workflow"></select></label><div class="sess-acts">' +
               '<button class="btn accent" id="learn-continue" type="button">Continue this workflow</button>' +
               '<button class="btn" id="learn-new" type="button">Learn a new task</button></div></div>' +
-            '<form id="learn-form" hidden><label for="learn-goal">What should this task accomplish?</label>' +
-              '<input id="learn-goal" maxlength="300" placeholder="A one-line goal" required autocomplete="off">' +
-              '<p>Show Mira a few examples. A save or submit finishes each demonstration.</p>' +
+            '<form id="learn-form" hidden><label for="learn-goal">What should this task accomplish? (optional)</label>' +
+              '<input id="learn-goal" maxlength="300" placeholder="Skip it: Mira works it out from what you do" autocomplete="off">' +
+              '<p>Just do the task. A save or submit finishes each example; after the first one, Mira talks.</p>' +
               '<button class="btn accent" type="submit">Start watching</button></form>' +
-            '<div id="learn-watch" hidden><p id="learn-count" role="status"></p><p>One example is enough to start. Two or three help me see what changes.</p>' +
+            '<div id="learn-watch" hidden><p id="learn-count" role="status"></p><p>Do one example; I open the Work Map as soon as you save it.</p>' +
               '<div class="sess-acts"><button class="btn" id="learn-stop" type="button">Stop</button>' +
               '<button class="btn" id="learn-resume" type="button" hidden>Resume watching</button>' +
               '<button class="btn accent" id="learn-done" type="button" disabled>Done showing</button></div></div>' +
@@ -1156,7 +1178,12 @@
           } else { V.quiet = 0; }
         }
       });
-    }).then(function (conv) { V.conv = conv; V.role = role; }).catch(function (e) {
+    }).then(function (conv) {
+      V.conv = conv; V.role = role;
+      // one voice per session: claim it, so a notebook already talking hangs up instead of talking over Mira
+      V.token = Math.random().toString(36).slice(2);
+      api("/api/sessions/" + SID + "/voice", { client: "companion", token: V.token }).catch(function () {});
+    }).catch(function (e) {
       V.conv = null;
       var msg = /permission|notallowed|denied/i.test(String(e && (e.name + " " + e.message)))
         ? "Microphone blocked. Allow the mic for this site (or open it in Chrome), then press Talk again."
@@ -1197,6 +1224,7 @@
     if (m.type === "tutor_summary") tutorSummary(m);  // end of practice: the trainee's report card
     if (m.type === "ask" && MODE !== "tutor") say("[[shadow:ask " + m.inquiry.id + "]]");
     if (m.type === "intervene" && m.intervention && m.intervention.id) say("[[shadow:intervene " + m.intervention.id + "]]");
+    if (m.type === "tutor_ok" && m.text && MODE === "tutor") say("[[shadow:say " + m.text.replace(/[\[\]]/g, "") + "]]");
     if (m.type === "tutor_case" && m.prompt) {  // proactive coaching as a case opens: where to look, predict first
       F.asking = true; F.askText = m.prompt; render();
       say("[[shadow:say " + m.prompt.replace(/[\[\]]/g, "") + "]]");

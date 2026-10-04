@@ -132,6 +132,7 @@ async def create_session(body: NewSession) -> dict[str, Any]:
         if sessions[body.from_session].simulated and not body.simulate:
             raise HTTPException(409, "A practice Work Map cannot seed a live session. Keep this a practice run.")
         wm = sessions[body.from_session].wm.model_copy(deep=True)
+        expert = body.expert or sessions[body.from_session].expert  # the tutor quotes the expert who taught it, by name
         source = {"kind": "session", "session": body.from_session, "version": wm.version}
     elif body.mode != "capture" or not body.fresh or not body.simulate:
         saved = store.latest_map_row(expert, pack.id, include_simulated=body.simulate)
@@ -194,6 +195,20 @@ async def end_session(sid: str) -> dict[str, Any]:
     s._save_map()
     await s.emit("ended", {"session": sid})
     return {"ended": True}
+
+
+class VoiceClaim(BaseModel):
+    client: str  # "companion" | "console"
+    token: str
+
+
+@app.post("/api/sessions/{sid}/voice")
+async def claim_voice(sid: str, body: VoiceClaim) -> dict[str, Any]:
+    """One voice per session: the client that starts talking owns it; every other client hangs up."""
+    s = _session(sid)
+    s.voice_owner = {"client": body.client, "token": body.token}
+    await s.emit("voice_owner", s.voice_owner)
+    return s.voice_owner
 
 
 @app.post("/api/sessions/{sid}/debrief")
@@ -765,6 +780,8 @@ class BeforeSave(BaseModel):
     booking: dict[str, Any] = {}
     reason: str | None = None
     approver: str | None = None
+    url: str | None = None  # learned workflows: the page snapshot at save time (observer fields)
+    fields: list[dict[str, Any]] | None = None
 
 
 @app.post("/api/capture/before_save")
@@ -772,6 +789,17 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     if not sessions:
         return {"allow": True}
     s = _session(body.session)
+    if getattr(s.pack, "task_def", None):
+        # A learned workflow names cases by the page it watched, not the app's ticket id: judge that page.
+        # Capture mode records the decision from the observer's action event, so only the tutor answers here.
+        if s.mode != "tutor":
+            return {"allow": True}
+        if body.fields:
+            await s.observe_page({"url": body.url, "fields": body.fields})
+        if not s.page_case:
+            return await s.before_save(body.case_id, body.booking, body.action)  # unknown: says so, never silent
+        fields = list(body.fields or []) or [{"name": k, "value": v} for k, v in body.booking.items()]
+        return await s.page_action({"name": body.action, "fields": fields}) or {"allow": True}
     if s.mode == "tutor":
         return await s.on_event({"type": "decision", "case_id": body.case_id, "booking": body.booking,
                                  "action": body.action}) or {"allow": True}
@@ -782,7 +810,7 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
 
 
 COMPANION_EVENTS = {"ended", "tutor_case", "nudge", "tutor_summary", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
-                    "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
+                    "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback", "voice_owner"}
 
 
 def _companion_view(m: dict[str, Any]) -> dict[str, Any]:

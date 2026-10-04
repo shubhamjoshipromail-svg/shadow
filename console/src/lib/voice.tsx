@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useConversation } from '@elevenlabs/react'
 import type { ShadowEvent } from './types'
+import { api } from './api'
 
 export const AGENTS = {
   interviewer: () => localStorage.getItem('shadow.agent.interviewer') || import.meta.env.VITE_EL_AGENT_INTERVIEWER || '',
@@ -51,8 +52,12 @@ export function useVoiceBridge(opts: {
     },
   })
 
+  const token = useRef('')
+
   // Tacet's planner decides *when*; we just trigger the agent's turn.
   useEffect(() => opts.on((e) => {
+    // one voice per session: the companion on the work page took it, so this conversation hangs up
+    if (e.type === 'voice_owner' && e.token !== token.current && conv.status === 'connected') { conv.endSession(); return }
     if (conv.status !== 'connected') return
     if (e.type === 'ask' && optsRef.current.mode === 'capture') conv.sendUserMessage(`[[shadow:ask ${e.inquiry.id}]]`)
     if (e.type === 'intervene') conv.sendUserMessage(`[[shadow:intervene ${e.intervention.id}]]`)
@@ -61,10 +66,12 @@ export function useVoiceBridge(opts: {
 
   const start = async () => {
     const role = opts.mode === 'tutor' ? 'tutor' : 'interviewer'
-    const agentId = AGENTS[role]()
+    // the server's agent ids win: a stale id kept in this browser is a different agent, with a different voice
+    const served = await api<{ agents: { interviewer?: string; tutor?: string } }>('/api/config').then((c) => c.agents[role]).catch(() => undefined)
+    const agentId = served || AGENTS[role]()
     if (!agentId) throw new Error(`Set the ElevenLabs ${role} agent id on the home page first.`)
     await navigator.mediaDevices.getUserMedia({ audio: true })
-    conv.startSession({
+    await conv.startSession({
       agentId,
       connectionType: 'webrtc',
       dynamicVariables: { shadow_session: opts.sid ?? '', shadow_mode: opts.mode },
@@ -76,6 +83,8 @@ export function useVoiceBridge(opts: {
           ? { agent: { language: opts.lang as never } }
           : undefined,
     })
+    token.current = Math.random().toString(36).slice(2)
+    if (opts.sid) await api(`/api/sessions/${opts.sid}/voice`, { method: 'POST', body: JSON.stringify({ client: 'console', token: token.current }) }).catch(() => {})
   }
 
   const kickDebrief = () => conv.sendUserMessage('[[shadow:debrief]]')
