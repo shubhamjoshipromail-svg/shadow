@@ -102,10 +102,11 @@ def test_notification_gets_202_with_no_body():
     assert r.status_code == 202 and r.content == b""
 
 
-def test_tools_list_exposes_the_four_read_only_tools():
+def test_tools_list_exposes_the_read_only_tools():
     client = _client()
     tools = _rpc(client, "tools/list").json()["result"]["tools"]
-    assert {t["name"] for t in tools} == {"list_steps", "list_guardrails", "check_decision", "explain_rule"}
+    assert {t["name"] for t in tools} == {"list_steps", "list_guardrails", "check_decision", "explain_rule",
+                                         "get_permissions"}
     for t in tools:
         assert t["inputSchema"]["type"] == "object"
         assert t["annotations"]["readOnlyHint"] is True

@@ -291,8 +291,28 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
+# Added after the original four, which are unchanged: may an agent act alone on this case?
+TOOL_DEFINITIONS.append({
+    "name": "get_permissions",
+    "title": "May I act on this case?",
+    "description": "Before acting: give the case facts. Returns the permission an agent has earned from the expert's "
+                   "sealed exam for the rule(s) that decide this case: act (alone), suggest (a human confirms) or "
+                   "stop (ask a human), with the rule, the reason and the expert's own words. Optionally pass the "
+                   "decision you intend to also get the expert's objections.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {"case_facts": _CASE_FACTS,
+                       "proposed": _PROPOSED,
+                       "action": {"type": "string", "description": "Optional: the action you intend."},
+                       "workflow": _WORKFLOW},
+        "required": ["case_facts"],
+        "additionalProperties": False,
+    },
+    "annotations": _READ_ONLY,
+})
+
 _REQUIRED_ARGS = {"list_steps": (), "list_guardrails": (), "check_decision": ("case_facts", "action"),
-                  "explain_rule": ("id",)}
+                  "explain_rule": ("id",), "get_permissions": ("case_facts",)}
 
 
 # ------------------------------------------------------------ JSON-RPC wire
@@ -356,7 +376,31 @@ def _call_source(fn: Callable[..., Any], workflow: str | None) -> Any:
     return fn(workflow) if _accepts_workflow(fn) else fn()
 
 
-def handle_rpc(body: Any, resolve: Callable[[str | None], tuple[WorkMap, Pack]]) -> tuple[Any | None, str | None]:
+def op_get_permissions(wm: WorkMap, pack: Pack, cert: dict[str, Any] | None, case_facts: dict[str, Any],
+                       proposed: dict[str, Any], action: str | None) -> dict[str, Any]:
+    from shadow import certify  # late: certify imports this module
+    if not isinstance(case_facts, dict):
+        raise ToolError("case_facts must be the case object (the facts the engine sees), not a string.")
+    if cert is None:
+        return {"permission": "stop", "certification": None, "rules": [],
+                "message": "No agent has been certified on this map yet, so stop and ask a human."}
+    out = certify.permissions_for(cert, wm, pack, case_facts)
+    if action or proposed:
+        chk = op_check_decision(wm, pack, case_facts, proposed or {}, action or "post")
+        out["objections"] = chk["violations"]
+        if not chk["ok"]:
+            out["permission"] = "stop"
+    worst = min(out["rules"], key=lambda r: certify.RANK[r["level"]], default=None)
+    words = {"act": "You may act on this alone.", "suggest": "Propose it, and let a human confirm.",
+             "stop": "Stop and ask a human."}[out["permission"]]
+    held = [f"{r['id']} requires '{r['requires_action']}'" for r in out["rules"] if r.get("requires_action")]
+    out["message"] = (words + (f" Guardrail: {'; '.join(held)}." if held else "")
+                      + (f" Weakest rule: {worst['id']}: {worst['reason']}" if worst else ""))
+    return out
+
+
+def handle_rpc(body: Any, resolve: Callable[[str | None], tuple[WorkMap, Pack]],
+               perms: Callable[[str | None], dict[str, Any] | None] | None = None) -> tuple[Any | None, str | None]:
     """One JSON-RPC message (or batch) → ``(response_or_None, session_id_or_None)``.
 
     ``None`` as the response means "notification": the HTTP layer answers 202.
@@ -367,7 +411,7 @@ def handle_rpc(body: Any, resolve: Callable[[str | None], tuple[WorkMap, Pack]])
         out: list[dict[str, Any]] = []
         sid: str | None = None
         for item in body:
-            resp, s = handle_rpc(item, resolve)
+            resp, s = handle_rpc(item, resolve, perms)
             sid = s or sid
             if resp is not None:
                 out.append(resp)
@@ -424,6 +468,9 @@ def handle_rpc(body: Any, resolve: Callable[[str | None], tuple[WorkMap, Pack]])
             result = op_list_steps(wm, pack)
         elif name == "list_guardrails":
             result = op_list_guardrails(wm, pack)
+        elif name == "get_permissions":
+            result = op_get_permissions(wm, pack, perms(args.get("workflow")) if perms else None,
+                                        args["case_facts"], args.get("proposed") or {}, args.get("action"))
         elif name == "check_decision":
             result = op_check_decision(wm, pack, args["case_facts"], args.get("proposed") or {}, args["action"],
                                        include_inferred=bool(args.get("include_inferred")))
@@ -437,7 +484,8 @@ def handle_rpc(body: Any, resolve: Callable[[str | None], tuple[WorkMap, Pack]])
 
 
 # --------------------------------------------------------------- FastAPI
-def make_router(get_map: Callable[[str | None], Any], get_pack: Callable[[str | None], Any]) -> APIRouter:
+def make_router(get_map: Callable[[str | None], Any], get_pack: Callable[[str | None], Any],
+                get_cert: Callable[[str | None], dict[str, Any] | None] | None = None) -> APIRouter:
     """Mount the Work Map as an MCP Streamable HTTP server.
 
     ``get_map()`` / ``get_pack()`` return the Work Map and pack to expose. They may
@@ -456,7 +504,7 @@ def make_router(get_map: Callable[[str | None], Any], get_pack: Callable[[str | 
             body = json.loads(raw)
         except (ValueError, UnicodeDecodeError):
             return JSONResponse(_error(None, PARSE_ERROR, "Parse error"), status_code=400)
-        response, sid = handle_rpc(body, resolve)
+        response, sid = handle_rpc(body, resolve, get_cert)
         requested = request.headers.get("mcp-protocol-version")
         headers = {"MCP-Protocol-Version": requested if requested in SUPPORTED_PROTOCOLS else PROTOCOL_VERSION,
                    "Cache-Control": "no-store"}

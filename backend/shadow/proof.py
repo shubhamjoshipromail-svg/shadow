@@ -11,6 +11,7 @@ the next round tests the correction on new cases.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -52,7 +53,7 @@ def _base_cases(s: Session) -> list[dict[str, Any]]:
     return [s.cases[c] for c in s.case_order if "_proof" not in s.cases[c] and "_probe" not in s.cases[c]]
 
 
-def build(s: Session, param: str | None = None, seed: int | None = None) -> dict[str, Any]:
+def build(s: Session, param: str | None = None, seed: int | None = None, routine: int = 0) -> dict[str, Any]:
     """Generate fresh boundary cases, freeze the map's predictions on them, and commit to them."""
     if s.mode == "tutor":
         raise ProofError("boundary tests run in a capture or debrief session")
@@ -63,6 +64,7 @@ def build(s: Session, param: str | None = None, seed: int | None = None) -> dict
     if param is None:
         param = next((p for p in s.wm.params if p in s.param_quantity), None)
 
+    pool_all = _base_cases(s) + pack.generate_cases(80, seed=seed)
     if param is not None:
         if param not in s.wm.params or param not in s.param_quantity:
             raise ProofError(f"unknown learned parameter {param}")
@@ -127,6 +129,14 @@ def build(s: Session, param: str | None = None, seed: int | None = None) -> dict
             v = vary(rng.choice(controls), kind, basis, min(T * m, hi))
             if v is not None:
                 items_cases.append(("control", v))
+    if routine > 0:  # ordinary cases from the workflow's usual mix, nowhere near the threshold on purpose
+        # about half are cases a learned guardrail governs, so guardrails get put on trial too (when any exist)
+        guarded = [c for c in pool_all if run_map(s.wm, pack, c).triggered_guardrails]
+        picked = rng.sample(guarded, min(routine // 2, len(guarded)))
+        rest = [c for c in pool_all if all(c is not q for q in picked)]
+        picked += rng.sample(rest, min(routine - len(picked), len(rest)))
+        for base in picked:
+            items_cases.append(("routine", copy.deepcopy(base)))
     rng.shuffle(items_cases)
 
     s.proof_round += 1

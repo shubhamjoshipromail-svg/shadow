@@ -89,6 +89,13 @@ workflows = Table(  # learned workflows ("watch me do this"): definition + signa
     Column("created", Float), Column("updated", Float),
 )
 
+certifications = Table(  # an external agent's sealed exam on a Work Map and the per-rule permission slips it earned
+    "certifications", metadata, Column("id", String(40), primary_key=True), Column("session_id", String(64), index=True),
+    Column("pack_id", String(64), index=True), Column("expert", String(64)), Column("map_version", Integer),
+    Column("commitment", String(80)), Column("provenance", String(16)), Column("created", Float),
+    Column("updated", Float), Column("body", JSON),
+)
+
 LEDGER = {"decisions": decisions, "explanations": explanations, "learner_attempts": learner_attempts}
 
 
@@ -188,6 +195,32 @@ class Store:
         with self.engine.connect() as c:
             row = c.execute(q).first()
         return dict(row._mapping) if row else None
+
+    def save_certification(self, cert: dict[str, Any]) -> None:
+        with self.engine.begin() as c:
+            row = c.execute(select(certifications.c.created).where(certifications.c.id == cert["id"])).first()
+            c.execute(certifications.delete().where(certifications.c.id == cert["id"]))
+            c.execute(insert(certifications).values(
+                id=cert["id"], session_id=cert["session"], pack_id=cert["pack"], expert=cert["expert"],
+                map_version=cert["map_version"], commitment=cert["commitment"], provenance=cert["provenance"],
+                created=row[0] if row else cert["created"], updated=time.time(), body=cert))
+
+    def certification(self, cert_id: str) -> dict[str, Any] | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(certifications.c.body).where(certifications.c.id == cert_id)).first()
+        return dict(row[0]) if row else None
+
+    def certifications_for(self, session_id: str | None = None, pack_id: str | None = None,
+                           live_only: bool = False) -> list[dict[str, Any]]:
+        q = select(certifications.c.body).order_by(certifications.c.created.desc())
+        if session_id:
+            q = q.where(certifications.c.session_id == session_id)
+        if pack_id:
+            q = q.where(certifications.c.pack_id == pack_id)
+        if live_only:
+            q = q.where(certifications.c.provenance == "live")
+        with self.engine.connect() as c:
+            return [dict(r[0]) for r in c.execute(q)]
 
     def save_policy(self, key: str, state: dict[str, Any]) -> None:
         with self.engine.begin() as c:

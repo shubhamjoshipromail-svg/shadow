@@ -73,6 +73,7 @@ export default function ProofPage() {
             <li><span className="num text-ink-3">2 </span>Mira writes invoices she has never seen and commits to her answers with a hash.</li>
             <li><span className="num text-ink-3">3 </span>You label each one here or in the ERP. Answers stay sealed until labelled.</li>
             <li><span className="num text-ink-3">4 </span>Each miss teaches. The next round tests the correction on new invoices.</li>
+            <li className="pt-1"><Link to={`/s/${sid}/agent`} className="text-ink-1 underline decoration-rule-strong underline-offset-2 hover:decoration-ink-1">Certify an agent on this map →</Link></li>
           </ol>
         </div>
 
