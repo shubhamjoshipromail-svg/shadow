@@ -273,7 +273,8 @@
     if (SID) return;
     var b = $("b-start");
     if (b) b.disabled = true;
-    ensureSession().then(function () { render(); }).catch(function () {
+    // starting a session also starts the voice: one click, and Shadow can actually speak
+    ensureSession().then(function () { render(); return startVoice().catch(function () {}); }).catch(function () {
       toast(["Couldn\u2019t start a session \u2014 the notebook may be offline."]);
     }).then(function () { if (b) b.disabled = false; });
   }
@@ -564,6 +565,8 @@
   function renderVoice() {
     var bv = $("b-voice"); if (!bv) return;
     bv.textContent = V.conv ? "Stop talking" : (MODE === "tutor" ? "Talk to the tutor" : "Talk");
+    // a question is waiting and nobody can hear it: make the way to hear it obvious
+    bv.classList.toggle("accent", !V.conv && (F.asking || F.hand || MODE === "tutor"));
     $("b-debrief").hidden = !(V.conv && MODE === "capture");
     $("b-teach").hidden = !(SID && MODE !== "tutor");
   }
