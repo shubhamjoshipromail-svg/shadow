@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Returns desk</title>
+<style>
+  body{font:15px/1.45 system-ui,sans-serif;background:#f4f1ea;color:#1d1b16;margin:0}
+  main{max-width:640px;margin:32px auto;padding:0 20px}
+  h1{font-size:22px;margin:0 0 4px} .eyebrow{color:#7a7466;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0}
+  form{background:#fff;border:1px solid #ddd6c6;border-radius:8px;padding:20px;margin-top:16px}
+  .row{display:flex;flex-direction:column;margin-bottom:12px} .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{font-size:12px;color:#5c574a;margin-bottom:3px} input,select{font:inherit;padding:7px 9px;border:1px solid #c9c2b0;border-radius:5px}
+  button{font:inherit;padding:8px 16px;border-radius:5px;border:1px solid #1d1b16;background:#1d1b16;color:#fff;cursor:pointer}
+  nav{margin-top:18px;font-size:13px} nav a{margin-right:8px}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Customer care</p>
+  <h1>Returns desk</h1>
+  <form id="rma" autocomplete="off">
+    <div class="grid">
+      <div class="row"><label for="rma_id">Request ID</label><input id="rma_id" name="rma_id" type="text" readonly /></div>
+      <div class="row"><label for="product">Product</label><input id="product" name="product" type="text" readonly /></div>
+    </div>
+    <div class="grid">
+      <div class="row"><label for="order_value">Order value (EUR)</label><input id="order_value" name="order_value" type="number" readonly /></div>
+      <div class="row"><label for="days">Days since delivery</label><input id="days" name="days" type="number" readonly /></div>
+    </div>
+    <div class="grid">
+      <div class="row"><label for="reason">Reason for return</label>
+        <select id="reason" name="reason" disabled><option>Defective</option><option>Wrong item</option><option>Changed mind</option></select></div>
+      <div class="row"><label for="condition">Item condition</label>
+        <select id="condition" name="condition" disabled><option>Unopened</option><option>Opened</option><option>Used</option></select></div>
+    </div>
+    <div class="row"><label for="resolution">Resolution</label>
+      <select id="resolution" name="resolution">
+        <option value="">Choose a resolution</option><option>Full refund</option><option>Store credit</option><option>Reject</option><option>Escalate to supervisor</option>
+      </select></div>
+    <button id="save" name="save_decision" type="submit">Save decision</button>
+  </form>
+  <nav id="queue"></nav>
+</main>
+<script>
+  var ITEMS = [
+    ["RMA-4101","Headphones",89,6,"Defective","Opened"],
+    ["RMA-4102","Desk lamp",45,3,"Changed mind","Unopened"],
+    ["RMA-4103","Kettle",60,12,"Changed mind","Opened"],
+    ["RMA-4104","Monitor",480,9,"Changed mind","Opened"],
+    ["RMA-4105","Office chair",320,14,"Changed mind","Used"],
+    ["RMA-4106","Mouse",35,40,"Changed mind","Unopened"],
+    ["RMA-4107","Blender",290,5,"Changed mind","Opened"],
+    ["RMA-4108","Router",150,2,"Wrong item","Unopened"],
+    ["RMA-4109","Camera",610,45,"Changed mind","Opened"],
+    ["RMA-4110","Cable set",12,8,"Changed mind","Opened"]
+  ];
+  var i = Math.max(0, Math.min(ITEMS.length - 1, (+new URLSearchParams(location.search).get("i") || 1) - 1));
+  var it = ITEMS[i], f = document.getElementById("rma");
+  ["rma_id","product","order_value","days","reason","condition"].forEach(function (k, n) { f.elements[k].value = it[n]; });
+  document.getElementById("queue").innerHTML = ITEMS.map(function (x, n) { return '<a href="?i=' + (n + 1) + '">' + x[0] + '</a>'; }).join("");
+  window.__saved = JSON.parse(localStorage.getItem("saved") || "{}");
+  f.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!f.resolution.value) return;
+    window.__saved[it[0]] = f.resolution.value; localStorage.setItem("saved", JSON.stringify(window.__saved));
+    location.href = "?i=" + Math.min(ITEMS.length, i + 2);
+  });
+</script>
+</body>
+</html>

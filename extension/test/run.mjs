@@ -440,7 +440,7 @@ async function main() {
 
     const apiOk = state.api === SERVER;
     check("window.SHADOW_API points at :8001", apiOk, String(state.api));
-    check("window.SHADOW_NAME is Tacet", state.name === "Tacet", String(state.name));
+    check("window.SHADOW_NAME is Mira", state.name === "Mira", String(state.name));
     check("companion injected (window.__shadowCapture)", !!state.capture);
     check("observer installed (window.shadowObserve)", !!state.observe);
     check("Mira mounted exactly once", state.hosts === 1, `hosts=${state.hosts}`);

@@ -69,9 +69,11 @@
     return norm(el.innerText || el.textContent || el.value || "");
   }
 
-  function visible(el) {
+  // A disabled control is not actionable, but a disabled/read-only field is still a fact on the screen
+  // (many apps show the case's facts that way), so fields use shown() and buttons use visible().
+  function visible(el) { return !(el && el.disabled) && shown(el); }
+  function shown(el) {
     if (!el || !el.getBoundingClientRect) return false;
-    if (el.disabled) return false;
     var r = el.getBoundingClientRect();
     if (!r || (r.width === 0 && r.height === 0)) return false;
     var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
@@ -248,7 +250,7 @@
     for (var i = 0; i < nodes.length && out.length < MAX_FIELDS; i++) {
       var el = nodes[i];
       if (/^(submit|button|reset)$/i.test(typeOf(el))) continue;
-      if (insideShadowUI(el) || sensitive(el) || !visible(el)) continue;
+      if (insideShadowUI(el) || sensitive(el) || !shown(el)) continue;
       out.push(fieldRecord(el));
     }
     return out;
@@ -293,7 +295,7 @@
     var nodes = document.querySelectorAll("input,select,textarea");
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
-      if (insideShadowUI(el) || sensitive(el) || !visible(el)) continue;
+      if (insideShadowUI(el) || sensitive(el) || !shown(el)) continue;
       baseline[stableName(el, labelFor(el))] = safeValue(el);
     }
     emit({ type: "observe", url: snap.url, title: snap.title, fields: snap.fields });
@@ -310,7 +312,7 @@
 
   // ---------------------------------------------------------------- changes
   function fieldChanged(el) {
-    if (insideShadowUI(el) || sensitive(el) || !visible(el)) return;
+    if (insideShadowUI(el) || sensitive(el) || !shown(el)) return;
     var rec = fieldRecord(el);
     var prev = baseline[rec.name];
     var safe = safeValue(el);
