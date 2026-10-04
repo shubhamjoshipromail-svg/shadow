@@ -26,6 +26,7 @@ class CompiledRule(BaseModel):
     guardrail_type: Literal["hard_limit", "stop_and_ask", "hold", "second_approval"] | None = None
     ask: str | None = Field(None, description="Who to ask, for stop_and_ask guardrails")
     quote: str | None = Field(None, description="The expert's sentence that states THIS rule, verbatim")
+    quote_translation_en: str | None = Field(None, description="English translation of `quote` if not English")
 
 
 class ThresholdStatement(BaseModel):

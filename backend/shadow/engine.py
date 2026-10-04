@@ -136,6 +136,7 @@ class Session:
         self.last_learn: asyncio.Task | None = None
         self.tutor_attempted: set[str] = set()
         self.tutor_tries: dict[str, int] = {}  # save attempts per case: drives the hint ladder
+        self.tutor_independent: dict[str, int] = {"ok": 0, "of": 0}  # first-try score this session
         self.stuck = StuckDetector()  # learner mode: behavioural "looks stuck" signals, never faces or emotions
         self.nudged: dict[str, int] = {}  # highest nudge level already given per case
         self.stopped_at: dict[str, float] = {}  # when Shadow last stopped a save, per case
@@ -236,6 +237,9 @@ class Session:
     # ------------------------------------------------------------ capture events
     async def on_event(self, evt: dict[str, Any]) -> dict[str, Any] | None:
         kind = evt.get("type")
+        if self.mode == "tutor" and kind == "finish_practice":
+            await self.emit("tutor_summary", self.tutor_summary())
+            return None
         if self.mode == "tutor" and kind in ("input", "field_changed", "panel_opened", "case_opened", "help"):
             self.stuck.observe({**evt, "t": self.now(), "case_id": evt.get("case_id") or self.current_case})
             if kind == "help":
@@ -717,6 +721,18 @@ class Session:
                                     predicted_value=gap["predicted"])
         self.planner.enqueue(q)
         self.spawn(self.emit("inquiry", {"inquiry": q.to_json()}))
+        self._localise(q)
+
+    def _localise(self, q: Inquiry) -> None:
+        """Ask in the expert's language. Translation runs while Shadow waits for the pause, so asking stays instant."""
+        if self.lang in ("en", None) or not self.use_llm:
+            return
+
+        async def run() -> None:
+            text = await questions.polish(q.text, self.lang)
+            if q.status == "queued" and text:
+                q.text = text
+        self.spawn(run())
 
     async def analyze_gap(self, ep: Episode, case: dict[str, Any], gap: dict[str, Any]) -> None:
         f, val, predicted = gap["field"], gap["expert"], gap["predicted"]
@@ -810,6 +826,8 @@ class Session:
                                              hypotheses=chosen.hypotheses, probe_delta=chosen.probe_delta)
         if self.use_llm and phase != "live":
             chosen.text = await questions.polish(chosen.text, self.lang)
+        elif phase == "live":
+            self._localise(chosen)
         chosen.reason = (f"EVOI {chosen.evoi:.2f} bits × impact {chosen.impact:.2f} + guardrail {chosen.guardrail_gap:.1f} "
                          f"− cost {chosen.cost:.2f} = {chosen.value:.2f}")
         self.planner.enqueue(chosen)
@@ -915,6 +933,13 @@ class Session:
         try:
             compiled = await self.compiler(self.pack, self.wm, q.to_json(), transcript, case_for_compile)
             rc["provenance"] = self._provenance()  # the model that actually compiled this answer
+            if compiled.key_quote and not compiled.translation_en and self.lang not in ("en", None) and self.use_llm:
+                try:  # the tutor teaches in English: never let an untranslated quote through silently
+                    compiled.translation_en = (await llm.text(
+                        f"Translate this {self.lang} sentence to English. Reply with the translation only.",
+                        compiled.key_quote, max_tokens=200)).strip() or None
+                except Exception:  # noqa: BLE001
+                    log.warning("quote translation failed; the original is shown, labelled")
         except Exception as e:  # noqa: BLE001
             log.exception("compile failed")
             await self.emit("compile_failed", {"inquiry_id": q.id, "error": str(e)[:300]})
@@ -959,7 +984,8 @@ class Session:
 
         new_nodes = []
         for cr in compiled.rules:
-            own = quote.model_copy(update={"text": cr.quote}) if cr.quote and cr.quote.strip() else quote
+            own = (quote.model_copy(update={"text": cr.quote, "translation": cr.quote_translation_en})
+                   if cr.quote and cr.quote.strip() and cr.quote.strip() != quote.text.strip() else quote)
             node = self._node_from_compiled(cr, own, moment, q)
             if node is None:
                 continue
@@ -1641,8 +1667,7 @@ class Session:
         line = f"Before you book this one:{look} {brief.get('predict') or 'What would you do, and why?'}"
         ex = brief.get("worked_example")
         if ex and ex.get("quote"):
-            q = ex["quote"]
-            line += f" Remember, {self.expert} said: “{q.get('translation') or q.get('text')}”"
+            line += f" Remember, {self.expert} said: “{ex['quote']}”"
         return line
 
     async def before_save(self, case_id: str, booking: dict[str, Any], action: str) -> dict[str, Any]:
@@ -1656,6 +1681,9 @@ class Session:
         # only the first attempt on a case is independent evidence; a fix after Shadow stepped in is assisted
         first_attempt = case_id not in self.tutor_attempted
         self.tutor_attempted.add(case_id)
+        if first_attempt:  # only the first try on a case is independent evidence
+            self.tutor_independent["of"] += 1
+            self.tutor_independent["ok"] += int(not violations)
         self._ledger("learner_attempts", {"learner": self.trainee, "case_id": case_id, "booking": booking,
                                           "action": action, "allowed": not violations, "independent": first_attempt,
                                           "violations": [v.model_dump() for v in violations]})
@@ -1690,7 +1718,7 @@ class Session:
         node = self.wm.node(v.node_id)
         parts = []
         for viol in violations[:2]:
-            q = (viol.quote.translation or viol.quote.text) if viol.quote else None
+            q = viol.quote.english() if viol.quote else None
             parts.append((f"{self.expert} said: “{q}” " if q else "") + f"So: {viol.title}.")
         intervention = {
             "id": iid, "case_id": case_id, "violation": v.model_dump(), "field": v.field,
@@ -1711,6 +1739,9 @@ class Session:
         verdict = await self.before_save(case_id, booking, action)
         if verdict["allow"]:
             await self.emit("tutor_saved", {"case_id": case_id, "action": action})
+            self.tutor_saved = getattr(self, "tutor_saved", set()) | {case_id}
+            if all(c in self.tutor_saved for c in self.case_order):  # last case done: the report card
+                await self.emit("tutor_summary", self.tutor_summary())
         return verdict
 
     def _bkt(self, node_id: str, correct: bool, p_t: float = 0.3, p_s: float = 0.1, p_g: float = 0.2) -> None:
@@ -1736,6 +1767,16 @@ class Session:
         m = self.mastery.setdefault(node_id, {"p": 0.2, "opportunities": 0, "status": "practice",
                                               "title": node.title if node else node_id})
         m["assisted"] = m.get("assisted", 0) + 1
+
+    def tutor_summary(self) -> dict[str, Any]:
+        """The trainee's end-of-practice card: what is solid, what to practise next, first-try score."""
+        rep = self.tutor_report()
+        mastered = [{"title": r["title"], "p": r["p"]} for r in rep["rules"] if r["status"] == "mastered"]
+        rest = sorted((r for r in rep["rules"] if r["status"] != "mastered"),
+                      key=lambda r: (r["p"] is not None, r["p"] if r["p"] is not None else 0.0))
+        return {"learner": self.trainee or self.expert, "mastered": mastered[:6],
+                "practice": [{"title": r["title"], "p": r["p"], "status": r["status"]} for r in rest[:3]],
+                "next_case": rep["next_case"], "independent": dict(self.tutor_independent)}
 
     def tutor_report(self) -> dict[str, Any]:
         trusted = [n for n in [*self.wm.rules, *self.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]

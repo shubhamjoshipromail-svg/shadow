@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from pydantic import BaseModel
 
 from shadow import config, converse, exports, llm, perception, sim
-from shadow import onboard
+from shadow import compare, mcp_server, onboard
 from shadow import proof as proof_mod
 from shadow import workflows as wf
 from shadow.packs import add_loader, register
@@ -66,6 +66,24 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Shadow Core", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+def _mcp_map(workflow: str | None = None) -> WorkMap:
+    """MCP tools read a live session's map, or a workflow's newest saved map (survives restarts)."""
+    if workflow in sessions:
+        return sessions[workflow].wm
+    pid = workflow or (sessions[latest[-1]].pack.id if latest else config.DEFAULT_PACK)
+    row = store.latest_map_any(pid)
+    if not row:
+        raise KeyError(f"no learned Work Map for '{pid}' yet")
+    return WorkMap(**row["map"])
+
+
+def _mcp_pack(workflow: str | None = None):
+    return sessions[workflow].pack if workflow in sessions else get_pack(workflow or config.DEFAULT_PACK)
+
+
+app.include_router(mcp_server.make_router(_mcp_map, _mcp_pack), prefix="/mcp")  # Work Map as agent tools
 
 
 def _session(sid: str | None) -> Session:
@@ -205,19 +223,46 @@ class Frame(BaseModel):
     ts: float | None = None
 
 
-_last_summary: dict[str, str] = {}
+_last_reading: dict[str, perception.Reading] = {}
+
+
+def _resolve_vision_case(s: Any, case_id: str | None) -> str | None:
+    """Vision ids ('4471', 'INV-4471') → this session's case ids ('inv-4471')."""
+    if not case_id:
+        return None
+    if case_id in s.cases:
+        return case_id
+    want = perception.normalise_label(case_id)
+    for cid in s.cases:
+        key = perception.normalise_label(cid)
+        if key == want or key.endswith("_" + want) or want.endswith("_" + key):
+            return cid
+    return None
 
 
 @app.post("/api/sessions/{sid}/frames")
 async def post_frame(sid: str, frame: Frame) -> dict[str, Any]:
+    """A screen frame becomes events (case opened, field changed), not video: the brief's Module 1 wiring."""
     s = _session(sid)
     s.activity.screen_changed()
     if s.off_record or not llm.available():
         return {"skipped": True}
-    reading = await perception.read_frame(frame.image, _last_summary.get(sid), frame.media_type)
-    _last_summary[sid] = reading.summary
+    prev = _last_reading.get(sid)
+    reading = await perception.read_frame(frame.image, prev.summary if prev else None, frame.media_type, pack=s.pack)
+    _last_reading[sid] = reading
     await s.on_event({"type": "vision", "reading": reading.model_dump()})
-    return reading.model_dump()
+    events: list[dict[str, Any]] = []
+    for event in perception.diff_events(prev, reading, pack=s.pack):
+        event = dict(event)
+        cid = _resolve_vision_case(s, event.get("case_id"))
+        if cid:
+            event["case_id"] = cid
+        else:
+            event.pop("case_id", None)
+        events.append(event)
+        if event["type"] in ("case_opened", "field_changed"):
+            await s.on_event(event)  # same path as DOM events: opens the case, records the attention trail
+    return {**reading.model_dump(), "events": events}
 
 
 @app.post("/api/sessions/{sid}/sim/step")
@@ -383,6 +428,7 @@ class OnboardBody(BaseModel):
     pack_id: str | None = None
     expert: str | None = None
     workspace: str = config.DEFAULT_WORKSPACE
+    lang: str = "en"
 
 
 @app.post("/api/onboard")
@@ -398,7 +444,7 @@ async def onboard_task(body: OnboardBody) -> dict[str, Any]:
     register(pack)
     sid = uuid.uuid4().hex[:10]
     expert = body.expert or getattr(pack, "expert_name", "expert")
-    s = Session(sid, pack, mode="capture", expert=expert, store=store, lang="en")
+    s = Session(sid, pack, mode="capture", expert=expert, store=store, lang=body.lang)
     s.workspace = body.workspace
     s.map_source = {"kind": "onboarded", "task": pack.id, "version": version}
     sessions[sid] = s
@@ -429,6 +475,31 @@ async def list_workflows(workspace: str | None = None) -> list[dict[str, Any]]:
         learners = sorted({(r["meta"] or {}).get("trainee") for r in mine if r["mode"] == "tutor"} - {None})
         out.append({**w, "experts": experts, "learners": learners, "sessions": len(mine)})
     return out
+
+
+def _expert_map(pack_id: str, who: str) -> tuple[WorkMap, str, list[dict[str, Any]]]:
+    """`who` is a live session id or an expert name (their newest saved, live-taught map)."""
+    if who in sessions and sessions[who].pack.id == pack_id:
+        s = sessions[who]
+        return s.wm, s.expert, [s.cases[c] for c in s.case_order]
+    row = store.latest_map_row(who, pack_id)
+    if not row:
+        raise HTTPException(404, f"No saved Work Map from {who} for this workflow yet.")
+    return WorkMap(**row["map"]), who, []
+
+
+@app.get("/api/workflows/{pack_id}/compare")
+async def compare_experts(pack_id: str, a: str, b: str) -> dict[str, Any]:
+    """Two experts, one task: where their maps agree, where they differ, and the question to ask each."""
+    pack = get_pack(pack_id)
+    wa, na, ca = _expert_map(pack_id, a)
+    wb, nb, cb = _expert_map(pack_id, b)
+    out = compare.compare_maps(pack, wa, wb, ca + cb)
+    for c in out.get("disagree", []):
+        c.setdefault("a_expert", na)
+        c.setdefault("b_expert", nb)
+        c["questions"] = compare.questions_for(c)
+    return {"workflow": pack_id, "a": na, "b": nb, **out}
 
 
 class MatchBody(BaseModel):
@@ -502,7 +573,7 @@ async def before_save(body: BeforeSave) -> dict[str, Any]:
     return {"allow": True}
 
 
-COMPANION_EVENTS = {"ended", "tutor_case", "nudge", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
+COMPANION_EVENTS = {"ended", "tutor_case", "nudge", "tutor_summary", "intervene", "highlight", "record", "mode", "ask", "learned", "activity", "prediction",
                     "silence", "inquiry", "hypotheses", "episode", "replay", "tutor_ok", "teachback"}
 
 

@@ -312,7 +312,7 @@ def _worked_example(
         "node_id": node.id,
         "title": node.title,
         "field": entry["field"],
-        "quote": quote.translation or quote.text,
+        "quote": quote.english(),
         "speaker": quote.speaker,
         "screen_moment": node.screen_moment.model_dump() if node.screen_moment else None,
     }
@@ -348,7 +348,7 @@ def hint_ladder(
         field = v.field
         expected = v.expected
         title = v.title
-        quote_text = (v.quote.translation or v.quote.text) if v.quote else None
+        quote_text = v.quote.english() if v.quote else None
     else:
         pred = run_map(wm, pack, case, TRUSTED)
         node = _fallback_node(wm, pred)
@@ -363,7 +363,7 @@ def hint_ladder(
         title = node.title if node else None
         quote_text = None
         if node is not None and node.quote is not None:
-            quote_text = node.quote.translation or node.quote.text
+            quote_text = node.quote.english()
 
     label = _label(pack, field)
     text = f"Look at the {label} field. What do you think it should be, and why?"

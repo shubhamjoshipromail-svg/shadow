@@ -39,6 +39,12 @@ class Quote(BaseModel):
     audio_ref: str | None = None
     inquiry_id: str | None = None
 
+    def english(self) -> str:
+        """The line a trainee or agent sees: the translation, else the original (labelled if not English)."""
+        if self.translation:
+            return self.translation
+        return self.text if self.lang in ("en", None) else f"{self.text} [{self.lang}, untranslated]"
+
 
 class ScreenMoment(BaseModel):
     ts: float | None = None

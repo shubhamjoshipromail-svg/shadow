@@ -11,8 +11,10 @@ from shadow.workmap import TRUSTED, Guardrail, WorkMap
 def _quote(n) -> str:
     if not n.quote:
         return ""
-    q = n.quote.translation or n.quote.text
+    q = n.quote.english()
     ts = f" at {_mmss(n.quote.ts)}" if n.quote.ts is not None else ""
+    if n.quote.translation and n.quote.translation != n.quote.text:
+        return f' — “{q}” (original: “{n.quote.text}”, {n.quote.speaker}{ts})'
     return f' — “{q}” ({n.quote.speaker}{ts})'
 
 

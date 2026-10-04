@@ -151,7 +151,7 @@ async def _tutor_turn(session: Session, messages: list[dict[str, Any]], text: st
     if not llm.available():
         yield "Good. Keep going, and tell me what you'd check before saving."
         return
-    rules = [{"title": n.title, "quote": n.quote.translation or n.quote.text if n.quote else None}
+    rules = [{"title": n.title, "quote": n.quote.english() if n.quote else None}
              for n in [*session.wm.rules, *session.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
     case = session.cases.get(session.current_case or "")
     system = (f"You are Shadow, a patient tutor teaching {session.trainee or 'a new hire'} how {session.expert} "
