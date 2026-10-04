@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Learns the part of the job nobody wrote down.</title>
-<meta name="description" content="An AI apprentice watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.">
+<title>Tacet — learns the part of the job nobody wrote down</title>
+<meta name="description" content="Tacet sits beside an expert as she works, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23f4f1ea'/%3E%3Crect x='3' y='3' width='7' height='7' fill='%23c9d1bb'/%3E%3Crect x='6' y='6' width='7' height='7' fill='%234e6b44'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +24,8 @@
     --ease:cubic-bezier(.16,1,.3,1);
     --pad:clamp(20px,5vw,44px);
     --maxw:1180px;
+    /* one vertical measure for every band: the same top and bottom spacing */
+    --sec:clamp(60px,7.5vw,96px);
   }
 
   *,*::before,*::after{box-sizing:border-box}
@@ -37,6 +39,7 @@
   a{color:inherit}
   img{max-width:100%;display:block}
   video{display:block}
+  button{font:inherit;color:inherit}
   h1,h2,h3,p,figure,blockquote,ul,ol,dl,dd{margin:0}
   ul,ol{padding:0;list-style:none}
   .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
@@ -46,7 +49,7 @@
   .label{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;
          text-transform:uppercase;color:var(--ink-3)}
   .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-  .lede{color:var(--ink-2);font-size:clamp(16px,1.5vw,18px);line-height:1.6;max-width:70ch}
+  .lede{color:var(--ink-2);font-size:clamp(15px,1.3vw,17px);line-height:1.6;max-width:62ch}
 
   /* ── marks — provenance is glyph + ink, never hue alone ──────────────────── */
   .mk{font-family:var(--mono);display:inline-block;width:1.15em;text-align:center}
@@ -54,131 +57,160 @@
   .mk.bin{color:var(--binding)} .mk.que{color:var(--query)} .mk.wri{color:var(--written)}
 
   /* ── masthead ────────────────────────────────────────────────────────────── */
-  .masthead{border-bottom:1px solid var(--rule)}
-  .masthead .wrap{display:flex;align-items:center;gap:22px;min-height:56px;flex-wrap:wrap}
+  .masthead{border-bottom:1px solid var(--rule);background:var(--paper)}
+  .masthead .wrap{display:flex;align-items:center;gap:16px 22px;min-height:60px;flex-wrap:wrap}
   .wordmark{display:inline-flex;align-items:center;gap:9px;font-weight:600;
             letter-spacing:-.02em;font-size:16px;text-decoration:none}
   .wordmark .mark{position:relative;width:13px;height:13px;flex:none}
   .wordmark .mark i{position:absolute;inset:0;display:block}
   .wordmark .mark i:first-child{transform:translate(3px,-3px);background:#c9d1bb}
   .wordmark .mark i:last-child{background:var(--confirmed)}
-  .nav{margin-left:auto;display:flex;align-items:center;gap:20px}
+  .nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-left:auto}
   .nav a{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
          color:var(--ink-2);text-decoration:none}
   .nav a:hover{color:var(--ink-1)}
-  .tick{width:6px;height:6px;background:var(--confirmed);display:inline-block;
+  .mast-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tick{width:6px;height:6px;background:var(--confirmed);display:inline-block;flex:none;
         animation:tick 2.4s ease-in-out infinite}
   @keyframes tick{0%,100%{opacity:.35}50%{opacity:1}}
 
   /* ── buttons ─────────────────────────────────────────────────────────────── */
   .btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;
        padding:9px 16px;border:1px solid var(--rule-strong);border-radius:3px;
-       background:var(--sheet);color:var(--ink-1);text-decoration:none;
+       background:var(--sheet);color:var(--ink-1);text-decoration:none;white-space:nowrap;
        transition:border-color .16s var(--ease),background .16s var(--ease)}
   .btn:hover{border-color:var(--ink-2)}
   .btn.primary{background:var(--ink-1);border-color:var(--ink-1);color:var(--paper)}
   .btn.primary:hover{background:#3a3732;border-color:#3a3732}
   .btn .ext{font-family:var(--mono);font-size:11px}
 
-  /* ── hero: tagline · one line · the video · two buttons ──────────────────── */
-  .hero{padding:clamp(30px,4.4vw,58px) 0 0}
-  .hero .kicker{display:flex;align-items:center;gap:9px;margin-bottom:16px}
-  h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,5.1vw,62px);
-     line-height:1.03;letter-spacing:-.025em;max-width:15em}
-  .hero .lede{margin-top:16px;max-width:none}
-
-  /* ── the video slot (16:9), poster until a real clip is dropped in ───────── */
-  .video-wrap{margin-top:clamp(24px,3.2vw,40px);max-width:840px}
-  .video-slot{position:relative;margin:0;aspect-ratio:16/9;width:100%;overflow:hidden;
-              border:1px solid var(--rule);border-radius:4px;background:var(--sheet)}
-  .video-slot .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .video-slot video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-                    opacity:0;pointer-events:none;transition:opacity .2s var(--ease);background:transparent}
-  .video-slot.has-video video{opacity:1;pointer-events:auto}
-  .video-foot{display:flex;align-items:center;justify-content:space-between;gap:14px 22px;
-              margin-top:12px;flex-wrap:wrap}
-  .video-cap{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
-  .video-cap b{font-weight:500;color:var(--ink-2)}
-  .actions{display:flex;flex-wrap:wrap;gap:12px}
-
-  /* ── sections ────────────────────────────────────────────────────────────── */
-  section{padding:clamp(36px,5vw,64px) 0}
+  /* ── one measure for every band: same top/bottom, same grid ─────────────── */
+  section{padding:var(--sec) 0}
   .rule-top{border-top:1px solid var(--rule)}
-  .sec-bar{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 28px;margin-bottom:26px}
-  .sec-bar .label{display:block;width:100%;margin-bottom:2px}
-  h2{font-family:var(--serif);font-weight:300;font-size:clamp(23px,2.9vw,34px);line-height:1.1;letter-spacing:-.02em;max-width:22ch}
-  .sec-bar .lede{margin-left:auto;max-width:46ch;font-size:15px}
+  .sec-head{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+            gap:14px 48px;align-items:end}
+  .sec-head .label{display:block;margin-bottom:12px}
+  h2{font-family:var(--serif);font-weight:300;font-size:clamp(26px,3.4vw,42px);
+     line-height:1.08;letter-spacing:-.02em;max-width:22ch}
+  .sec-head .lede{max-width:58ch}
 
-  /* ── three moments: one compact row, each with a tiny visual ─────────────── */
-  .moments{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
-  .moment{border-top:1px solid var(--rule-strong);padding-top:16px}
+  /* ── hero: the tagline, one line, then the film ─────────────────────────── */
+  .hero .kicker{display:flex;align-items:center;gap:9px;margin-bottom:20px}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(36px,5.4vw,66px);
+     line-height:1.03;letter-spacing:-.025em;max-width:24ch}
+  .hero .lede{margin-top:22px;max-width:66ch;font-size:clamp(16px,1.5vw,19px)}
+  .film-block{margin-top:clamp(30px,3.6vw,48px)}
+
+  /* the film: full content width, edge to edge within the measure */
+  .film{position:relative;margin:0;aspect-ratio:16/9;width:100%;overflow:hidden;
+        border:1px solid var(--rule);border-radius:4px;background:var(--ink-1)}
+  .film .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+                transition:opacity .2s var(--ease)}
+  .film video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+              opacity:0;pointer-events:none;background:transparent;
+              transition:opacity .2s var(--ease)}
+  .film.has-video video{opacity:1;pointer-events:auto}
+  .film.has-video .poster{opacity:0}
+  /* burned-in-looking captions, rendered from assets/film.vtt — no native track UI */
+  .film-caption{position:absolute;left:0;right:0;bottom:0;margin:0;white-space:pre-line;
+                padding:11px clamp(14px,2vw,22px) 12px;background:rgba(251,249,244,.94);
+                border-top:1px solid var(--rule);color:var(--ink-1);
+                font-family:var(--mono);font-size:clamp(12px,.95vw,14px);line-height:1.45}
+  .film-caption[hidden]{display:none}
+  .film-bar{display:flex;align-items:center;justify-content:space-between;gap:10px 22px;
+            margin-top:12px;flex-wrap:wrap}
+  .film-meta{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
+  .film-tools{display:flex;align-items:center;gap:18px}
+  .textbtn{background:none;border:0;padding:2px 0;cursor:pointer;color:var(--ink-2);
+           font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+           border-bottom:1px solid var(--rule-strong);transition:color .16s var(--ease),border-color .16s var(--ease)}
+  .textbtn:hover{color:var(--ink-1);border-color:var(--ink-2)}
+  .textbtn[hidden]{display:none}
+
+  /* ── the three moments: one row, bottom-aligned visuals ─────────────────── */
+  .moments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 30px;
+           margin-top:clamp(30px,3.4vw,46px);border-top:1px solid var(--rule-strong);padding-top:24px}
+  .moment{display:flex;flex-direction:column}
   .moment .idx{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.1em}
   .moment h3{font-family:var(--serif);font-weight:400;font-size:clamp(19px,1.9vw,23px);
-             line-height:1.15;letter-spacing:-.015em;margin-top:8px}
-  .moment p{margin-top:8px;color:var(--ink-2);font-size:14.5px;line-height:1.5;max-width:36ch}
-  .mini{margin-top:16px;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
-  .mini.query{border-left:3px solid var(--query)}
-  .mini.binding{border-left:3px solid var(--binding)}
+             line-height:1.15;letter-spacing:-.015em;margin-top:9px}
+  .moment p{margin-top:9px;color:var(--ink-2);font-size:14.5px;line-height:1.52;max-width:38ch}
+  .mini{margin-top:auto;padding-top:18px}
+  .mini .plate{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+  .mini .plate.query{border-left:3px solid var(--query)}
+  .mini .plate.binding{border-left:3px solid var(--binding)}
   .mini .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
              padding:6px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px}
   .mini .row:last-child{border-bottom:0;padding-bottom:0}
   .mini .row span:first-child{color:var(--ink-2)}
   .mini .guess{color:var(--inferred)}
-  .mini .q{font-family:var(--serif);font-size:16px;line-height:1.28;margin-top:6px}
+  .mini .q{font-family:var(--serif);font-size:16.5px;line-height:1.3;margin-top:7px}
   .mini .label{font-size:10px}
   .sageline{height:2px;background:var(--confirmed);margin-top:1px}
 
-  /* ── proof strip: a receipt and a sealed test, one line of eval ──────────── */
-  .proof-strip{display:grid;grid-template-columns:1.1fr 1fr;gap:0;
-               border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule)}
-  .proof-cell{padding:22px 28px 20px}
-  .proof-cell + .proof-cell{border-left:1px solid var(--rule)}
-  .proof-cell:first-child{padding-left:0}
-  .proof-cell:last-child{padding-right:0}
-  .proof-cell h3{font-family:var(--serif);font-weight:400;font-size:19px;letter-spacing:-.01em;margin-top:6px}
-  .rq{font-family:var(--serif);font-size:19px;line-height:1.3;margin:12px 0 6px;
-      padding-left:12px;border-left:3px solid var(--query)}
-  .rattr{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-  .diff{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 12px;margin-top:14px;
-        font-family:var(--mono);font-size:13px}
-  .diff .was{color:var(--ink-3);text-decoration:line-through}
-  .diff .arrow{color:var(--ink-3)}
-  .diff .now{color:var(--ink-1)}
-  .diff .note{font-size:11px;color:var(--ink-3)}
-  .hash{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin-top:12px;word-break:break-all}
-  .big{font-family:var(--serif);font-weight:400;font-size:clamp(40px,4.6vw,56px);line-height:1;margin:12px 0 4px}
+  /* ── proof: a receipt and a sealed test, then one held-out line ─────────── */
+  .proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;
+              margin-top:clamp(30px,3.4vw,46px)}
+  .panel{display:flex;flex-direction:column;background:var(--sheet);
+         border:1px solid var(--rule);border-radius:4px;padding:22px 24px}
+  .panel .head{display:flex;align-items:center;justify-content:space-between;gap:14px;
+               padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:16px}
+  .panel h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.01em;margin-top:2px}
+  .rq{font-family:var(--serif);font-size:20px;line-height:1.32;margin:16px 0 8px;
+      padding-left:14px;border-left:3px solid var(--query)}
+  .rattr{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+         color:var(--ink-3);margin-bottom:16px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-family:var(--mono);font-size:12.5px}
+  .kv dt{color:var(--ink-3);letter-spacing:.04em}
+  .kv dd{margin:0;color:var(--ink-1)}
+  .kv dd .was{color:var(--ink-3);text-decoration:line-through;margin-right:6px}
+  .hash{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);word-break:break-all;
+        background:var(--wash);border:1px solid var(--rule);border-radius:3px;
+        padding:9px 10px;margin:14px 0 4px}
+  .big{font-family:var(--serif);font-weight:400;font-size:clamp(38px,4.4vw,54px);line-height:1;margin:10px 0 2px}
   .big small{font-family:var(--mono);font-size:.28em;letter-spacing:.08em;text-transform:uppercase;
              color:var(--ink-3);vertical-align:middle;margin-left:10px}
   .timeline{margin-top:12px;border-top:1px solid var(--rule)}
-  .timeline li{display:flex;justify-content:space-between;gap:16px;padding:6px 0;
-               border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12px}
+  .timeline li{display:flex;justify-content:space-between;gap:16px;padding:8px 0;
+               border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:12.5px}
   .timeline li span:first-child{color:var(--ink-2)}
   .timeline li b{font-weight:500}
   .allow{color:var(--confirmed)} .block{color:var(--binding)}
-  .honest{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
-          text-transform:uppercase;color:var(--ink-3)}
-  .eval{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline;
+  .honest{margin-top:auto;padding-top:14px;font-family:var(--mono);font-size:10.5px;
+          letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  .eval{margin-top:22px;display:flex;flex-wrap:wrap;gap:9px 26px;align-items:baseline;
+        border-top:1px solid var(--rule);padding-top:16px;
         font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
   .eval b{color:var(--ink-1);font-weight:500}
   .eval .is{border-bottom:2px solid var(--confirmed);padding-bottom:1px}
 
-  /* ── closing CTA ─────────────────────────────────────────────────────────── */
-  .cta{background:var(--sheet);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-  .cta .inner{padding:clamp(30px,4vw,50px) 0;display:flex;align-items:center;
-              justify-content:space-between;gap:22px;flex-wrap:wrap}
-  .cta h2{max-width:20ch}
-  .cta .fine{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  /* ── Meet Mira ───────────────────────────────────────────────────────────── */
+  .mira{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
+        gap:44px;align-items:center}
+  .sprites{display:flex;gap:14px;align-items:flex-end}
+  .sprite{width:clamp(132px,20vw,210px);aspect-ratio:1;flex:none;border:1px solid var(--rule);
+          border-radius:4px;background-image:url("assets/mira-sprite.png");
+          background-size:200% 200%;background-repeat:no-repeat;background-color:var(--sheet);
+          image-rendering:pixelated}
+  .sprite.a{background-position:0 0}
+  .sprite.b{width:clamp(92px,13vw,140px);background-position:100% 0}
+  .mira-copy .label{display:block;margin-bottom:12px}
+  .mira-copy p{color:var(--ink-2);margin-top:18px;max-width:54ch}
+  .mira-list{margin-top:22px;border-top:1px solid var(--rule)}
+  .mira-list li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);
+                font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+  .mira-list li b{font-weight:500;color:var(--ink-1)}
 
-  /* ── privacy: one line → a details section, collapsed by default ─────────── */
-  .privacy{padding:20px 0;border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;
-           align-items:baseline;justify-content:space-between;gap:8px 18px}
-  .privacy p{color:var(--ink-2);font-size:14.5px;max-width:82ch}
-  .privacy .mk{color:var(--written)}
-  .privacy a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-             color:var(--ink-1);text-decoration:none;white-space:nowrap;
-             border-bottom:1px solid var(--rule-strong)}
-  .privacy a:hover{border-color:var(--ink-2)}
-  details.data{border-bottom:1px solid var(--rule)}
+  /* ── data & privacy: one line, then the collapsed ledger ────────────────── */
+  .privacy-line{margin-top:clamp(28px,3.2vw,42px);display:flex;align-items:baseline;
+                justify-content:space-between;gap:10px 20px;flex-wrap:wrap}
+  .privacy-line p{color:var(--ink-2);font-size:14.5px;max-width:84ch}
+  .privacy-line .mk{color:var(--written)}
+  .privacy-line a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+                  color:var(--ink-1);text-decoration:none;white-space:nowrap;
+                  border-bottom:1px solid var(--rule-strong)}
+  .privacy-line a:hover{border-color:var(--ink-2)}
+  details.data{margin-top:18px;border-top:1px solid var(--rule)}
   details.data summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:12px;
                        padding:14px 0;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
                        text-transform:uppercase;color:var(--ink-2)}
@@ -188,39 +220,49 @@
   details.data summary .plus{margin-left:auto;color:var(--ink-3)}
   details.data summary .plus::before{content:"+"}
   details.data[open] summary .plus::before{content:"−"}
-  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;padding:4px 0 30px}
+  .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px;padding:6px 0 28px}
   .col{border-top:1px solid var(--rule-strong);padding-top:14px}
   .col .label{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-  .col li{padding:7px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2);line-height:1.5}
+  .col li{padding:8px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2);line-height:1.5}
   .col li:last-child{border-bottom:0}
   .col li b{font-weight:500;color:var(--ink-1)}
-  .col code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;padding:1px 5px;color:var(--ink-1)}
-  .kept{margin:0 0 30px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
+  .col code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;
+            padding:1px 5px;color:var(--ink-1)}
+  .kept{margin:0 0 24px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
+
+  /* ── closing CTA ─────────────────────────────────────────────────────────── */
+  .cta{background:var(--sheet);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .cta .inner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end}
+  .cta h2{max-width:20ch}
+  .cta .fine{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .cta .actions{display:flex;flex-wrap:wrap;gap:12px}
 
   /* ── footer ──────────────────────────────────────────────────────────────── */
-  footer{padding:30px 0 44px}
+  footer{padding:36px 0 52px}
   footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between}
   footer .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
   footer .glyphs{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.28em}
 
   @media (max-width:900px){
-    .sec-bar{display:block}
-    .sec-bar .lede{margin:10px 0 0;max-width:56ch}
-    .moments{grid-template-columns:1fr;gap:0}
-    .moment{border-top:1px solid var(--rule);padding:18px 0}
-    .moment:first-child{border-top:0;padding-top:0}
-    .moment p{max-width:52ch}
-    .proof-strip{grid-template-columns:1fr}
-    .proof-cell{padding:20px 0}
-    .proof-cell + .proof-cell{border-left:0;border-top:1px solid var(--rule)}
+    .sec-head{grid-template-columns:1fr;align-items:start}
+    .sec-head .lede{margin-top:2px}
+    .moments{grid-template-columns:1fr;gap:0;border-top:0;padding-top:0}
+    .moment{border-top:1px solid var(--rule);padding:20px 0}
+    .moment:first-child{border-top:1px solid var(--rule-strong);padding-top:24px}
+    .moment p{max-width:54ch}
+    .mini{margin-top:16px;padding-top:0}
+    .proof-grid{grid-template-columns:1fr}
+    .mira{grid-template-columns:1fr;gap:34px}
     .cols{grid-template-columns:1fr;gap:30px}
+    .cta .inner{grid-template-columns:1fr;align-items:start}
   }
-  @media (max-width:560px){
+  @media (max-width:620px){
     body{font-size:15px}
     .nav{display:none}
-    .video-foot{flex-direction:column;align-items:flex-start;gap:14px}
-    .hero .kicker{margin-bottom:14px}
-    .cta .inner{flex-direction:column;align-items:flex-start}
+    .mast-actions{margin-left:0;width:100%}
+    .film-bar{flex-direction:column;align-items:flex-start;gap:12px}
+    .sprites{align-items:center}
+    .hero .kicker{margin-bottom:16px}
   }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none!important;transition:none!important}
@@ -238,49 +280,63 @@
       <span data-brand="product"></span>
     </a>
     <nav class="nav" aria-label="sections">
-      <a href="#moments">The three moments</a>
-      <a href="#proof">Proof</a>
-      <a href="#data" data-open="data">Data</a>
-      <a href="#demo" id="nav-watch">Watch the demo</a>
+      <a href="#product">Product</a>
+      <a href="#how">How it learns</a>
+      <a href="#mira">Mira</a>
+      <a href="#privacy">Privacy</a>
     </nav>
+    <span class="mast-actions">
+      <a class="btn primary" href="/app">Open <span data-brand="product"></span></a>
+      <a class="btn" href="mailto:hello@tacet.work">Talk to us</a>
+    </span>
     <span class="tick" aria-hidden="true" title="capture indicator"></span>
   </div>
 </header>
 
 <main id="main">
-  <!-- ── 1 · hero: tagline + one line, the video centrepiece, two buttons ──── -->
-  <div class="hero wrap" id="top">
-    <div class="kicker">
-      <span class="mk obs" aria-hidden="true">▮</span>
-      <span class="label">An AI apprentice for accounts payable</span>
-    </div>
-    <h1>Learns the part of the job nobody wrote down.</h1>
-    <p class="lede">
-      It predicts each decision before she makes it, and asks one question only when it can't explain her.
-    </p>
+  <!-- ── 1 · hero: the tagline, one line, then the film ───────────────────── -->
+  <section class="hero" id="product">
+    <div class="wrap" id="top">
+      <div class="kicker">
+        <span class="mk obs" aria-hidden="true">▮</span>
+        <span class="label">An apprentice for the work nobody wrote down</span>
+      </div>
+      <h1>Learns the part of the job nobody wrote down.</h1>
+      <p class="lede">
+        <span data-brand="product"></span> sits beside an expert while she works. It predicts each decision before she
+        makes it, waits for a pause, and asks one question when it can't explain her. Her answer becomes a Work Map —
+        executable, checked against later cases, and taught to whoever comes next.
+      </p>
 
-    <!-- 16:9 slot. Drop demo.mp4 in assets/ and it plays; otherwise the poster holds. -->
-    <div class="video-wrap" id="demo">
-      <figure class="video-slot" id="video-slot">
-        <img class="poster" src="assets/poster.svg" alt="An invoice with its net amount annotated, and the expert's rule written beside it: equipment over five thousand net is always capex.">
-        <video id="video" src="assets/demo.mp4" poster="assets/poster.svg" preload="metadata" playsinline muted controls aria-label="Demo: an expert books an invoice and the apprentice asks one question"></video>
-      </figure>
-      <div class="video-foot">
-        <span class="video-cap"><b>demo</b> · one rule learned live, from guess to sealed test · 16:9 · 01:15</span>
-        <span class="actions">
-          <a class="btn primary" href="/app">Try it <span class="ext" aria-hidden="true">→</span></a>
-          <a class="btn" href="#demo" id="watch-demo">Watch the demo</a>
-        </span>
+      <!-- The film is the hero. Drop assets/film.mp4 in place; captions come from
+           assets/film.vtt. Without the clip the poster holds and the page is whole. -->
+      <div class="film-block">
+        <figure class="film" id="film-slot">
+          <img class="poster" id="film-poster" src="assets/poster.jpg" alt="An invoice with its net amount annotated and the expert's rule written beside it: equipment over five thousand net is always capex.">
+          <video id="film" src="assets/film.mp4" poster="assets/poster.svg"
+                 muted loop playsinline preload="metadata"
+                 aria-label="The product film: an expert books an invoice and the apprentice asks one question"></video>
+          <figcaption class="film-caption" id="film-caption" hidden></figcaption>
+        </figure>
+        <div class="film-bar">
+          <span class="film-meta">The product film · 01:15 · one rule learned, from guess to sealed test</span>
+          <span class="film-tools">
+            <button class="textbtn" id="film-sound" type="button" hidden>Sound on</button>
+            <button class="textbtn" id="film-play" type="button" hidden>Play film</button>
+          </span>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ── 2 · the three moments, one compact row with tiny visuals ──────────── -->
-  <section id="moments" class="rule-top">
+  <!-- ── 2 · how it learns: the three moments ─────────────────────────────── -->
+  <section id="how" class="rule-top">
     <div class="wrap">
-      <div class="sec-bar">
-        <span class="label">The whole product, in three moments</span>
-        <h2>It guesses. It asks once. It stops the next person in her words.</h2>
+      <div class="sec-head">
+        <div>
+          <span class="label">How it learns</span>
+          <h2>It guesses. It asks once. It stops the next person in her words.</h2>
+        </div>
         <p class="lede">
           No workflow to configure first. It starts from the decisions themselves, and only earns trust when later
           cases agree with it.
@@ -292,11 +348,13 @@
           <div class="idx">01 · GUESS</div>
           <h3>It guesses before she acts.</h3>
           <p>Before every save it writes down the fields and the action it expects. When the guess is wrong, that gap is all it pays attention to.</p>
-          <div class="mini" aria-label="An invoice with a guess written before the save">
-            <div class="row"><span>Netto</span><span class="num">6.400,00 €</span></div>
-            <div class="sageline" aria-hidden="true"></div>
-            <div class="row"><span>cost centre · guess</span><span class="guess"><span class="mk inf" aria-hidden="true">◌</span> 0400</span></div>
-            <div class="row"><span>written</span><span style="color:var(--ink-3)">before the save</span></div>
+          <div class="mini">
+            <div class="plate" aria-label="An invoice with a guess written before the save">
+              <div class="row"><span>Netto</span><span class="num">6.400,00 €</span></div>
+              <div class="sageline" aria-hidden="true"></div>
+              <div class="row"><span>cost centre · guess</span><span class="guess"><span class="mk inf" aria-hidden="true">◌</span> 0400</span></div>
+              <div class="row"><span>written</span><span style="color:var(--ink-3)">before the save</span></div>
+            </div>
           </div>
         </article>
 
@@ -304,10 +362,12 @@
           <div class="idx">02 · ASK ONCE</div>
           <h3>It asks one question, at a pause.</h3>
           <p>Not a form, not an interview. The question arrives when her hands stop, in her language, and the answer compiles to a rule with a threshold.</p>
-          <div class="mini query" aria-label="The apprentice's one question at a pause">
-            <span class="label" style="color:var(--query)">? at the pause</span>
-            <p class="q">“Equipment over €5,000 net is always capex.”</p>
-            <span class="rattr">Sabine · AP · 24 years · asked once</span>
+          <div class="mini">
+            <div class="plate query" aria-label="The apprentice's one question at a pause">
+              <span class="label" style="color:var(--query)">? at the pause</span>
+              <p class="q">“Equipment over €5,000 net is always capex.”</p>
+              <span class="rattr">Sabine · AP · 24 years · asked once</span>
+            </div>
           </div>
         </article>
 
@@ -315,41 +375,62 @@
           <div class="idx">03 · STOP</div>
           <h3>It stops the new hire in her words.</h3>
           <p>When a new hire tries to book what the expert would have held, the save is blocked — and the reason is her own sentence, not a policy document.</p>
-          <div class="mini binding" aria-label="A blocked save, in the expert's words">
-            <span class="label" style="color:var(--binding)">■ blocked save</span>
-            <p class="q">“No asset number, no capex booking.”</p>
-            <span class="rattr"><span class="mk bin" aria-hidden="true">■</span> guardrail · behaviour agreed, twice</span>
+          <div class="mini">
+            <div class="plate binding" aria-label="A blocked save, in the expert's words">
+              <span class="label" style="color:var(--binding)">■ blocked save</span>
+              <p class="q">“No asset number, no capex booking.”</p>
+              <span class="rattr"><span class="mk bin" aria-hidden="true">■</span> guardrail · behaviour agreed, twice</span>
+            </div>
           </div>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- ── 3 · proof strip: a receipt, the sealed test, one line of eval ─────── -->
+  <!-- ── 3 · proof: a receipt and a sealed test ───────────────────────────── -->
   <section id="proof" class="rule-top">
     <div class="wrap">
-      <div class="proof-strip">
-        <div class="proof-cell">
-          <span class="label">Learning receipt · <span class="mk con" aria-hidden="true">✓</span></span>
-          <h3>A threshold moves, with provenance</h3>
-          <p class="rq">“Equipment over thirty-six hundred net is always capex.”</p>
-          <p class="rattr">Sabine · AP · invoice 4471 · live session</p>
-          <p class="diff">
-            <span class="was">€3,600</span>
-            <span class="arrow" aria-hidden="true">→</span>
-            <span class="now">€4,069</span>
+      <div class="sec-head">
+        <div>
+          <span class="label">Words propose, behaviour disposes</span>
+          <h2>You can't argue with it. Only later cases can move it.</h2>
+        </div>
+        <p class="lede">
+          Every answer produces a receipt: the prediction before, her quote, the rule and its parameter diff. A sealed
+          test then freezes the map's predictions, hashes them, and lets a human label fresh cases around the boundary.
+        </p>
+      </div>
+
+      <div class="proof-grid">
+        <div class="panel">
+          <div class="head">
+            <span class="label">Learning receipt</span>
             <span class="mk con" aria-hidden="true">✓</span>
-            <span class="note">moved by two counterexamples, then held on fresh cases</span>
-          </p>
+          </div>
+          <h3>A threshold moves, with provenance</h3>
+          <p class="rq">“Equipment over €3,600 net is always capex.”</p>
+          <p class="rattr">Sabine · AP · case inv-4471 · taught once</p>
+          <dl class="kv">
+            <dt>before</dt><dd><span class="was">€3,600</span>the threshold she taught</dd>
+            <dt>after</dt><dd>€4,069 <span class="mk con" aria-hidden="true">✓</span> re-fitted from two counterexamples</dd>
+            <dt>rule</dt><dd>capex_threshold · net &gt; €3,600 → capex</dd>
+            <dt>moved by</dt><dd>two invoices just under €4,000 she coded opex</dd>
+            <dt>provenance</dt><dd>spoken answer · compile · human labels only</dd>
+          </dl>
         </div>
 
-        <div class="proof-cell">
-          <span class="label">Sealed boundary test · <span class="mk obs" aria-hidden="true">▮</span></span>
-          <p class="hash" aria-label="committed hash">sha256 3f9a7c1e…d20b · committed before any label</p>
+        <div class="panel">
+          <div class="head">
+            <span class="label">Sealed boundary test</span>
+            <span class="mk obs" aria-hidden="true">▮</span>
+          </div>
+          <h3>Predictions frozen before any label</h3>
+          <p class="hash" aria-label="committed hash">sha256 3f9a7c1e…d20b · committed before any label · 11 unseen cases</p>
           <p class="big">11 / 11 <small>fresh cases</small></p>
           <ul class="timeline">
             <li><span>round 1 · predictions frozen</span><b class="block">9 / 11</b></li>
-            <li><span>T re-fitted from the two misses</span><b>3,600 → 4,069</b></li>
+            <li><span>both misses inside the learned band</span><b class="block">€3,600 – €4,000</b></li>
+            <li><span>T re-fitted from the two misses</span><b>€3,600 → €4,069</b></li>
             <li><span>restarted from the saved map</span><b class="allow">11 / 11</b></li>
           </ul>
           <p class="honest">labels come from humans only · each label also teaches</p>
@@ -357,79 +438,116 @@
       </div>
 
       <p class="eval">
-        <span><b>simulated</b> held-out eval over the invoice pack:</span>
+        <span>Held-out evaluation against a scripted expert · invoice workflow</span>
         <span>doc-only <b>38%</b></span>
         <span>always-ask-why <b>73%</b></span>
-        <span class="is">the apprentice <b>98%</b></span>
+        <span class="is"><span data-brand="product"></span> <b>98%</b></span>
         <span>at <b>0%</b> confabulation</span>
       </p>
     </div>
   </section>
 
-  <!-- ── closing CTA ──────────────────────────────────────────────────────── -->
+  <!-- ── 4 · Meet Mira ────────────────────────────────────────────────────── -->
+  <section id="mira" class="rule-top">
+    <div class="wrap mira">
+      <div class="sprites">
+        <div class="sprite a" role="img" aria-label="The apprentice, pixel art: glasses, green cardigan, holding a notebook."></div>
+        <div class="sprite b" role="img" aria-label="The apprentice with her eyes closed, listening."></div>
+      </div>
+      <div class="mira-copy">
+        <span class="label">The character</span>
+        <h2>Meet <span data-brand="character"></span>.</h2>
+        <p>
+          <span data-brand="character"></span> is the apprentice, not the product. She has one notebook and one job:
+          to be invisible until she's needed, then ask the smallest question that moves the work forward. Her sprite is the
+          only illustration on this page — no stock photography, no robot mascot.
+        </p>
+        <ul class="mira-list">
+          <li><b>invisible until wanted</b><span>no panel shouting for attention</span></li>
+          <li><b>one question at a pause</b><span>never during the work</span></li>
+          <li><b>never guesses silently</b><span>every prediction carries its belief</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5 · data & privacy: one line, then the collapsed ledger ──────────── -->
+  <section id="privacy" class="rule-top">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <span class="label">Data &amp; privacy</span>
+          <h2>What it sees, what it scrubs, what it never touches.</h2>
+        </div>
+        <p class="lede">
+          An apprentice that learns from work only needs the work. Here is the whole ledger of what is stored, in plain
+          language, before it is sent anywhere.
+        </p>
+      </div>
+
+      <div class="privacy-line">
+        <p><span class="mk wri" aria-hidden="true">§</span> Bank accounts, cards and emails are scrubbed before storage; screen frames never leave the device; nothing is captured when capture is off.</p>
+        <a href="#data" data-open="data">The whole ledger</a>
+      </div>
+
+      <details class="data" id="data">
+        <summary><span class="label" style="color:inherit">Ledger</span> <b>Collected, scrubbed and never touched — in plain language.</b> <span class="plus" aria-hidden="true"></span></summary>
+        <div class="cols">
+          <div class="col">
+            <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Collected, per session</span>
+            <ul>
+              <li><b>The decision.</b> The fields on the case and the action taken, at the moment of the save.</li>
+              <li><b>The guess.</b> What the apprentice predicted before the save, kept to measure the gap.</li>
+              <li><b>Your answer.</b> The transcript of the one question, in your own words.</li>
+              <li><b>Case ids and timestamps</b> so a claim can be traced back to a real case.</li>
+              <li><b>Frozen predictions</b> for a sealed test, committed before anyone labels it.</li>
+            </ul>
+          </div>
+
+          <div class="col">
+            <span class="label"><span class="mk wri" aria-hidden="true">§</span> Scrubbed before storage</span>
+            <ul>
+              <li>Bank accounts → <code>[IBAN]</code>, checksum-validated, any country.</li>
+              <li>Emails → <code>[EMAIL]</code> · phone numbers → <code>[PHONE]</code>.</li>
+              <li>Payment cards → <code>[CARD]</code>, Luhn-checked before redaction.</li>
+              <li>Tax ids → <code>[TAX_ID]</code> · secret URLs → <code>[URL_SECRET]</code>.</li>
+              <li>Amounts, cost centres and invoice numbers are <em>kept</em>: the rules depend on them.</li>
+            </ul>
+          </div>
+
+          <div class="col">
+            <span class="label"><span class="mk bin" aria-hidden="true">■</span> Never collected</span>
+            <ul>
+              <li>Passwords, keystrokes, or anything outside the observed tab.</li>
+              <li>Screen frames: they stay on the observer's device and are dropped when capture stops.</li>
+              <li>Raw microphone audio. Only the transcript of the answer is kept.</li>
+              <li>Your other browser tabs, files, or clipboard.</li>
+              <li>Anything at all when capture is off — the default.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="kept">
+          The Work Map is exportable as data and the session can be deleted. A rule is only trusted once
+          <span class="mk con" aria-hidden="true">✓</span> later cases agree with it; until then it says so.
+        </p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ── 6 · closing CTA ──────────────────────────────────────────────────── -->
   <section id="start" class="cta">
     <div class="wrap inner">
       <div>
         <span class="label">Start</span>
-        <h2 style="margin-top:10px">Watch it learn a rule nobody wrote down.</h2>
-        <p class="fine">in the sandbox ERP · rehearsal and live modes are always labelled</p>
+        <h2 style="margin-top:12px">Watch it learn a rule nobody wrote down.</h2>
+        <p class="fine">open the product, or write to us and we'll sit with you through the first session</p>
       </div>
       <span class="actions">
-        <a class="btn primary" href="/app">Try it <span class="ext" aria-hidden="true">→</span></a>
-        <a class="btn" href="#demo" id="watch-demo-2">Watch the demo</a>
+        <a class="btn primary" href="/app">Open <span data-brand="product"></span> <span class="ext" aria-hidden="true">→</span></a>
+        <a class="btn" href="mailto:hello@tacet.work">Talk to us</a>
       </span>
     </div>
   </section>
-
-  <!-- ── privacy: one line, then a details section collapsed by default ────── -->
-  <div class="wrap">
-    <div class="privacy">
-      <p><span class="mk wri" aria-hidden="true">§</span> Bank accounts, cards and emails are scrubbed before storage; screen frames never leave the device; nothing is captured when capture is off.</p>
-      <a href="#data" data-open="data">What it sees, scrubs &amp; never touches</a>
-    </div>
-
-    <details class="data" id="data">
-      <summary><span class="label" style="color:inherit">Data &amp; privacy</span> <b>The whole ledger, in plain language.</b> <span class="plus" aria-hidden="true"></span></summary>
-      <div class="cols">
-        <div class="col">
-          <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Collected, per session</span>
-          <ul>
-            <li><b>The decision.</b> The fields on the case and the action taken, at the moment of the save.</li>
-            <li><b>The guess.</b> What the apprentice predicted before the save, kept to measure the gap.</li>
-            <li><b>Your answer.</b> The transcript of the one question, in your own words.</li>
-            <li><b>Case ids and timestamps</b> so a claim can be traced back to a real case.</li>
-            <li><b>Frozen predictions</b> for a sealed test, committed before anyone labels it.</li>
-          </ul>
-        </div>
-
-        <div class="col">
-          <span class="label"><span class="mk wri" aria-hidden="true">§</span> Scrubbed before storage</span>
-          <ul>
-            <li>Bank accounts → <code>[IBAN]</code>, checksum-validated, any country.</li>
-            <li>Emails → <code>[EMAIL]</code> · phone numbers → <code>[PHONE]</code>.</li>
-            <li>Payment cards → <code>[CARD]</code>, Luhn-checked before redaction.</li>
-            <li>Tax ids → <code>[TAX_ID]</code> · secret URLs → <code>[URL_SECRET]</code>.</li>
-            <li>Amounts, cost centres and invoice numbers are <em>kept</em>: the rules depend on them.</li>
-          </ul>
-        </div>
-
-        <div class="col">
-          <span class="label"><span class="mk bin" aria-hidden="true">■</span> Never collected</span>
-          <ul>
-            <li>Passwords, keystrokes, or anything outside the sandbox tab.</li>
-            <li>Screen frames: they stay on the observer's device and are dropped when capture stops.</li>
-            <li>Raw microphone audio. Only the transcript of the answer is kept.</li>
-            <li>Your other browser tabs, files, or clipboard.</li>
-            <li>Anything at all when capture is off — the default.</li>
-          </ul>
-        </div>
-      </div>
-      <p class="kept">
-        The Work Map is exportable as data and the session can be deleted. A rule is only trusted once
-        <span class="mk con" aria-hidden="true">✓</span> later cases agree with it; until then it says so.
-      </p>
-    </details>
-  </div>
 </main>
 
 <footer>
@@ -437,7 +555,7 @@
     <span class="meta">
       <span data-brand="product"></span> · learns the part of the job nobody wrote down
     </span>
-    <span class="meta">built for HackNation × ElevenLabs · 2026</span>
+    <span class="meta">© 2026 <span data-brand="product"></span></span>
     <span class="glyphs" aria-label="provenance marks: observed, inferred, confirmed, binding">▮ ◌ ✓ ■</span>
   </div>
 </footer>
@@ -446,7 +564,7 @@
   /* ─────────────────────────────────────────────────────────────────────────
      ONE constant for the product and character names. Rename here and the
      wordmark, headings, nav, footer, document title and meta description all
-     follow. (Names are still undecided — "Shadow" was the working title.)
+     follow.
      ───────────────────────────────────────────────────────────────────────── */
   const NAME = { product: 'Tacet', character: 'Mira' };
 
@@ -457,35 +575,118 @@
   document.title = NAME.product + ' — learns the part of the job nobody wrote down';
   var desc = document.querySelector('meta[name="description"]');
   if (desc) desc.setAttribute('content',
-    NAME.product + ' watches an expert work, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
+    NAME.product + ' sits beside an expert as she works, asks one question at a pause, and turns the answer into a Work Map that teaches a new hire.');
 
-  /* The video is optional: the poster holds until a real clip is present. */
+  /* ── the film ──────────────────────────────────────────────────────────────
+     Autoplays muted, inline and looping; poster holds until the clip loads;
+     the caption bar is rendered here from assets/film.vtt (never the native
+     track UI); a text button unmutes; reduced motion shows the poster with a
+     "Play film" button instead. A missing clip leaves the page whole.        */
   (function () {
-    var slot = document.getElementById('video-slot');
-    var video = document.getElementById('video');
+    var slot = document.getElementById('film-slot');
+    var video = document.getElementById('film');
+    var poster = document.getElementById('film-poster');
+    var bar = document.getElementById('film-caption');
+    var sound = document.getElementById('film-sound');
+    var play = document.getElementById('film-play');
     if (!slot || !video) return;
-    video.addEventListener('loadeddata', function () { slot.classList.add('has-video'); });
-    video.addEventListener('error', function () { slot.classList.remove('has-video'); });
-  })();
 
-  /* "Watch the demo" scrolls to the video; if the clip is present, start it. */
-  (function () {
-    var slot = document.getElementById('video-slot');
-    var video = document.getElementById('video');
-    var links = [document.getElementById('watch-demo'), document.getElementById('watch-demo-2'),
-                 document.getElementById('nav-watch')];
-    links.forEach(function (a) {
-      if (!a) return;
-      a.addEventListener('click', function () {
-        if (slot && slot.classList.contains('has-video') && video) {
-          var p = video.play();
-          if (p && p.catch) p.catch(function () {});
-        }
-      });
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var cues = [];
+
+    /* Poster .jpg when the film build provides one, .svg otherwise. The
+       complete/naturalWidth probe catches a 404 that landed before this script. */
+    function posterFallback() {
+      if (poster && poster.getAttribute('src').indexOf('poster.jpg') >= 0) {
+        poster.setAttribute('src', 'assets/poster.svg');
+      }
+    }
+    if (poster) {
+      poster.addEventListener('error', posterFallback);
+      if (poster.complete && poster.naturalWidth === 0) posterFallback();
+    }
+
+    function reveal() {
+      slot.classList.add('has-video');
+      if (sound) sound.hidden = false;
+      if (play && !reduce) play.hidden = true;
+    }
+    video.addEventListener('loadeddata', reveal);
+    video.addEventListener('playing', function () { if (play) play.hidden = true; });
+    video.addEventListener('error', function () {
+      slot.classList.remove('has-video');
+      if (sound) sound.hidden = true;
+      if (play) play.hidden = true;
     });
+    video.addEventListener('loadedmetadata', function () {
+      if (reduce && play) play.hidden = false;
+    });
+
+    /* VTT-PARSER-START — extracted verbatim by the L2 acceptance check */
+    function parseVTT(text) {
+      var out = [];
+      var blocks = String(text || '').replace(/\r/g, '').split(/\n{2,}/);
+      blocks.forEach(function (block) {
+        var lines = block.split('\n').filter(function (l) { return l.trim() !== ''; });
+        if (!lines.length) return;
+        if (/^WEBVTT/.test(lines[0])) lines.shift();
+        if (!lines.length) return;
+        if (lines[0].indexOf('-->') < 0) lines.shift();            // cue id, if any
+        var span = (lines.shift() || '').match(
+          /(\d{1,2}):(\d{2}):(\d{2})(?:[.,](\d{1,3}))?\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})(?:[.,](\d{1,3}))?/);
+        if (!span) return;
+        var sec = function (h, m, s, ms) { return (+h) * 3600 + (+m) * 60 + (+s) + (ms ? +('0.' + ms) : 0); };
+        out.push({
+          start: sec(span[1], span[2], span[3], span[4]),
+          end: sec(span[5], span[6], span[7], span[8]),
+          text: lines.join('\n').replace(/<[^>]+>/g, '')
+        });
+      });
+      return out;
+    }
+    /* VTT-PARSER-END */
+
+    function renderCue(t) {
+      if (!bar) return;
+      var cue = null;
+      for (var i = 0; i < cues.length; i++) {
+        if (t >= cues[i].start && t < cues[i].end) { cue = cues[i]; break; }
+      }
+      if (cue && slot.classList.contains('has-video')) {
+        bar.textContent = cue.text;
+        bar.hidden = false;
+      } else {
+        bar.hidden = true;
+      }
+    }
+    video.addEventListener('timeupdate', function () { renderCue(video.currentTime || 0); });
+
+    if (window.fetch) {
+      fetch('assets/film.vtt').then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (t) { cues = parseVTT(t); })
+        .catch(function () { cues = []; });
+    }
+
+    if (sound) sound.addEventListener('click', function () {
+      video.muted = !video.muted;
+      sound.textContent = video.muted ? 'Sound on' : 'Sound off';
+    });
+    if (play) play.addEventListener('click', function () {
+      var p = video.play();
+      if (p && p.catch) p.catch(function () {});
+    });
+
+    if (reduce) {
+      /* no autoplay: the poster holds and the viewer starts it */
+    } else {
+      var started = video.play();
+      if (started && started.catch) started.catch(function () {
+        if (play && video.readyState > 0) play.hidden = false;   // blocked, but the clip is here
+      });
+    }
   })();
 
-  /* The privacy line opens the collapsed details section. */
+  /* The privacy line opens the collapsed ledger. */
   (function () {
     document.querySelectorAll('[data-open]').forEach(function (a) {
       a.addEventListener('click', function () {

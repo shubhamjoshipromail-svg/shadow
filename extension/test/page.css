@@ -1,0 +1,59 @@
+/* Test page only — a neutral third-party form. Not part of the extension UI. */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #eef0f2;
+  color: #1d232b;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+.sheet {
+  width: min(680px, 92vw);
+  margin: 56px auto;
+  padding: 36px 40px 44px;
+  background: #fff;
+  border: 1px solid #d9dee4;
+  border-radius: 6px;
+}
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #77818c;
+}
+h1 { margin: 6px 0 4px; font-size: 26px; letter-spacing: -0.01em; }
+.lede { margin: 0 0 28px; color: #5c6672; max-width: 52ch; }
+.row { margin-bottom: 18px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #3a444f; }
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfd6dd;
+  border-radius: 4px;
+  background: #fff;
+  color: #1d232b;
+  font: inherit;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid #b9d2ef; outline-offset: 0; border-color: #8fb4dd; }
+.check { display: flex; align-items: center; gap: 10px; }
+.check input { width: 18px; height: 18px; }
+.check label { margin: 0; font-weight: 500; }
+.actions { display: flex; gap: 10px; margin-top: 28px; }
+button {
+  padding: 10px 18px;
+  border: 1px solid #cfd6dd;
+  border-radius: 4px;
+  background: #fff;
+  color: #1d232b;
+  font: 600 14px/1 inherit;
+  cursor: pointer;
+}
+button:hover { background: #f4f6f8; }
+#approve { background: #2f6b3d; border-color: #2f6b3d; color: #fff; }
+#approve:hover { background: #275a33; }
+#send { margin-left: auto; }

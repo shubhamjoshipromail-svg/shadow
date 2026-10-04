@@ -1,0 +1,3 @@
+# Generated/ignored inside the extension workspace.
+test/out/
+.cache/

@@ -46,3 +46,7 @@ design/video/frames/
 design/tasks/shots/
 design/review-shots/
 site/shots/
+design/video/out/
+design/video/node_modules/
+extension/test/out/
+extension/test/.chrome*/

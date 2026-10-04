@@ -1,147 +1,92 @@
-# `design/video` — the 75-second demo film
+# `design/video` — the 75-second product film
 
-Four files, one job: make the 75-second demo reproducible instead of hand-waved.
+The film is reproducible from the storyboard, not hand-assembled in an editor. Four scripts and one
+narration file produce `out/film.mp4`, `out/film.vtt` and `out/poster.jpg`.
 
 | File | What it is |
 |---|---|
-| `STORYBOARD.md` | Shot-by-shot plan: timestamps, what's on screen, the URL/state, the burned-in caption, and how the recorder gets each frame. Names live in one place at the top. |
-| `voiceover.txt` | Narration with timings, ≤ 170 words, calm and concrete. `(Mira)` / `(Sabine)` marks who speaks. |
-| `record.mjs` | Node + Chrome DevTools Protocol recorder. Drives the **deployed** product in **Rehearsal (simulated expert)** with `POST /api/sessions/{sid}/sim/step`, and writes one PNG per shot to `frames/`. |
-| `frames/` | Output: `S<act>.<shot>-<caption>.png` plus `manifest.json` (shot id, in/out, caption, VO cue, file, session ids). |
-
-The capture and tutor beats are real Rehearsal sessions. The sealed-test beats (S3.2–S3.4) are **live inserts**:
-a Rehearsal session refuses `POST /api/sessions/{sid}/proofs` by design, so they cannot be filmed in Rehearsal.
-S3.1 (the learned threshold) films fine in Rehearsal, with the page's own "rehearsal session · tests disabled"
-mark visible.
+| `STORYBOARD.md` | Shot-by-shot plan: timestamps, what's on screen, the URL/state, the burned-in caption and the VO line. Names live in one place at the top. |
+| `voiceover.txt` | Narration with timings, one read per line, ≤ 170 words. `(Mira)` / `(Sabine)` marks who speaks. |
+| `record.mjs` | Node + Chrome DevTools Protocol recorder. Drives the **deployed** product in Rehearsal (simulated expert) with `POST /api/sessions/{sid}/sim/step` and writes one PNG per shot to `frames/` (1600×900 at device scale 2 → 3200×1800). |
+| `make_vtt.mjs` | `voiceover.txt` → `out/film.vtt` (WebVTT; ≤ 42 chars per line, ≤ 2 lines per cue; a longer line is split across consecutive cues inside its own time window). |
+| `tts.mjs` | Optional: one ElevenLabs mp3 per voiceover line into `out/vo/NN.mp3`. Reads `ELEVENLABS_API_KEY` from the environment at run time; never prints or writes it. |
+| `assemble.mjs` | `frames/` → `out/film.mp4` + `out/poster.jpg`. Ken-Burns per shot, crossfades at the storyboard boundaries, VO placed at its timestamps, H.264 1600×900 ≤ 8 MB. Works with or without the VO mp3s. |
+| `frames/` | Recorder output: `S<act>.<shot>-<caption>.png` + `manifest.json` (timings, captions, VO cue, file, session ids). |
+| `out/` | Film output: `film.mp4`, `film.vtt`, `poster.jpg` (+ `vo/` if TTS was run). |
 
 ## Install
 
-Requires Node 20+ (this repo uses Node 22) and Chrome or Chromium.
-
 ```bash
-npm i -D ws          # the only dependency; already present transitively in this repo
+cd design/video && npm install    # ffmpeg-static, local to this folder
 ```
 
-`ws` is loaded lazily, so `--dry-run`, `--check-storyboard` and `--check-voiceover` work without it.
+Node 20+ (this repo uses Node 22) and Chrome or Chromium are also required for `record.mjs`.
 
-## Commands
+## Rebuild (the 3 commands)
 
-Run from the repo root (paths are resolved from the repo root, so any CWD works):
+Run from the repo root:
 
 ```bash
-# static checks, no browser, no network
-node design/video/record.mjs --check-storyboard   # record.mjs and STORYBOARD.md agree, 75s total
-node design/video/record.mjs --check-voiceover    # ≤ 170 narration words
-node --check design/video/record.mjs              # syntax
-
-# see the plan and the resolved URLs
-node design/video/record.mjs --dry-run
-
-# film the whole thing (S3.2–S3.4 are skipped until you pass --proof-session)
-node design/video/record.mjs
-
-# subsets / phases
-node design/video/record.mjs --until S2.6          # hook + capture
-node design/video/record.mjs --phase tutor         # tutor beat (runs the capture state first)
-node design/video/record.mjs --only S1.1,S5.3      # selected shots (earlier steps still run for state)
-
-# real Chrome flags
-node design/video/record.mjs --headed              # watch it
-node design/video/record.mjs --no-sandbox          # CI / sandboxed shells where Chrome's sandbox can't init
-node design/video/record.mjs --no-launch --port 9222   # attach to a Chrome you started with --remote-debugging-port
-node design/video/record.mjs --chrome /path/to/chrome  # explicit binary
-
-# sealed-test inserts (S3.2–S3.4) from a live session that already froze a proof
-node design/video/record.mjs --proof-session <live-sid>
+node design/video/record.mjs        # 1. fresh frames + manifest.json (deployed product, 1600×900 @2)
+node design/video/make_vtt.mjs      # 2. out/film.vtt from voiceover.txt
+node design/video/assemble.mjs      # 3. out/film.mp4 + out/poster.jpg
 ```
 
-Defaults: `--core https://core-production-c5ac.up.railway.app` (the recorder reads `/api/config` for the
-notebook and ERP origins), `--out design/video/frames`, viewport 1600×900 at scale 1.5 (2400×1350 PNG).
+Add the read (optional; `assemble.mjs` is silent without it):
 
-**Never :8000.** The recorder refuses any `--core`/`--console`/`--erp` whose port is 8000, per
-`design/tasks/QUEUE_2026-10-03.md`. Use the deployed URL or a local core on `:8001`.
+```bash
+ELEVENLABS_API_KEY=… node design/video/tts.mjs   # out/vo/01.mp3 … one file per line
+node design/video/assemble.mjs                   # place the VO at its timestamps
+```
 
-### Why `--no-sandbox` sometimes
+Then copy the three files the product site wants: `out/film.mp4`, `out/film.vtt`, `out/poster.jpg` →
+`site/assets/`.
 
-Chrome starts its own sandbox; inside another sandbox (CI, containers, some agent shells) that fails with
-`sandbox initialization failed: Operation not permitted` and Chrome dies before the debug port opens. Passing
-`--no-sandbox` is the fix in those environments. Leave it off on your own machine.
+> In a sandboxed/CI shell where Chrome's own sandbox cannot start, add `--no-sandbox`; if `:9222` is already
+> taken by another Chrome, add `--port 9335`. On a normal desktop neither flag is needed. The recorder never
+> touches `:8000`.
 
-## How the recorder works
+## `record.mjs`
 
-1. `--remote-debugging-port` Chrome (throwaway profile) or attach with `--no-launch`.
-2. Connect to the browser WebSocket, open **two** pages: the notebook (console) and the ERP. Two pages matter:
-   the ERP companion has to stay connected when the notebook is on screen, or the toast/plate events are missed.
-3. `POST /api/sessions` with `{ simulate: true }` for the capture session and
-   `{ mode: "tutor", from_session: <capture> }` for the tutor, then advance the simulator with
-   `POST /api/sessions/{sid}/sim/step`.
-4. For each shot: bring the product to the state, `Page.captureScreenshot`, write the PNG, append to
-   `manifest.json`.
+```bash
+node design/video/record.mjs --dry-run                # plan + resolved URLs, nothing launched
+node design/video/record.mjs --check-storyboard       # record.mjs and STORYBOARD.md agree, 75 s total
+node design/video/record.mjs --check-voiceover        # ≤ 170 narration words
+node design/video/record.mjs --until S2.6             # hook + capture
+node design/video/record.mjs --phase tutor            # tutor beat (runs the capture state first)
+node design/video/record.mjs --only S1.1,S5.3         # selected shots (earlier steps still run for state)
+node design/video/record.mjs --headed                 # watch it
+node design/video/record.mjs --proof-session <live-sid>  # sealed-test inserts S3.2–S3.4
+```
 
-Shot state is driven by the snapshot, not by trusting a `sim/step` return value: `ensureCase` waits for
-`current_case` + a committed prediction (nudging with a `case_opened` event if capture.js has not opened the
-case yet), and `ensureDecided` waits for an episode. The tutor creation goes through `createTutorWithMap`,
-which detects the one real failure mode of a deployed core — sessions are in memory, so a deploy/restart
-mid-run leaves the tutor with the seed-only map — and rebuilds the capture map through the same simulated
-path instead of filming a tutor that never learned anything.
+Defaults: `--core https://core-production-c5ac.up.railway.app` (origins come from `/api/config`),
+`--out design/video/frames`, 1600×900 at scale 2. The recorder refuses any URL whose port is `:8000`.
 
-## Turning frames into an mp4
+The capture and tutor beats are real Rehearsal sessions. The sealed-test beats (S3.2–S3.4) are **live
+inserts**: a Rehearsal session refuses `POST /api/sessions/{sid}/proofs` by design, so they cannot be
+filmed in Rehearsal. Without `--proof-session` those three shots are skipped in the manifest, and
+`assemble.mjs` holds the previous frame for their duration so the timeline and the VO stay aligned.
 
-1. **Write the captions.** The manifest has `caption`, `vo` and `in`/`out` per shot. Make an SRT/ASS in the
-   edit, or use them for a lower-third. Fonts: Newsreader (testimony), Geist (interface), IBM Plex Mono
-   (codes/amounts/hashes) — see `design/DESIGN.md`.
+## `assemble.mjs`
 
-2. **Record the voiceover** from `voiceover.txt` (strip the `HH:MM` timings; the words are the read).
-   ElevenLabs TTS, e.g. with the same voice as the interviewer agent:
+```bash
+node design/video/assemble.mjs --dry-run
+node design/video/assemble.mjs --frames design/video/frames --out design/video/out
+node design/video/assemble.mjs --crossfade 0.4 --zoom 0.06 --crf 24 --max-bytes 8000000
+node design/video/assemble.mjs --no-vo --no-poster
+```
 
-   ```bash
-   sed -E 's/^[0-9]{2}:[0-9]{2} //; s/\([^)]*\) ?//g' design/video/voiceover.txt > /tmp/vo.txt
-   curl -s -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
-     -H "xi-api-key: $ELEVENLABS_API_KEY" -H "Content-Type: application/json" \
-     -d "$(node -e 'console.log(JSON.stringify({text:require("fs").readFileSync("/tmp/vo.txt","utf8"),model_id:"eleven_multilingual_v2"}))')" \
-     -o design/video/frames/voiceover.mp3
-   ```
-
-3. **Build a still-timed cut from `manifest.json`.** ffmpeg's concat demuxer takes each PNG with a duration;
-   repeat the last file at the end (the demuxer ignores the final entry's duration otherwise).
-
-   ```bash
-   node -e '
-     const m=require("./design/video/frames/manifest.json");
-     const fs=require("fs"), path=require("path");
-     const rows=[];
-     for(const s of m.shots.filter(s=>s.file)) rows.push(`file ${JSON.stringify(path.basename(s.file))}`, `duration ${s.out-s.in}`);
-     if(rows.length) rows.push(`file ${JSON.stringify(path.basename(m.shots.filter(s=>s.file).at(-1).file))}`);
-     fs.writeFileSync("design/video/frames/slides.txt", rows.join("\n")+"\n");
-   '
-   cd design/video/frames
-   ffmpeg -y -f concat -safe 0 -i slides.txt -i voiceover.mp3 \
-     -vf "fps=25,format=yuv420p,subtitles=captions.ass" \
-     -c:v libx264 -preset slow -crf 18 -c:a aac -b:a 192k -shortest ../tacet-demo.mp4
-   ```
-
-   No captions file yet? Drop the `subtitles=...` filter.
-
-4. **Prefer motion to stills?** Each frame can be a 4-second push-in instead of a cut (replace the concat
-   input per shot):
-
-   ```bash
-   ffmpeg -y -loop 1 -i S2.5-her-answer-becomes-a-rule.png -t 5 \
-     -vf "scale=2600:-2,zoompan=z='min(zoom+0.0008,1.08)':d=125:s=1920x1080:fps=25,format=yuv420p" \
-     -c:v libx264 -crf 18 shot-s2-5.mp4
-   ```
-
-   Then concat the per-shot mp4s and lay the voiceover over the result:
-   `ffmpeg -f concat -safe 0 -i shots.txt -i voiceover.mp3 -c:v copy -c:a aac -shortest tacet-demo.mp4`.
-
-5. Level the audio (`loudnorm=I=-16:TP=-1.5:LRA=11`) and keep the finished file at
-   `1920x1080 / 25fps / H.264 / AAC`.
+- One 1600×900 clip per shot; the Ken-Burns push alternates direction and the clip length carries a
+  crossfade tail, so the `xfade` offset is exactly the shot's `in` time and the 75 s timeline never drifts.
+- Every `out/vo/NN.mp3` is delayed to its `voiceover.txt` timestamp and mixed over a silent base; with no
+  mp3s the film still builds with a silent track.
+- Encoded H.264 + AAC; if the file is over `--max-bytes`, the CRF is raised and it is encoded again (max 4
+  passes). `poster.jpg` is taken from the hero shot (`--poster-shot`, default `S2.1`).
 
 ## Notes
 
 - `--product`, `--character`, `--expert`, `--trainee` override the four names in `record.mjs`'s `NAMES`
-  constant for the title cards. Product name is still undecided ("Shadow" in the repo, "Tacet" in the cards);
-  see `design/tasks/DEEPSEEK_NAMES*_REPORT.md`.
-- The recorder keeps the product's own "rehearsal · simulated expert" mark legible on purpose; do not crop it
-  out of the capture/tutor frames.
+  constant for the title cards. Product name is still undecided ("Shadow" in the deployed product, "Tacet"
+  in the cards); see `design/tasks/DEEPSEEK_NAMES*_REPORT.md`.
+- The recorder keeps the product's own mode mark visible on purpose; do not crop it out of the frames.
 - `--keep` leaves Chrome and its temp profile in place for a manual retake; otherwise both are cleaned up.

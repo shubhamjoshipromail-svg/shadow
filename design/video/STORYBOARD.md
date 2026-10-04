@@ -1,4 +1,4 @@
-# STORYBOARD — 75-second demo film
+# STORYBOARD — 75-second product film
 
 **TL;DR.** One 75-second film. Hook (Sabine retiring, the 2019 doc covers half) → Capture (guess written
 before she acts → she books capex → Mira asks at the pause → answer → receipt before/after) → Sealed test
@@ -24,7 +24,8 @@ do not hand-edit twenty caption strings.
 
 ## Format
 
-- Master 1920×1080, 16:9, 25 fps. Recorder frames: 1600×900 at device scale 1.5 (2400×1350 PNG).
+- Master 1600×900, 16:9, 25 fps. Recorder frames: 1600×900 at device scale 2 (3200×1800 PNG), assembled
+  down to the 1600×900 master.
 - Warm-paper design system (`design/DESIGN.md`): Newsreader for testimony, Geist for interface, IBM Plex Mono
   for codes/amounts/hashes. No gradients, glow, emoji or stock-AI imagery. Motion terminates; one loop only.
 - Calm. Long holds on real screens, no whip-pans, no zoom punches. Captions sit bottom-left in IBM Plex Mono,
@@ -109,6 +110,9 @@ paper and ink, tagline only — no product UI.
 
 ## Assembly
 
-`record.mjs` writes one PNG per shot plus `frames/manifest.json` (shot id, in/out, caption, VO line, file). Add
-captions and the ElevenLabs read in the editor, then mux per `design/video/README.md` (ffmpeg command). The
-storyboard's timings are the cut list; the manifest is the source of truth for file names.
+`record.mjs` writes one PNG per shot plus `frames/manifest.json` (shot id, in/out, caption, VO line, file).
+`make_vtt.mjs` turns `voiceover.txt` into `out/film.vtt` (≤ 42 chars/line, ≤ 2 lines per cue), and
+`assemble.mjs` builds `out/film.mp4` (Ken-Burns per shot, crossfades at the storyboard boundaries, VO mp3s
+placed at their timestamps, H.264 1600×900 ≤ 8 MB) and `out/poster.jpg`. The exact rebuild commands are in
+`design/video/README.md`. The storyboard's timings are the cut list; the manifest is the source of truth for
+file names.

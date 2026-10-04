@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=320, initial-scale=1" />
+    <title>Tacet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <span class="monogram" aria-hidden="true">M</span>
+      <div class="masthead-text">
+        <h1 class="wordmark">Tacet</h1>
+        <p class="standfirst">An apprentice that learns the work you do.</p>
+      </div>
+    </header>
+
+    <section class="block">
+      <div class="label">On this site</div>
+      <p class="site" id="site">—</p>
+      <button class="switchrow" id="toggle" type="button" role="switch" aria-checked="false">
+        <span class="sw" aria-hidden="true"><i></i></span>
+        <span class="switchlabel" id="tglabel">Turn on Mira for this site</span>
+      </button>
+      <p class="note" id="note"></p>
+    </section>
+
+    <section class="block">
+      <div class="label">Shadow Core</div>
+      <div class="serverrow">
+        <input id="server" type="url" spellcheck="false" autocomplete="off" aria-label="Server URL" />
+        <button class="btn" id="save" type="button">Save</button>
+      </div>
+      <p class="note" id="saved" role="status" hidden>Saved.</p>
+    </section>
+
+    <section class="block">
+      <div class="label">Mira is on for</div>
+      <ul class="sites" id="sites"></ul>
+      <p class="note" id="empty">No sites yet. Turn her on where you work.</p>
+    </section>
+
+    <footer class="foot">
+      <a id="notebook" href="#" target="_blank" rel="noopener">Open notebook ↗</a>
+      <span class="mono" id="version"></span>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

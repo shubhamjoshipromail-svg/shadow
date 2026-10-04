@@ -672,7 +672,7 @@ if (ARGS.help) {
   console.log(`Usage: node design/video/record.mjs [options]
   --core <url>          Shadow Core + notebook (default ${DEFAULT_CORE})
   --console <url>       notebook origin (default: /api/config console_url, else --core)
-  --erp <url>           demo workplace origin (default: /api/config erp_url, else ${DEFAULT_ERP})
+  --erp <url>           ERP origin (default: /api/config erp_url, else ${DEFAULT_ERP})
   --out <dir>           screenshot directory (default design/video/frames)
   --session <sid>       reuse an existing session instead of creating a rehearsal one
   --proof-session <sid> live session with a frozen proof, for S3.1–S3.4
@@ -681,7 +681,7 @@ if (ARGS.help) {
   --phase <name>        hook | capture | proof | tutor | close
   --chrome <path>       Chrome/Chromium binary (default: auto-detect / CHROME_PATH)
   --port <n>            remote debugging port (default 9222)
-  --width --height --scale  viewport (default 1600x900 @1.5)
+  --width --height --scale  viewport (default 1600x900 @2, i.e. 3200x1800 PNGs)
   --headed              show the browser
   --no-sandbox          pass --no-sandbox to Chrome (needed in CI/sandboxed shells where Chrome's
                         own sandbox cannot initialise; leave it off on your own machine)
@@ -708,7 +708,7 @@ const ctx = {
   out: ARGS.out ? resolve(ARGS.out) : join(ROOT, 'design', 'video', 'frames'),
   width: Number(ARGS.width || 1600),
   height: Number(ARGS.height || 900),
-  scale: Number(ARGS.scale || 1.5),
+  scale: Number(ARGS.scale || 2),
   port: Number(ARGS.port || 9222),
   proofSid: ARGS.proofSession || null,
   sid: ARGS.session || null,

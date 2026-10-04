@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Expense claim review</title>
+    <link rel="stylesheet" href="page.css" />
+  </head>
+  <body>
+    <main class="sheet">
+      <p class="eyebrow">Accounts payable</p>
+      <h1>Expense claim review</h1>
+      <p class="lede">A plain third-party page. It knows nothing about Tacet — the extension finds the form itself.</p>
+
+      <form id="claim" autocomplete="off" onsubmit="return false">
+        <div class="row">
+          <label for="claimant">Claimant</label>
+          <input id="claimant" name="claimant" type="text" value="J. Okafor" />
+        </div>
+
+        <div class="grid">
+          <div class="row">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" type="number" step="0.01" value="0" />
+          </div>
+          <div class="row">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+              <option>EUR</option>
+              <option>GBP</option>
+              <option>USD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="category">Category</label>
+          <select id="category" name="category">
+            <option>Travel</option>
+            <option>Equipment</option>
+            <option>Client entertainment</option>
+            <option>Software</option>
+          </select>
+        </div>
+
+        <div class="row check">
+          <input id="receipt" name="receipt" type="checkbox" />
+          <label for="receipt">Receipt attached</label>
+        </div>
+
+        <div class="row">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" rows="3" placeholder="What was this for?"></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="approve" name="approve" type="button">Approve</button>
+          <button id="reject" name="reject" type="button">Reject</button>
+          <button id="send" name="send" type="submit">Send for review</button>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>

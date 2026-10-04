@@ -1,0 +1,15 @@
+{
+  "name": "tacet-film",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tacet product film pipeline: voiceover -> WebVTT -> mp4 (ffmpeg-static, local to design/video).",
+  "scripts": {
+    "vtt": "node make_vtt.mjs",
+    "tts": "node tts.mjs",
+    "assemble": "node assemble.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}
