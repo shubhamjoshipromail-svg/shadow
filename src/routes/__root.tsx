@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { ErpProvider } from "@/lib/erp/store";
+import { ErpProvider, SHADOW_API } from "@/lib/erp/store";
 import { AppShell } from "@/components/erp/AppShell";
 import { SupportProvider } from "@/lib/support/store";
 import { WorkspaceHeader } from "@/components/WorkspaceHeader";
@@ -124,10 +124,31 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const support = pathname === "/support" || pathname.startsWith("/support/");
 
+  // Support desk, generic mode: `?tacet=learn` loads the Tacet companion without the browser extension.
+  // Deliberately no window.shadowERP, so the companion treats this as a page it has never seen.
+  useEffect(() => {
+    if (!support) return;
+    let on = new URLSearchParams(window.location.search).get("tacet") === "learn";
+    try {
+      if (on) sessionStorage.setItem("tacet.learn", "1");
+      else on = sessionStorage.getItem("tacet.learn") === "1";
+    } catch {
+      /* storage is best-effort */
+    }
+    if (!on || document.getElementById("shadow-capture")) return;
+    window.SHADOW_API = SHADOW_API;
+    (window as unknown as { SHADOW_NAME?: string }).SHADOW_NAME = "Mira";
+    const s = document.createElement("script");
+    s.id = "shadow-capture";
+    s.defer = true;
+    s.src = `${SHADOW_API}/capture.js`;
+    document.head.appendChild(s);
+  }, [support]);
+
   return (
     <QueryClientProvider client={queryClient}>
       {support ? (
-        // Generic, extension-owned surface: no ERP context, no window.shadowERP, no capture.js.
+        // Generic, extension-owned surface: no ERP context, no window.shadowERP; the companion loads only with ?tacet=learn.
         <SupportProvider>
           <div className="flex min-h-screen flex-col bg-background text-[14px]">
             <WorkspaceHeader active="support" />

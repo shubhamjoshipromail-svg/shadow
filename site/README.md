@@ -20,7 +20,7 @@ same top/bottom spacing (`--sec`) and the same content grid (`--maxw` 1180 px, `
 5. **Data & privacy** — one line linking to the full ledger, collapsed by default. A single closing CTA follows.
 
 Navigation: wordmark, anchors **Product · How it learns · Mira · Privacy**, a primary **Open Tacet → `/app`** and a
-secondary **Talk to us → `mailto:hello@tacet.work`**.
+secondary **Talk to us → `mailto:shubhamjoshipro.mail@gmail.com`**.
 
 ## Files
 
@@ -57,7 +57,7 @@ Every occurrence in the wordmark, nav button, headings, footer, `<title>` and me
 place. `character` drives the Mira heading and copy. Alt text and aria-labels are name-free.
 
 > Note for the rename tool (`scripts/rename_product.py`): point the `site/*` prefix at this `NAME` object when the
-> landing page is integrated. The `mailto:` address is a placeholder (`hello@tacet.work`) and is the one string the
+> landing page is integrated. The `mailto:` address is a placeholder (`shubhamjoshipro.mail@gmail.com`) and is the one string the
 > constant does not cover.
 
 Without JavaScript the page still renders, but the brand slots would be blank.
@@ -91,7 +91,7 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ## Integration note
 
 Static — deploy as-is (any static host, or a Railway static service rooted at `site/`). Brand slots stay name-free;
-the CTAs render from `NAME` and point at `/app` (the product's home) and `mailto:hello@tacet.work`. Nothing here
+the CTAs render from `NAME` and point at `/app` (the product's home) and `mailto:shubhamjoshipro.mail@gmail.com`. Nothing here
 imports from the app or `console/`.
 
 ## Public URLs

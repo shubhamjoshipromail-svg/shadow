@@ -82,7 +82,7 @@ export default function ComparePage() {
       <main className="mx-auto max-w-[1120px] px-5 pb-28 pt-10 sm:px-6">
         <div className="label">Two experts, one task</div>
         <p className="mb-0 mt-3 max-w-[64ch] text-[16px] leading-relaxed text-ink-2">
-          Mira ran both Work Maps on the same cases. Where they part, she can ask each expert why, out loud, in their next session with her. You choose which differences are worth asking about. This page is for the process owner; new hires never see it.
+          <span className="text-ink-1">For the process owner.</span> Mira ran both experts’ Work Maps on the same cases. Where they part, she can ask each expert why, in their next session. Choose which differences are worth asking about. New hires never see this page.
         </p>
 
         <div className="num mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-rule py-3 text-[13px] text-ink-3">

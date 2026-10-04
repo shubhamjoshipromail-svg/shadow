@@ -54,7 +54,10 @@ export default function MapPage() {
             <span>WORK MAP · v{wm.version}</span><span>{wm.task.replace(/_/g, ' ')}</span>
           </div>
           <h1 className="testimony mb-0 mt-8 text-[40px] leading-[1.08] tracking-[-0.015em]">How {wm.expert} processes a supplier invoice</h1>
-          <p className="mt-3 text-[13.5px] text-ink-2">
+          <p className="mt-3 text-[13.5px] leading-relaxed text-ink-2">
+            <span className="text-ink-1">For the process owner.</span> Read it step by step, check it against how the work really runs, and sign it off. It is what Mira teaches new hires from.
+          </p>
+          <p className="mt-2 text-[13.5px] text-ink-2">
             {steps.length} steps · {judgment} judgment calls · {guards} guardrails · {confirmed} confirmed by her behavior.
             Each line links to the moment on screen and to her own words.
           </p>

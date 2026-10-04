@@ -258,6 +258,15 @@
   .col li b{font-weight:500;color:var(--ink-1)}
   .col code{font-family:var(--mono);font-size:12px;background:var(--wash);border-radius:2px;
             padding:1px 5px;color:var(--ink-1)}
+  .who .sec-head{margin-bottom:26px}
+  .who .cols{padding-bottom:0}
+  .who .col p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink-2)}
+  .who .col p+p{margin-top:8px}
+  .who .col h3{margin:0 0 8px;font-family:var(--serif);font-weight:300;font-size:22px;letter-spacing:-.01em}
+  .who .scope{margin-top:30px;padding-top:18px;border-top:1px solid var(--rule);display:grid;
+              grid-template-columns:minmax(0,1fr) auto;gap:14px 28px;align-items:center}
+  .who .scope p{margin:0;max-width:70ch;font-size:14px;line-height:1.55;color:var(--ink-2)}
+  .who .scope p b{font-weight:500;color:var(--ink-1)}
   .kept{margin:0 0 24px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:80ch}
 
   /* ── closing CTA ─────────────────────────────────────────────────────────── */
@@ -284,6 +293,7 @@
     .proof-grid{grid-template-columns:1fr}
     .mira{grid-template-columns:1fr;gap:34px}
     .cols{grid-template-columns:1fr;gap:30px}
+    .who .scope{grid-template-columns:1fr}
     .cta .inner{grid-template-columns:1fr;align-items:start}
   }
   @media (max-width:620px){
@@ -314,13 +324,14 @@
     </a>
     <nav class="nav" aria-label="sections">
       <a href="#product">Product</a>
+      <a href="#who">Who it's for</a>
       <a href="#how">How it learns</a>
       <a href="#mira">Mira</a>
       <a href="#privacy">Privacy</a>
     </nav>
     <span class="mast-actions">
       <a class="btn primary" href="/app">Open <span data-brand="product"></span></a>
-      <a class="btn" href="mailto:hello@tacet.work">Talk to us</a>
+      <a class="btn" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Talk to us</a>
     </span>
     <span class="tick" aria-hidden="true" title="capture indicator"></span>
   </div>
@@ -375,6 +386,44 @@
             <span class="film-status sr" id="film-sound-status" role="status" aria-live="polite"></span>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 1b · who it's for ───────────────────────────────────────────────── -->
+  <section id="who" class="who rule-top">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <span class="label">Who it's for</span>
+          <h2>Built for operations teams where judgment lives in a few people.</h2>
+        </div>
+        <p class="lede">
+          For COOs and heads of finance, shared services or operations whose best people are retiring or leaving, and
+          whose new hires take months to ramp. First market: finance back offices in DACH (accounts payable, claims,
+          procurement, KYC), where 12.9 million workers pass retirement age by 2036, about 30% of the labour force (Destatis).
+        </p>
+      </div>
+      <div class="cols">
+        <div class="col">
+          <span class="label"><span class="mk obs" aria-hidden="true">▮</span> Expert</span>
+          <h3>Teaches by working.</h3>
+          <p>No documentation project. One question at a natural pause, answered in a sentence. The knowledge stays when they leave.</p>
+        </div>
+        <div class="col">
+          <span class="label"><span class="mk con" aria-hidden="true">✓</span> New hire</span>
+          <h3>Learns on their own screen.</h3>
+          <p>Mira catches the wrong cost centre or the missed double bill before it is saved, in the expert's words. A shorter ramp-up.</p>
+        </div>
+        <div class="col">
+          <span class="label"><span class="mk wri" aria-hidden="true">§</span> Process owner</span>
+          <h3>Sees what Mira knows.</h3>
+          <p>Signs off the Work Map, sees where experts disagree, and decides what an AI agent may do alone. Agents earn permission rule by rule.</p>
+        </div>
+      </div>
+      <div class="scope">
+        <p><b>Priced per workspace and per workflow.</b> A pilot is one workflow, one expert, two new hires. Any knowledge-driven desk work fits.</p>
+        <a class="btn primary" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Run a pilot on one workflow</a>
       </div>
     </div>
   </section>
@@ -595,7 +644,7 @@
       </div>
       <span class="actions">
         <a class="btn primary" href="/app">Open <span data-brand="product"></span> <span class="ext" aria-hidden="true">→</span></a>
-        <a class="btn" href="mailto:hello@tacet.work">Talk to us</a>
+        <a class="btn" href="mailto:shubhamjoshipro.mail@gmail.com?subject=Tacet%20%E2%80%94%20pilot%20for%20our%20team">Run a pilot on one workflow</a>
       </span>
     </div>
   </section>

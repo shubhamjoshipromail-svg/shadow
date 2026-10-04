@@ -111,8 +111,9 @@ export default function AgentPage() {
             What may an agent do on its own?
           </h1>
           <p className="mb-0 mt-4 max-w-[640px] text-[14px] leading-relaxed text-ink-2">
-            An outside AI agent, who has never met {snap?.expert ?? 'the expert'}, reads the Work Map and sits the same sealed test Mira sits.
-            Where it matches the human’s answers it earns permission, rule by rule. Everything else stays with people.
+            <span className="text-ink-1">For the process owner.</span> Before an AI agent touches this workflow, it takes the same sealed test Mira took, on fresh cases, with its answers locked before any label.
+            Rules it got right earn <span className="text-confirmed"><span className="num">✓</span> act alone</span>; the rest stay with people (<span className="text-inferred"><span className="num">◌</span> suggest</span>, <span className="text-binding"><span className="num">■</span> stop and ask</span>).
+            Use it to decide what to automate.
           </p>
         </div>
 
@@ -120,7 +121,7 @@ export default function AgentPage() {
 
         {loaded && !cert && (
           <div className="mt-10 max-w-[640px]">
-            <p className="m-0 text-[14px] leading-relaxed text-ink-1">No agent has been certified on this map yet. Until one is, every rule reads <span className="whitespace-nowrap text-binding"><span className="num">■</span> stop and ask</span>.</p>
+            <p className="m-0 text-[14px] leading-relaxed text-ink-1">No agent has been certified on this map yet. Start with a sealed test below. Until one passes, every rule reads <span className="whitespace-nowrap text-binding"><span className="num">■</span> stop and ask</span>.</p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               {hasLabels && <Btn tone="primary" disabled={busy} onClick={() => certify(false)}>{busy ? 'The agent is reading the map…' : 'Certify using the labels already given'}</Btn>}
               <Btn tone={hasLabels ? 'default' : 'primary'} disabled={busy} onClick={() => certify(true)}>{busy && !hasLabels ? 'The agent is reading the map…' : 'Freeze a fresh sealed exam'}</Btn>

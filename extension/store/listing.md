@@ -46,7 +46,7 @@ https://tacet.up.railway.app/
 
 **Support email**
 ```
-hello@tacet.work
+shubhamjoshipro.mail@gmail.com
 ```
 
 **Privacy policy URL**
@@ -83,7 +83,7 @@ Observations travel over a WebSocket to the Tacet Core you configure (the hosted
 Who it is for
 Teams with a senior person whose judgement is written down nowhere, and a new hire who needs it. Tacet is built to be quiet: it is invisible until it has something worth asking.
 
-Support: hello@tacet.work
+Support: shubhamjoshipro.mail@gmail.com
 ```
 
 ---
