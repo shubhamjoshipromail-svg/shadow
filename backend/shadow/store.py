@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Any
 
 from sqlalchemy import JSON, Boolean, Column, Float, Integer, MetaData, String, Table, Text, create_engine, func, insert, select
@@ -89,6 +90,16 @@ workflows = Table(  # learned workflows ("watch me do this"): definition + signa
     Column("created", Float), Column("updated", Float),
 )
 
+peer_questions = Table(  # "Two experts, one task": a question about a difference, queued for one expert's next debrief
+    "peer_questions", metadata, Column("id", String(32), primary_key=True), Column("workflow", String(64), index=True),
+    Column("expert", String(64), index=True), Column("other_expert", String(64)), Column("conflict_key", String(40)),
+    Column("field", String(64)), Column("case_id", String(64)), Column("case_facts", JSON), Column("text", Text),
+    Column("own_value", String(64)), Column("other_value", String(64)), Column("simulated", Boolean),
+    Column("status", String(16)),  # queued -> asked -> answered
+    Column("session_id", String(64)), Column("receipt_id", String(32)), Column("answer", JSON),
+    Column("created", Float), Column("updated", Float),
+)
+
 LEDGER = {"decisions": decisions, "explanations": explanations, "learner_attempts": learner_attempts}
 
 
@@ -133,15 +144,72 @@ class Store:
             row = c.execute(q).first()
         return row[0] if row else None
 
-    def latest_map_row(self, expert: str, pack_id: str) -> dict[str, Any] | None:
-        """Newest saved map for this expert, never one taught by the simulator."""
+    def latest_map_row(self, expert: str, pack_id: str, include_simulated: bool = False) -> dict[str, Any] | None:
+        """Newest saved map for this expert. Never one taught by the simulator, unless the caller says so
+        explicitly (a labelled Rehearsal comparison); the row then carries `simulated`."""
         rehearsal = [r["id"] for r in self.list_sessions() if (r["meta"] or {}).get("simulated")]
         q = (select(maps.c.map, maps.c.version, maps.c.session_id, maps.c.created)
-             .where(maps.c.expert == expert, maps.c.pack_id == pack_id, maps.c.session_id.not_in(rehearsal))
-             .order_by(maps.c.id.desc()).limit(1))
+             .where(maps.c.expert == expert, maps.c.pack_id == pack_id).order_by(maps.c.id.desc()))
+        if not include_simulated:
+            q = q.where(maps.c.session_id.not_in(rehearsal))
+        q = q.limit(1)
         with self.engine.connect() as c:
             row = c.execute(q).first()
+        return {**row._mapping, "simulated": row.session_id in rehearsal} if row else None
+
+    def expert_maps(self, pack_id: str, include_simulated: bool = True) -> list[dict[str, Any]]:
+        """Each expert's newest saved map for a workflow (no map bodies), labelled live or simulated."""
+        rehearsal = {r["id"] for r in self.list_sessions() if (r["meta"] or {}).get("simulated")}
+        q = (select(maps.c.expert, maps.c.version, maps.c.session_id, maps.c.created)
+             .where(maps.c.pack_id == pack_id).order_by(maps.c.id.desc()))
+        newest: dict[tuple[str, bool], dict[str, Any]] = {}
+        with self.engine.connect() as c:
+            for r in c.execute(q):
+                sim = r.session_id in rehearsal
+                if sim and not include_simulated:
+                    continue
+                newest.setdefault((r.expert, sim), {"expert": r.expert, "version": r.version,
+                                                    "session_id": r.session_id, "created": r.created,
+                                                    "simulated": sim})
+        return sorted(newest.values(), key=lambda d: (d["simulated"], d["expert"]))
+
+    # ------------------------------------------------------------ peer questions (two experts, one task)
+    def queue_peer_question(self, row: dict[str, Any]) -> dict[str, Any]:
+        """Idempotent: asking the same expert the same question again returns the open one."""
+        now = time.time()
+        with self.engine.begin() as c:
+            t = peer_questions
+            same = c.execute(select(t).where(t.c.workflow == row["workflow"], t.c.expert == row["expert"],
+                                             t.c.conflict_key == row["conflict_key"],
+                                             t.c.simulated == bool(row.get("simulated")))
+                             .order_by(t.c.created.desc())).first()
+            if same is not None and same.status in ("queued", "asked"):
+                return dict(same._mapping)
+            qid = uuid.uuid4().hex[:12]
+            c.execute(insert(t).values(id=qid, status="queued", created=now, updated=now, **row))
+        return self.peer_question(qid)  # type: ignore[return-value]
+
+    def peer_question(self, qid: str) -> dict[str, Any] | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(peer_questions).where(peer_questions.c.id == qid)).first()
         return dict(row._mapping) if row else None
+
+    def peer_questions_for(self, workflow: str, expert: str | None = None, statuses: list[str] | None = None,
+                           simulated: bool | None = None) -> list[dict[str, Any]]:
+        t = peer_questions
+        q = select(t).where(t.c.workflow == workflow).order_by(t.c.created)
+        if expert is not None:
+            q = q.where(t.c.expert == expert)
+        if statuses:
+            q = q.where(t.c.status.in_(statuses))
+        if simulated is not None:
+            q = q.where(t.c.simulated == simulated)
+        with self.engine.connect() as c:
+            return [dict(r._mapping) for r in c.execute(q)]
+
+    def update_peer_question(self, qid: str, **fields: Any) -> None:
+        with self.engine.begin() as c:
+            c.execute(peer_questions.update().where(peer_questions.c.id == qid).values(updated=time.time(), **fields))
 
     def events_for(self, session_ids: list[str], types: list[str]) -> list[dict[str, Any]]:
         q = (select(events).where(events.c.session_id.in_(session_ids), events.c.type.in_(types))

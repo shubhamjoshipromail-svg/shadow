@@ -418,7 +418,7 @@ class APInvoicesPack:
     def describe(self, case: dict[str, Any]) -> str:
         d = self.derive(case)["inv"]
         amt = f"{case['net']:,.0f}".replace(",", ".") + f" {case['currency']}"
-        return f"invoice {case['invoice_no']} from {d['supplier_name']}, {d['category'] or 'mixed'} for {amt} net"
+        return f"invoice {case['invoice_no']} from {d['supplier_name']}, {(d['category'] or 'mixed').replace('it_', 'IT ').replace('_', ' ')} for {amt} net"
 
     def describe_delta(self, base: dict[str, Any], variant: dict[str, Any]) -> str:
         return (variant.get("_probe") or {}).get("delta", "a slightly different case")

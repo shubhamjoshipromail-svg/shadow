@@ -55,6 +55,7 @@ class Inquiry:
     target_node: str | None = None
     screen_moment: dict[str, Any] | None = None
     reason: str = ""
+    peer: dict[str, Any] | None = None  # "two experts, one task": who else decided this differently, and why we ask
 
     def to_json(self) -> dict[str, Any]:
         d = {k: v for k, v in self.__dict__.items() if k != "probe_case"}

@@ -1029,6 +1029,8 @@ class Session:
             before={**(receipts.predict_field(before, self.pack, case_for_compile, f) or {}),
                     "committed": q.predicted_value},
             evaluation=q.type == "exam")
+        if q.peer:
+            rc["peer"] = {"other_expert": q.peer["other_expert"], "question_id": q.peer["id"]}
         try:
             compiled = await self.compiler(self.pack, self.wm, q.to_json(), transcript, case_for_compile)
             rc["provenance"] = self._provenance()  # the model that actually compiled this answer
@@ -1140,6 +1142,11 @@ class Session:
         if receipts.is_empty(rc["diff"]):
             rc["status"] = "no_change"
         await self._publish_receipt(rc)
+        self._peer_progress(q, "answered", receipt_id=rc["id"], answer={
+            "quote": quote.text, "translation": quote.translation, "transcript": transcript,
+            "map_version": self.wm.version, "receipt_status": rc.get("status"),
+            "added": [n["id"] for n in (rc["diff"] or {}).get("added", [])],
+            "params": (rc["diff"] or {}).get("params", []), "answered_at": time.time()})
         info_gain = (h_before - hs.entropy()) if (hs and h_before is not None) else (0.8 if new_nodes else 0.1)
         if hasattr(q, "bandit_ctx") and q.type in self.planner.bandit.arms:
             secs = max(3.0, len(transcript.split()) / 2.5)
@@ -1165,6 +1172,8 @@ class Session:
         for q in list(self.planner.queue):
             if q.type not in ("cue_probe", "confirm", "comparison") or q.expert_value is None or not q.field:
                 continue
+            if q.peer:
+                continue  # asked for the *reason*; the map already agreeing with the expert is the point, not a reason to skip
             case = self.cases.get(q.case_id or "")
             if case is None or q.probe_case is not None:
                 continue
@@ -1376,6 +1385,7 @@ class Session:
             q.phase = "debrief"
         await self._add_unverified_confirms()
         self._add_conflict_probes()
+        self._add_peer_questions()
         self._add_coverage_probes()
         self._add_exploration_probes()
         self._build_exam()
@@ -1438,6 +1448,44 @@ class Session:
                 q.text = (f"Two of your rules collide on one case: same {noun}, but {q.probe_delta.rstrip('. ')}. "
                           f"'{a.title}' says {va}, '{b.title}' says {vb}. Which one wins?")
                 self.planner.enqueue(q)
+
+    def _add_peer_questions(self) -> None:
+        """Questions another expert's Work Map raised about this expert's decisions ("two experts, one task").
+
+        They were generated from a comparison and queued in the store for this expert and workflow; each is
+        asked verbatim in the debrief, about the very case where the two disagreed. The answer is compiled like
+        any other (it gets a receipt), so what the expert says about the difference becomes part of the map.
+        """
+        if not self.store:
+            return
+        try:
+            rows = self.store.peer_questions_for(self.pack.id, self.expert, statuses=["queued", "asked"],
+                                                 simulated=self.simulated)
+        except Exception:  # noqa: BLE001 - a missing question list must never break a debrief
+            log.exception("peer questions unavailable")
+            return
+        have = {q.peer["id"] for q in [*self.planner.queue, *self.planner.history] if q.peer}
+        for row in rows:
+            if row["id"] in have:
+                continue
+            case = row.get("case_facts") or {}
+            if case.get("id"):
+                self.cases.setdefault(case["id"], case)
+            q = Inquiry(id=self.planner.new_id(), type="cue_probe", case_id=case.get("id"), field=row["field"],
+                        text=row["text"], evoi=0.97, impact=0.9, phase="debrief",
+                        expert_value=row.get("own_value"), predicted_value=row.get("other_value"),
+                        reason=f"{row['other_expert']} decided this differently",
+                        peer={"id": row["id"], "other_expert": row["other_expert"], "key": row["conflict_key"],
+                              "other_value": row.get("other_value"), "own_value": row.get("own_value")})
+            self.planner.enqueue(q)
+
+    def _peer_progress(self, q: Inquiry, status: str, **fields: Any) -> None:
+        if not (q.peer and self.store):
+            return
+        try:
+            self.store.update_peer_question(q.peer["id"], status=status, session_id=self.id, **fields)
+        except Exception:  # noqa: BLE001
+            log.exception("peer question update failed")
 
     def _add_coverage_probes(self) -> None:
         """Cases next to a learned rule that it doesn't cover: does the expert's judgment extend there?"""
@@ -1596,6 +1644,7 @@ class Session:
         asked_debrief = sum(1 for q in self.planner.history if q.phase == "debrief" and q.status in ("asked", "answered"))
         if agenda and (asked_debrief < 3 or agenda[0].value > 0):
             q = self.planner.mark_asked(agenda[0])
+            self._peer_progress(q, "asked")
             if not q.text:
                 q.text = questions.template(self.pack, q.type, case=self.cases.get(q.case_id or ""), field=q.field,
                                             expert_value=q.expert_value, predicted_value=q.predicted_value,

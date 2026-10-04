@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { API, api, mmss } from '../lib/api'
+import { API, api } from '../lib/api'
 import type { MapNode, Snapshot } from '../lib/types'
 import { BeliefBadge, Btn, Mark, Testimony, Wordmark, statusProv } from '../components/ui'
+import { MomentButton, MomentPanel } from '../components/Moment'
 import { nodeTitle, whenText } from '../components/WorkMapView'
 
 const EVIDENCE_WORD: Record<string, string> = {
@@ -15,7 +16,14 @@ export default function MapPage() {
   const { sid } = useParams()
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [sel, setSel] = useState<string | null>(null)
+  const [openMoment, setOpenMoment] = useState<string | null>(null)
   useEffect(() => { api<Snapshot>(`/api/sessions/${sid}`).then(setSnap) }, [sid])
+  useEffect(() => {
+    if (!openMoment) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMoment(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openMoment])
   if (!snap) return <div className="p-10 text-[13px] text-ink-2">Opening the Work Map…</div>
   const wm = snap.map
   const nodes = new Map([...wm.rules, ...wm.guardrails].map((n) => [n.id, n]))
@@ -32,6 +40,7 @@ export default function MapPage() {
         <Link to={`/s/${sid}`} className="text-[12px] text-ink-2 hover:text-ink-1">← session</Link>
         <Wordmark />
         <div className="ml-auto flex gap-1.5">
+          <Link to={`/w/${snap.pack.id}/compare?a=${encodeURIComponent(snap.expert)}`}><Btn tone="ghost">Compare experts</Btn></Link>
           <a href={`${API}/api/sessions/${sid}/export/md`} target="_blank"><Btn>SOP ↗</Btn></a>
           <a href={`${API}/api/sessions/${sid}/export/skill`} target="_blank"><Btn>Agent skill ↗</Btn></a>
           <a href={`${API}/api/sessions/${sid}/export/json`} target="_blank"><Btn tone="ghost">JSON ↗</Btn></a>
@@ -54,31 +63,45 @@ export default function MapPage() {
               const ns = [...s.rule_ids, ...s.guardrail_ids].map((id) => nodes.get(id)).filter(Boolean) as MapNode[]
               const learned = ns.filter((n) => n.origin !== 'doc' && n.belief.status !== 'contested')
               const doc = ns.filter((n) => n.origin === 'doc')
+              const sm = s.screen_moment
+              const momentKey = `step:${s.id}`
               return (
                 <li key={s.id} className="grid grid-cols-[40px_1fr]">
                   <span className="num pt-1 text-[12px] text-ink-3">§{s.order}</span>
                   <div>
                     <div className="flex items-baseline justify-between gap-4">
                       <h2 className="m-0 text-[17px] font-medium">{s.name}</h2>
-                      {s.screen_moment?.ts != null && <span className="num text-[10.5px] text-inferred">▶ {mmss(s.screen_moment.ts)}{s.screen_moment.entity ? ` · ${s.screen_moment.entity}` : ''}</span>}
+                      {sm && <MomentButton snap={snap} source={{ key: momentKey, moment: sm, step: s }}
+                        open={openMoment === momentKey} onToggle={() => setOpenMoment(openMoment === momentKey ? null : momentKey)} showEntity />}
                     </div>
+                    {openMoment === momentKey && sm && <MomentPanel snap={snap} source={{ key: momentKey, moment: sm, step: s }} />}
                     {learned.length === 0 && (
                       <p className="mb-0 mt-1.5 text-[13.5px] text-written">As written in the 2019 process: {doc.map((d) => d.title.replace('Doc: ', '')).join(' · ') || s.description}</p>
                     )}
                     <div className="mt-3 space-y-4">
-                      {learned.map((n) => (
-                        <button key={n.id} onClick={() => setSel(n.id)}
-                          className={`block w-full text-left ${n.type ? `border border-l-[3px] border-l-binding px-4 py-3 ${sel === n.id ? 'border-ink-2' : 'border-rule'}` : `border-t pt-3 ${n.belief.status === 'confirmed' ? 'border-ink-1' : 'border-rule'}`} ${sel === n.id && !n.type ? 'bg-wash' : ''}`}>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <span className={`text-[14.5px] ${n.belief.status === 'inferred' ? 'italic text-inferred' : 'text-ink-1'}`}>
-                              {n.type && <span className="mb-1 block text-[11px] font-medium uppercase tracking-[.08em] text-binding">■ {n.action === 'escalate' ? 'stop and ask' : n.action?.replace('_', ' ')}{n.ask ? ` · ${n.ask}` : ''}</span>}
-                              {nodeTitle(n, wm.params)}
-                            </span>
-                            <BeliefBadge status={n.belief.status} guardrail={!!n.type} />
+                      {learned.map((n) => {
+                        const nsm = n.screen_moment
+                        const nodeKey = `node:${n.id}`
+                        return (
+                          <div key={n.id}
+                            className={n.type ? `border border-l-[3px] border-l-binding px-4 py-3 ${sel === n.id ? 'border-ink-2' : 'border-rule'}` : `border-t pt-3 ${n.belief.status === 'confirmed' ? 'border-ink-1' : 'border-rule'} ${sel === n.id ? 'bg-wash' : ''}`}>
+                            <div className="flex items-baseline justify-between gap-3">
+                              <button type="button" onClick={() => setSel(n.id)}
+                                className={`min-w-0 flex-1 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-2 ${n.belief.status === 'inferred' ? 'italic text-inferred' : 'text-ink-1'}`}>
+                                {n.type && <span className="mb-1 block text-[11px] font-medium uppercase tracking-[.08em] text-binding">■ {n.action === 'escalate' ? 'stop and ask' : n.action?.replace('_', ' ')}{n.ask ? ` · ${n.ask}` : ''}</span>}
+                                {nodeTitle(n, wm.params)}
+                              </button>
+                              <span className="flex shrink-0 items-baseline gap-3">
+                                {nsm && <MomentButton snap={snap} source={{ key: nodeKey, moment: nsm, node: n }}
+                                  open={openMoment === nodeKey} onToggle={() => setOpenMoment(openMoment === nodeKey ? null : nodeKey)} />}
+                                <BeliefBadge status={n.belief.status} guardrail={!!n.type} />
+                              </span>
+                            </div>
+                            {n.quote && <div className="mt-2"><Testimony quote={n.quote} size="sm" /></div>}
+                            {openMoment === nodeKey && nsm && <MomentPanel snap={snap} source={{ key: nodeKey, moment: nsm, node: n }} />}
                           </div>
-                          {n.quote && <div className="mt-2"><Testimony quote={n.quote} size="sm" /></div>}
-                        </button>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </li>

@@ -23,14 +23,15 @@ Pure functions: no session, no store, no LLM. Everything the engine needs is the
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any, Iterable
 
-from shadow import dsl, receipts
+from shadow import dsl, questions, receipts
 from shadow.packs.base import Pack
 from shadow.workmap import ACTIVE, Guardrail, Rule, WorkMap, run_map
 
-__all__ = ["compare_maps", "questions_for", "comparison_pool"]
+__all__ = ["compare_maps", "questions_for", "peer_question", "conflict_key", "comparison_pool", "node_view"]
 
 DECISION_ACTION = "action"
 
@@ -206,6 +207,72 @@ def _node_view(wm: WorkMap, source: str | None) -> tuple[str | None, str | None,
     return source, node.title, (node.quote.text if node.quote else None)
 
 
+def _moment(node: Rule | Guardrail) -> dict[str, Any] | None:
+    m = node.screen_moment
+    if m is None or (m.ts is None and not m.entity and not m.frame_id):
+        return None
+    return {"ts": m.ts, "entity": m.entity, "field": m.field, "frame_id": m.frame_id}
+
+
+def node_view(node: Rule | Guardrail | None) -> dict[str, Any] | None:
+    """What the comparison page shows about one rule or guardrail: its title, its effect, the expert's own
+    words and the moment on screen where they said it."""
+    if node is None:
+        return None
+    return {
+        "id": node.id, "title": node.title, "kind": _node_kind(node), "when": node.when,
+        "effect": _node_effect(node), "origin": node.origin,
+        "guardrail_type": getattr(node, "type", None), "ask": getattr(node, "ask", None),
+        "status": node.belief.status,
+        "quote": ({"text": node.quote.text, "speaker": node.quote.speaker, "ts": node.quote.ts,
+                   "translation": node.quote.translation} if node.quote else None),
+        "moment": _moment(node),
+    }
+
+
+def conflict_key(field: str, a_title: str | None, a_value: Any, b_title: str | None, b_value: Any) -> str:
+    """A stable name for one conflict, so a queued question can find its conflict again later."""
+    raw = "|".join([field, a_title or "", str(a_value), b_title or "", str(b_value)])
+    return hashlib.sha1(raw.encode()).hexdigest()[:12]
+
+
+def _param_nodes(wm: WorkMap, param: str) -> list[Rule | Guardrail]:
+    nodes = [n for n in [*wm.rules, *wm.guardrails] if f"params.{param}" in n.when]
+    return sorted(nodes, key=lambda n: (n.origin == "doc", n.id))
+
+
+def _threshold_context(map_a: WorkMap, map_b: WorkMap) -> list[dict[str, Any]]:
+    """Each numeric limit the two set differently, with the rule it belongs to and the expert's words for it."""
+    out = []
+    for d in _threshold_diffs(map_a, map_b):
+        na, nb = _param_nodes(map_a, d["param"]), _param_nodes(map_b, d["param"])
+        out.append({**d, "a_node": node_view(na[0]) if na else None, "b_node": node_view(nb[0]) if nb else None})
+    return out
+
+
+def _shared_learned(map_a: WorkMap, map_b: WorkMap) -> tuple[list[dict[str, Any]], int]:
+    """Learned rules both maps carry (same condition and effect), plus how many written-process clauses they share."""
+    sig_b = {_node_signature(n): n for n in [*map_b.rules, *map_b.guardrails]}
+    shared, written = [], 0
+    for n in [*map_a.rules, *map_a.guardrails]:
+        twin = sig_b.get(_node_signature(n))
+        if twin is None:
+            continue
+        if n.origin == "doc" and twin.origin == "doc":
+            written += 1
+        else:
+            shared.append({"title": n.title, "a": node_view(n), "b": node_view(twin)})
+    return shared, written
+
+
+def _unique_nodes(map_a: WorkMap, map_b: WorkMap) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    sig_a = {_node_signature(n): n for n in [*map_a.rules, *map_a.guardrails]}
+    sig_b = {_node_signature(n): n for n in [*map_b.rules, *map_b.guardrails]}
+    ua = [node_view(n) for sig, n in sig_a.items() if sig not in sig_b and n.origin != "doc"]
+    ub = [node_view(n) for sig, n in sig_b.items() if sig not in sig_a and n.origin != "doc"]
+    return [v for v in ua if v], [v for v in ub if v]
+
+
 def _values(pack: Pack, map_a: WorkMap, map_b: WorkMap, case: dict[str, Any]) -> list[dict[str, Any]]:
     pred_a = run_map(map_a, pack, case, ACTIVE)
     pred_b = run_map(map_b, pack, case, ACTIVE)
@@ -224,7 +291,9 @@ def _values(pack: Pack, map_a: WorkMap, map_b: WorkMap, case: dict[str, Any]) ->
         rows.append({
             "field": field, "agree": False,
             "a_value": a_value, "a_rule": a_id, "a_rule_title": a_title, "a_quote": a_quote,
+            "a_node": node_view(map_a.node(a_id)) if a_id else None,
             "b_value": b_value, "b_rule": b_id, "b_rule_title": b_title, "b_quote": b_quote,
+            "b_node": node_view(map_b.node(b_id)) if b_id else None,
         })
     return rows
 
@@ -254,7 +323,12 @@ def compare_maps(pack: Pack, map_a: WorkMap, map_b: WorkMap, cases: list[dict[st
             g = groups.get(key)
             if g is None:
                 g = {
+                    "key": conflict_key(row["field"], row["a_rule_title"], row["a_value"],
+                                        row["b_rule_title"], row["b_value"]),
                     "case": case.get("id"),
+                    "case_facts": {k: v for k, v in case.items() if not k.startswith("_")},
+                    "case_ref": questions.case_ref(pack, case),
+                    "a_node": row["a_node"], "b_node": row["b_node"],
                     "case_describe": pack.describe(case),
                     "field": row["field"],
                     "field_label": _field_label(pack, row["field"]),
@@ -271,7 +345,12 @@ def compare_maps(pack: Pack, map_a: WorkMap, map_b: WorkMap, cases: list[dict[st
     disagree = sorted(groups.values(),
                       key=lambda g: (-g["count"], g["field"], g["a_rule"] or "", g["b_rule"] or ""))
     only_a, only_b = _shared_and_unique(map_a, map_b)
+    shared, written = _shared_learned(map_a, map_b)
+    unique_a, unique_b = _unique_nodes(map_a, map_b)
     return {
+        "thresholds": _threshold_context(map_a, map_b),
+        "shared": shared, "shared_written": written,
+        "unique": {"a": unique_a, "b": unique_b},
         "agree": agree,
         "disagree": disagree,
         "only_a": only_a,
@@ -326,3 +405,38 @@ def questions_for(conflict: dict[str, Any], expert: str | None = None) -> Any:
     if expert in by_side:
         return by_side[expert]
     raise KeyError(f"unknown expert {expert!r}; expected one of {sorted(set(by_side))}")
+
+
+# ------------------------------------------------------------------ peer questions
+def _short(phrase: str) -> str:
+    """'code it to 0400 (Capex)' -> 'code it to 0400'."""
+    return phrase.split(" (")[0]
+
+
+def peer_question(pack: Pack, conflict: dict[str, Any], side: str) -> str:
+    """The question to put to one expert about a conflict: what the other would do on this very case, what
+    this one would do, and 'what tells you to?'. Written in the pack's own words; never a verdict."""
+    side = "a" if side in ("a", conflict.get("a_expert")) else "b"
+    other = "b" if side == "a" else "a"
+    own_name, other_name = conflict.get(f"{side}_expert") or "you", conflict.get(f"{other}_expert") or "the other expert"
+    field = conflict.get("field") or "action"
+    label = (conflict.get("field_label") or field).lower()
+    own_v, other_v = conflict.get(f"{side}_value"), conflict.get(f"{other}_value")
+    ref = conflict.get("case_ref") or conflict.get("case") or "this one"
+
+    def phrase(v: Any) -> str:
+        if v is not None:
+            return _short(questions.value_phrase(pack, field, v))
+        return "carry on as normal" if field == "action" else f"leave the {label} unset"
+
+    lead = ref
+    facts = conflict.get("case_facts")
+    if facts:
+        try:
+            described = pack.describe(facts).rstrip(". ")
+            lead = described if described.lower().startswith(str(ref).lower()) else f"{ref}, {described}"
+        except Exception:  # noqa: BLE001 - a description is a courtesy, never a reason to fail
+            lead = ref
+    ask = (f"What tells you to {phrase(own_v)}?" if own_v is not None
+           else "What do you look at that makes it fine as it is?")
+    return f"On {lead}, {other_name} would {phrase(other_v)}. You'd {phrase(own_v)}. {ask}"

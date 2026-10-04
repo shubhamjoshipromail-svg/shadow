@@ -7,12 +7,14 @@ import Console from './pages/Console'
 import MapPage from './pages/MapPage'
 import ProofPage from './pages/ProofPage'
 import DataPage from './pages/DataPage'
+import ComparePage from './pages/ComparePage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename="/app">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/w/:packId/compare" element={<ComparePage />} />
         <Route path="/s/:sid" element={<Console />} />
         <Route path="/s/:sid/map" element={<MapPage />} />
         <Route path="/s/:sid/proof" element={<ProofPage />} />

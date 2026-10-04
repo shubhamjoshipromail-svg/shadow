@@ -124,7 +124,7 @@ async def create_session(body: NewSession) -> dict[str, Any]:
         wm = sessions[body.from_session].wm.model_copy(deep=True)
         source = {"kind": "session", "session": body.from_session, "version": wm.version}
     elif body.mode != "capture" or not body.fresh:
-        saved = store.latest_map_row(expert, pack.id)
+        saved = store.latest_map_row(expert, pack.id, include_simulated=body.simulate)
         if not saved and body.expert is None and (body.mode == "tutor" or not body.fresh):
             saved = store.latest_map_any(pack.id)  # teach from whichever expert taught this workflow last
         if saved:
@@ -484,33 +484,116 @@ async def list_workflows(workspace: str | None = None) -> list[dict[str, Any]]:
         mine = [r for r in rows if r["pack_id"] == w["id"] and not (r["meta"] or {}).get("simulated")]
         experts = sorted({r["expert"] for r in mine if r["mode"] != "tutor"})
         learners = sorted({(r["meta"] or {}).get("trainee") for r in mine if r["mode"] == "tutor"} - {None})
-        out.append({**w, "experts": experts, "learners": learners, "sessions": len(mine)})
+        out.append({**w, "experts": experts, "learners": learners, "sessions": len(mine),
+                    # everyone with a saved Work Map for this workflow; rehearsal experts are labelled, never merged
+                    "compare_experts": [{"expert": m["expert"], "simulated": m["simulated"]}
+                                        for m in store.expert_maps(w["id"], include_simulated=True)]})
     return out
 
 
-def _expert_map(pack_id: str, who: str) -> tuple[WorkMap, str, list[dict[str, Any]]]:
-    """`who` is a live session id or an expert name (their newest saved, live-taught map)."""
+def _expert_map(pack_id: str, who: str, allow_simulated: bool = False) -> tuple[WorkMap, str, list[dict[str, Any]], bool]:
+    """`who` is a live session id or an expert name (their newest saved, live-taught map).
+
+    A map taught by the simulator is only returned when the caller says so (a labelled Rehearsal comparison);
+    everywhere else a Rehearsal map stays invisible."""
     if who in sessions and sessions[who].pack.id == pack_id:
         s = sessions[who]
-        return s.wm, s.expert, [s.cases[c] for c in s.case_order]
-    row = store.latest_map_row(who, pack_id)
+        if s.simulated and not allow_simulated:
+            raise HTTPException(409, f"{s.expert} is a simulated (Rehearsal) expert. Include simulated experts to compare them.")
+        return s.wm, s.expert, [s.cases[c] for c in s.case_order], s.simulated
+    row = store.latest_map_row(who, pack_id, include_simulated=allow_simulated)
     if not row:
+        hidden = store.latest_map_row(who, pack_id, include_simulated=True)
+        if hidden:
+            raise HTTPException(409, f"The only saved Work Map for {who} was taught by the simulator (Rehearsal). "
+                                     "Include simulated experts to compare it, labelled as such.")
         raise HTTPException(404, f"No saved Work Map from {who} for this workflow yet.")
-    return WorkMap(**row["map"]), who, []
+    return WorkMap(**row["map"]), who, [], bool(row.get("simulated"))
 
 
-@app.get("/api/workflows/{pack_id}/compare")
-async def compare_experts(pack_id: str, a: str, b: str) -> dict[str, Any]:
-    """Two experts, one task: where their maps agree, where they differ, and the question to ask each."""
+def _peer_view(row: dict[str, Any]) -> dict[str, Any]:
+    keep = ("id", "expert", "other_expert", "text", "status", "field", "case_id", "session_id", "receipt_id", "answer",
+            "simulated", "created", "updated", "conflict_key")
+    return {k: row.get(k) for k in keep}
+
+
+def _compare(pack_id: str, a: str, b: str, simulated: bool) -> tuple[dict[str, Any], Any]:
     pack = get_pack(pack_id)
-    wa, na, ca = _expert_map(pack_id, a)
-    wb, nb, cb = _expert_map(pack_id, b)
+    wa, na, ca, sa = _expert_map(pack_id, a, simulated)
+    wb, nb, cb, sb = _expert_map(pack_id, b, simulated)
+    if na == nb:
+        raise HTTPException(400, "Pick two different experts.")
     out = compare.compare_maps(pack, wa, wb, ca + cb)
+    asked = {(r["expert"], r["conflict_key"]): r
+             for r in store.peer_questions_for(pack_id, simulated=None)
+             if (r["expert"] == na and bool(r["simulated"]) == sa) or (r["expert"] == nb and bool(r["simulated"]) == sb)}
+    keys = set()
     for c in out.get("disagree", []):
         c.setdefault("a_expert", na)
         c.setdefault("b_expert", nb)
-        c["questions"] = compare.questions_for(c)
-    return {"workflow": pack_id, "a": na, "b": nb, **out}
+        keys.add(c["key"])
+        c["questions"] = {"a": compare.peer_question(pack, c, "a"), "b": compare.peer_question(pack, c, "b")}
+        c["asked"] = {side: (_peer_view(asked[(name, c["key"])]) if (name, c["key"]) in asked else None)
+                      for side, name in (("a", na), ("b", nb))}
+    earlier = [_peer_view(r) for (who, key), r in asked.items() if key not in keys]
+    earlier.sort(key=lambda r: r["created"] or 0)
+    return {"workflow": pack_id, "workflow_name": pack.name, "a": na, "b": nb,
+            "simulated": {"a": sa, "b": sb}, **out, "earlier": earlier}, pack
+
+
+@app.get("/api/workflows/{pack_id}/experts")
+async def workflow_experts(pack_id: str, simulated: bool = True) -> list[dict[str, Any]]:
+    """Everyone with a saved Work Map for this workflow. Rehearsal experts carry `simulated: true`."""
+    get_pack(pack_id)
+    return store.expert_maps(pack_id, include_simulated=simulated)
+
+
+@app.get("/api/workflows/{pack_id}/compare")
+async def compare_experts(pack_id: str, a: str, b: str, simulated: bool = False) -> dict[str, Any]:
+    """Two experts, one task: where their maps agree, where they differ, and the question to ask each."""
+    out = _compare(pack_id, a, b, simulated)[0]
+    for c in out["disagree"]:
+        c.pop("case_facts", None)
+    return out
+
+
+class AskWhyBody(BaseModel):
+    a: str
+    b: str
+    simulated: bool = False
+    keys: list[str] | None = None  # which differences (None = all)
+    sides: list[str] = ["a", "b"]  # which experts to ask
+
+
+@app.post("/api/workflows/{pack_id}/compare/ask")
+async def ask_experts_why(pack_id: str, body: AskWhyBody) -> dict[str, Any]:
+    """Queue the question about each difference into that expert's next debrief for this workflow."""
+    result, _pack = _compare(pack_id, body.a, body.b, body.simulated)
+    queued = []
+    for c in result["disagree"]:
+        if body.keys is not None and c["key"] not in body.keys:
+            continue
+        for side in body.sides:
+            if side not in ("a", "b"):
+                raise HTTPException(400, "sides must be 'a' and/or 'b'")
+            me, other = (c["a_expert"], c["b_expert"]) if side == "a" else (c["b_expert"], c["a_expert"])
+            own, theirs = (c["a_value"], c["b_value"]) if side == "a" else (c["b_value"], c["a_value"])
+            row = store.queue_peer_question({
+                "workflow": pack_id, "expert": me, "other_expert": other, "conflict_key": c["key"],
+                "field": c["field"], "case_id": c["case"], "case_facts": c.get("case_facts"),
+                "text": c["questions"][side], "own_value": None if own is None else str(own),
+                "other_value": None if theirs is None else str(theirs),
+                "simulated": result["simulated"][side]})
+            queued.append(_peer_view(row))
+    again = _compare(pack_id, body.a, body.b, body.simulated)[0]
+    for c in again["disagree"]:
+        c.pop("case_facts", None)
+    return {"queued": queued, "compare": again}
+
+
+@app.get("/api/workflows/{pack_id}/peer-questions")
+async def peer_questions(pack_id: str, expert: str | None = None) -> list[dict[str, Any]]:
+    return [_peer_view(r) for r in store.peer_questions_for(pack_id, expert)]
 
 
 class MatchBody(BaseModel):

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Mark, Wordmark } from '../components/ui'
 import { AGENTS } from '../lib/voice'
@@ -18,7 +18,7 @@ export default function Home() {
   const [lang, setLang] = useState('en')
   const [busy, setBusy] = useState<'capture' | 'tutor' | null>(null)
   const [continueSaved, setContinueSaved] = useState(false)
-  const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number }[]>([])
+  const [workflows, setWorkflows] = useState<{ id: string; name: string; kind: string; version: number; experts: string[]; learners: string[]; sessions: number; compare_experts?: { expert: string; simulated: boolean }[] }[]>([])
   const [wfState, setWfState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [workflow, setWorkflow] = useState('ap_invoices')
 
@@ -134,6 +134,16 @@ export default function Home() {
                             {w.learners.length ? ` · training ${w.learners.join(', ')}` : ''}
                           </span>
                         </span>
+                        {(w.compare_experts?.length ?? 0) >= 2 && (
+                          <Link
+                            to={`/w/${w.id}/compare`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 inline-block text-[14px] text-inferred hover:underline"
+                          >
+                            Compare {w.compare_experts!.length} experts
+                            {w.compare_experts!.some((x) => x.simulated) ? ' (includes a rehearsal expert)' : ''} →
+                          </Link>
+                        )}
                       </span>
                     </label>
                   )

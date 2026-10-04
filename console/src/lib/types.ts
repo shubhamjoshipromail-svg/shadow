@@ -121,3 +121,35 @@ export interface Intervention {
 }
 
 export type ShadowEvent = { type: string; t: number; [k: string]: any }
+
+/* ------------------------------------------------------------------ two experts, one task */
+export interface CompareExpert { expert: string; version: number; session_id: string; created: number; simulated: boolean }
+export interface CompareNode {
+  id: string; title: string; kind: 'rule' | 'guardrail'; when: string; effect: unknown; origin: string
+  guardrail_type: string | null; ask: string | null; status: Status
+  quote: { text: string; speaker: string; ts: number | null; translation: string | null } | null
+  moment: { ts: number | null; entity: string | null; field: string | null; frame_id: string | null } | null
+}
+export interface PeerQuestion {
+  id: string; expert: string; other_expert: string; text: string; status: 'queued' | 'asked' | 'answered'
+  field: string; case_id: string | null; session_id: string | null; receipt_id: string | null; simulated: boolean
+  conflict_key: string; created: number; updated: number
+  answer: { quote: string; translation: string | null; transcript: string; map_version: number; receipt_status: string; added: string[]; params: { param: string; before: number | null; after: number | null }[] } | null
+}
+export interface Conflict {
+  key: string; case: string; case_describe: string; case_ref: string; field: string; field_label: string; count: number
+  a_expert: string; b_expert: string
+  a_value: string | null; b_value: string | null
+  a_node: CompareNode | null; b_node: CompareNode | null
+  questions: { a: string; b: string }
+  asked: { a: PeerQuestion | null; b: PeerQuestion | null }
+}
+export interface Comparison {
+  workflow: string; workflow_name: string; a: string; b: string; simulated: { a: boolean; b: boolean }
+  agree: number; n_cases: number; n_comparisons: number; shared_written: number
+  disagree: Conflict[]
+  thresholds: { param: string; a: number | null; b: number | null; a_node: CompareNode | null; b_node: CompareNode | null }[]
+  shared: { title: string; a: CompareNode; b: CompareNode }[]
+  unique: { a: CompareNode[]; b: CompareNode[] }
+  earlier: PeerQuestion[]
+}
