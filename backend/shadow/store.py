@@ -173,6 +173,7 @@ class Store:
 
     def list_workflows(self, workspace: str | None = None) -> list[dict[str, Any]]:
         q = select(workflows.c.id, workflows.c.workspace, workflows.c.name, workflows.c.version,
+                   workflows.c.definition["goal"].as_string().label("goal"),
                    workflows.c.signature, workflows.c.updated).order_by(workflows.c.updated.desc())
         if workspace:
             q = q.where(workflows.c.workspace == workspace)

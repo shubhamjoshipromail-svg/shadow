@@ -247,6 +247,7 @@
     var nodes = document.querySelectorAll("input,select,textarea");
     for (var i = 0; i < nodes.length && out.length < MAX_FIELDS; i++) {
       var el = nodes[i];
+      if (/^(submit|button|reset)$/i.test(typeOf(el))) continue;
       if (insideShadowUI(el) || sensitive(el) || !visible(el)) continue;
       out.push(fieldRecord(el));
     }
@@ -275,11 +276,17 @@
   }
 
   function snapshot() {
-    return { url: location.href, title: norm(document.title), fields: fields() };
+    var actions = [];
+    var buttons = document.querySelectorAll('button,[role="button"],input[type="submit"],input[type="button"]');
+    for (var i = 0; i < buttons.length; i++) {
+      if (!insideShadowUI(buttons[i]) && visible(buttons[i])) actions.push(actionOf(buttons[i]));
+    }
+    return { url: location.href, title: norm(document.title), fields: fields(), actions: actions };
   }
 
   function observe() {
     var snap = snapshot();
+    if (location.href !== lastUrl) lastClick = { name: "", t: 0 };
     lastUrl = location.href;
     lastSignature = snap.fields.map(function (f) { return f.name + ":" + f.value_kind; }).join("|");
     baseline = {};
@@ -351,7 +358,12 @@
     var now = Date.now();
     if (a.name === lastClick.name && now - lastClick.t < 400) return; // double-fire guard
     lastClick = { name: a.name, t: now };
-    emit({ type: "action", name: a.name, label: a.label });
+    emitAction(a, btn);
+  }
+
+  function emitAction(a, btn) {
+    emit({ type: "action", name: a.name, label: a.label, fields: fields(),
+           terminal: typeOf(btn) === "submit" || /\b(save|submit|approve|reject|resolve|escalate|confirm|complete|publish)\b/i.test(a.label + " " + a.name.replace(/_/g, " ")) });
   }
 
   function submitted(evt) {
@@ -360,7 +372,10 @@
     var submitter = evt.submitter || form.querySelector('button[type="submit"],input[type="submit"]');
     if (submitter && !insideShadowUI(submitter)) {
       var a = actionOf(submitter);
-      if (a.name) emit({ type: "action", name: a.name, label: a.label });
+      if (a.name && !(a.name === lastClick.name && Date.now() - lastClick.t < 400)) {
+        lastClick = { name: a.name, t: Date.now() };
+        emitAction(a, submitter);
+      }
     }
   }
 
@@ -418,4 +433,5 @@
     refresh: observe,
     fields: fields,
   };
+  window.dispatchEvent(new Event("shadow-observer-ready"));
 })();

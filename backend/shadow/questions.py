@@ -83,7 +83,7 @@ def value_phrase(pack: Pack, field: str, value: Any) -> str:
     label = spec.option_labels.get(str(value)) if spec else None
     if field == "cost_center":
         return f"code it to {value}" + (f" ({label})" if label else "")
-    return f"use {value}" + (f" ({label})" if label else "")
+    return f"use {value}" + (f" ({label})" if label and label != str(value) else "")
 
 
 def did_phrase(pack: Pack, field: str, expert: Any, predicted: Any, case_ref: str) -> str:
@@ -131,6 +131,8 @@ def template(pack: Pack, qtype: str, *, case: dict[str, Any] | None, field: str 
         a, b = hyps[0]["title"], hyps[1]["title"]
         return f"On {ref}, what decided it: {a[0].lower() + a[1:]}, or {b[0].lower() + b[1:]}?"
     if qtype == "counterfactual":
+        if expert_value is None:
+            return f"Imagine the same {noun}, but {probe_delta}. What would you do?"
         return (f"Imagine the same {noun}, but {probe_delta}. Would you still "
                 f"{value_phrase(pack, field or '', expert_value)}?")
     if qtype == "boundary":

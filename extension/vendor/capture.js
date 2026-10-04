@@ -34,6 +34,16 @@
   var SID = PINNED;
   if (urlPin) storeSet(SESSION_KEY, urlPin);
   var MODE = null;
+  var WORKFLOW = null, SIMULATED = false;
+  var GENERIC_PAGE = !(window.shadowERP || document.querySelector("[data-shadow-case],[data-shadow-field]"));
+  var LEARN_KEY = "shadow.learning", LEARN = { stage: "idle", goal: "", demos: [], current: [], match: null, error: "" };
+  try {
+    var savedLearn = JSON.parse(storeGet(LEARN_KEY) || "null");
+    if (savedLearn && !SID) {
+      LEARN = savedLearn;
+      if (["matching", "creating", "continuing"].indexOf(LEARN.stage) >= 0) LEARN.stage = LEARN.demos.length ? "stopped" : "idle";
+    }
+  } catch (e) {}
   var ws = null, outbox = [], lastCase = null;
 
   // companion state
@@ -44,12 +54,13 @@
   function later(name, ms, fn) { clearTimeout(T[name]); T[name] = setTimeout(fn, ms); }
 
   function connect() {
-    try { ws = new WebSocket(API.replace(/^http/, "ws") + "/ws/capture" + (PINNED ? "?session=" + PINNED : "")); }
+    try { ws = new WebSocket(API.replace(/^http/, "ws") + "/ws/capture" + (PINNED ? "?session=" + PINNED : (GENERIC_PAGE ? "?follow_latest=false" : ""))); }
     catch (e) { F.offline = true; render(); setTimeout(connect, 3000); return; }
     ws.onopen = function () {
       F.offline = false; render();
       outbox.splice(0).forEach(function (m) { ws.send(m); });
       send({ type: "hello" });
+      if (SID && GENERIC_PAGE && window.shadowObserve) sendSnapshot();
     };
     ws.onmessage = function (e) {
       var m;
@@ -237,6 +248,7 @@
   }
   function unpinSession() {
     PINNED = null; SID = null; MODE = null;
+    WORKFLOW = null; SIMULATED = false;
     storeDel(SESSION_KEY);
     if (ws) reconnect();
   }
@@ -249,12 +261,24 @@
   // a server message can pin an unpinned observer, and can end the session from the other side
   function afterServer(m) {
     if (!m || typeof m !== "object") return;
+    if (m.type === "session_missing" && m.session === SID) {
+      unpinSession(); render();
+      toast(["That session is no longer available. Continue its saved workflow or show a new task."]);
+      return;
+    }
     if (m.type === "ended") {
       if (SID && (!m.session || m.session === SID)) { stopReplays(); unpinSession(); render(); }
       return;
     }
     if (!PINNED && SID) pinSession(SID, MODE);
-    if (m.type === "session") renderSession();
+    if (m.type === "session") {
+      api("/api/sessions/" + SID).then(function (snap) {
+        if (snap.id !== SID) return;
+        WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert;
+        takeMetrics(snap.metrics); render();
+      }).catch(function () {});
+      renderSession();
+    }
   }
   // /api/config is fetched once: console_url may be "" meaning "same origin as the API"
   function loadConfig() {
@@ -271,6 +295,7 @@
   }
   function startSession() {
     if (SID) return;
+    if (GENERIC_PAGE) { learnTask(); return; }
     var b = $("b-start");
     if (b) b.disabled = true;
     // starting a session also starts the voice: one click, and Tacet can actually speak
@@ -296,8 +321,9 @@
     var line = $("sess-t");
     if (!line) return;
     var nb = $("nb"), start = $("b-start"), end = $("b-end"), yes = $("b-end-yes"), no = $("b-end-no");
-    line.textContent = SID ? ("Session " + SID.slice(0, 6) + " \u00b7 " + (MODE || "capture")) : "Not recording";
-    start.hidden = !!SID;
+    line.textContent = SID ? ((SIMULATED ? "Practice \u00b7 simulated expert" : "Live") + " \u00b7 " +
+      (WORKFLOW ? WORKFLOW.name : "Session " + SID.slice(0, 6)) + " \u00b7 " + (MODE || "capture")) : "Not recording";
+    start.hidden = !!SID || GENERIC_PAGE || LEARN.stage !== "idle";
     nb.href = notebookURL();
     nb.style.display = (SID && !CONFIRM_END) ? "" : "none";
     end.hidden = !SID || CONFIRM_END;
@@ -308,6 +334,127 @@
       ? ("Replays: on \u00b7 " + REPLAYS.frames.length + " frames kept on this device")
       : "Replays: off";
     if (sw) sw.setAttribute("aria-checked", REPLAYS.on ? "true" : "false");
+    renderLearning();
+  }
+
+  // Generic observers use this companion's pinned connection. Unassigned page
+  // events stay local; they must never teach some other tab's latest session.
+  function sendSnapshot() {
+    var snap = window.shadowObserve.snapshot();
+    send({ type: "observe", url: snap.url, title: snap.title, fields: snap.fields });
+  }
+  function keepLearning() { storeSet(LEARN_KEY, JSON.stringify(LEARN)); }
+  function receiveObservation(evt) {
+    if (LEARN.stage === "watching" && !F.off) {
+      if (!LEARN.current.length && evt.type !== "observe") {
+        var snap = window.shadowObserve.snapshot();
+        // change fires after the edit: restore its opening value for the demo.
+        if (evt.type === "field_changed") snap.fields.forEach(function (f) { if (f.name === evt.field) f.value = evt.before; });
+        LEARN.current.push({ type: "observe", url: snap.url, title: snap.title, fields: snap.fields });
+      }
+      LEARN.current.push(evt);
+      if (evt.type === "action" && evt.terminal) {
+        LEARN.demos.push(LEARN.current); LEARN.current = [];
+      }
+      keepLearning(); renderLearning();
+    } else if (SID && LEARN.stage === "idle" && !F.off) send(evt);
+  }
+  function wireObserver() {
+    if (!GENERIC_PAGE || !window.shadowObserve || window.__shadowObserverConnected) return;
+    window.__shadowObserverConnected = true;
+    window.shadowObserve.on(receiveObservation);
+    if (SID) sendSnapshot();
+    else if (LEARN.stage === "watching") window.shadowObserve.refresh();
+    render();
+  }
+  window.__shadowWireObserver = wireObserver;
+  window.addEventListener("shadow-observer-ready", wireObserver);
+  function learnTask() {
+    if (SID) return;
+    F.open = true; LEARN.stage = "matching"; LEARN.error = ""; render();
+    if (!window.shadowObserve) {
+      var obs = document.createElement("script"); obs.src = API + "/observe.js";
+      obs.onload = matchPage; obs.onerror = function () { LEARN.error = "The page observer could not load. Try again when Tacet is connected."; renderLearning(); };
+      document.head.appendChild(obs);
+    } else matchPage();
+  }
+  function matchPage() {
+    var snap = window.shadowObserve.snapshot();
+    api("/api/workflows/match", { url: snap.url, fields: snap.fields.map(function (f) { return f.name; }),
+      actions: (snap.actions || []).map(function (a) { return a.name; }) }).then(function (match) {
+      LEARN.match = match; LEARN.stage = match.verdict === "new" ? "goal" : "choose"; renderLearning();
+    }).catch(function () { LEARN.error = "I couldn\u2019t check this page. Connect to Tacet, then try again."; renderLearning(); });
+  }
+  function watchTask() {
+    var goal = $("learn-goal").value.trim();
+    if (!goal) { $("learn-goal").focus(); return; }
+    LEARN.goal = goal; LEARN.stage = "watching"; LEARN.error = "";
+    F.off = false; window.shadowObserve.refresh(); keepLearning(); render();
+  }
+  function stopWatching() { LEARN.stage = "stopped"; keepLearning(); render(); }
+  function resumeWatching() {
+    LEARN.stage = "watching"; F.off = false;
+    // Keep a partial demonstration's opening snapshot across a deliberate pause.
+    if (!LEARN.current.length) window.shadowObserve.refresh();
+    keepLearning(); render();
+  }
+  function useSession(snap) {
+    LEARN = { stage: "idle", goal: "", demos: [], current: [], match: null, error: "" };
+    storeDel(LEARN_KEY); outbox = [];
+    WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert;
+    pinSession(snap.id, snap.mode); takeMetrics(snap.metrics); reconnect(); render();
+  }
+  function doneShowing() {
+    if (!LEARN.demos.length || LEARN.stage === "creating") return;
+    LEARN.stage = "creating"; LEARN.error = ""; render();
+    api("/api/onboard", { goal: LEARN.goal, demos: LEARN.demos, events: true }).then(function (r) {
+      useSession(r.session);
+      toast(["I\u2019ve opened a Work Map. Keep working; I\u2019ll ask when I need to understand a decision."]);
+    }).catch(function (e) { LEARN.stage = "stopped"; LEARN.error = e.message || "I couldn\u2019t open this workflow. Your demonstrations are still here."; keepLearning(); render(); });
+  }
+  function continueWorkflow() {
+    var best = LEARN.match && LEARN.match.best;
+    if (!$("learn-workflow-choice").hidden) best = LEARN.match.candidates.filter(function (c) { return c.id === $("learn-workflow").value; })[0];
+    if (!best) return;
+    LEARN.stage = "continuing"; LEARN.error = ""; render();
+    api("/api/sessions", { mode: "capture", pack: best.id, fresh: false, simulate: false }).then(useSession)
+      .catch(function (e) { LEARN.stage = "choose"; LEARN.error = e.message; renderLearning(); });
+  }
+  function renderLearning() {
+    var stage = LEARN.stage, showing = stage === "watching" || stage === "stopped";
+    $("b-learn").hidden = !!SID || stage !== "idle";
+    $("learn").hidden = !!SID || stage === "idle";
+    $("learn-choose").hidden = stage !== "choose";
+    $("learn-form").hidden = stage !== "goal";
+    $("learn-watch").hidden = !showing;
+    $("learn-cancel").hidden = stage === "idle" || stage === "creating" || stage === "continuing";
+    var best = LEARN.match && LEARN.match.best;
+    var candidates = LEARN.match && LEARN.match.candidates || [];
+    candidates = candidates.filter(function (c) { return c.score >= 0.35; });
+    var choices = $("learn-workflow");
+    if (choices.getAttribute("data-options") !== JSON.stringify(candidates)) {
+      choices.textContent = "";
+      candidates.forEach(function (c) { var option = document.createElement("option"); option.value = c.id; option.textContent = c.name + (c.goal ? " \u00b7 " + c.goal : ""); choices.appendChild(option); });
+      choices.setAttribute("data-options", JSON.stringify(candidates));
+    }
+    $("learn-workflow-choice").hidden = candidates.length < 2;
+    $("learn-match").textContent = best ? (LEARN.match.verdict === "same" ? "This looks like " : "Is this ") + best.name + (LEARN.match.verdict === "same" ? ". Continue learning it?" : ", or a new task?") : "";
+    $("learn-state").textContent = stage === "matching" ? "Checking this page\u2026" :
+      stage === "creating" ? "Opening your workflow\u2026" : stage === "continuing" ? "Opening the saved Work Map\u2026" : "";
+    $("learn-state").hidden = !$("learn-state").textContent;
+    $("learn-count").textContent = (stage === "watching" ? "Watching" : "Stopped") + " \u00b7 " + LEARN.demos.length +
+      " demonstration" + (LEARN.demos.length === 1 ? "" : "s") + " saved";
+    $("learn-stop").hidden = stage !== "watching";
+    $("learn-resume").hidden = stage !== "stopped";
+    $("learn-done").disabled = !LEARN.demos.length;
+    $("learn-error").textContent = LEARN.error; $("learn-error").hidden = !LEARN.error;
+    $("learn-retry").hidden = stage !== "matching" || !LEARN.error;
+    if (stage === "watching" || stage === "stopped") {
+      $("hc-s").textContent = stage === "watching" ? (F.off ? "Watching paused \u00b7 off the record" : "Watching \u00b7 live demonstrations") : "Watching stopped";
+      $("hint").textContent = stage === "watching" ? (F.off ? "Observation paused" : "Watching this task") : "Watching stopped";
+    }
+    $("rows").hidden = !SID;
+    $("session-acts").hidden = !SID;
   }
   // optional local replays: frames never leave the device and are dropped when the replay stops
   function startReplays() {
@@ -450,6 +597,10 @@
     '.sess-line{font:600 11px ui-monospace,SFMono-Regular,monospace;color:var(--muted);letter-spacing:.02em}' +
     '.sess-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px}' +
     '.sess-acts .nb{margin:0}' +
+    '.learn{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;font-size:12px}' +
+    '.learn p{margin:0 0 9px;color:var(--muted)}.learn label{display:block;margin-bottom:5px;color:var(--ink)}' +
+    '.learn input,.learn select{width:100%;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);padding:7px 9px;margin-bottom:9px}' +
+    '.learn [hidden],.rows[hidden],.acts[hidden]{display:none}.btn:disabled{opacity:.5;cursor:default}' +
     '.switch{all:unset;cursor:pointer;display:inline-block;position:relative;width:30px;height:16px;border-radius:8px;background:#e7e5da;border:1px solid var(--line);transition:background .2s,border-color .2s}' +
     '.switch i{position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid var(--line);transition:transform .18s}' +
     '.switch[aria-checked="true"]{background:var(--accent);border-color:#556b49}' +
@@ -493,6 +644,7 @@
     '@media (prefers-reduced-motion:reduce){#w *,#w *::before,#w *::after{animation:none!important;transition:none!important}}';
 
   var host = document.createElement("div");
+  host.setAttribute("data-shadow-ui", "companion");
   host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;";
   var root = host.attachShadow({ mode: "open" });
   root.innerHTML = '<style>' + CSS + '</style>' +
@@ -509,20 +661,38 @@
             '<div class="sess-line" id="sess-t">Not recording</div>' +
             '<div class="sess-acts">' +
               '<button class="btn accent" id="b-start" type="button">Start session</button>' +
+              '<button class="btn accent" id="b-learn" type="button">Learn this task</button>' +
               '<a class="nb" id="nb" target="_blank" rel="noopener">Open notebook \u2197</a>' +
               '<button class="btn" id="b-end" type="button">End session</button>' +
               '<button class="btn accent" id="b-end-yes" type="button" hidden>End? yes</button>' +
               '<button class="btn" id="b-end-no" type="button" hidden>no</button>' +
             '</div>' +
           '</div>' +
-          '<div class="rows">' +
+          '<div class="learn" id="learn" hidden>' +
+            '<p id="learn-state" role="status" hidden></p>' +
+            '<div id="learn-choose" hidden><p id="learn-match"></p>' +
+              '<label id="learn-workflow-choice" hidden>Which workflow are you doing?<select id="learn-workflow"></select></label><div class="sess-acts">' +
+              '<button class="btn accent" id="learn-continue" type="button">Continue this workflow</button>' +
+              '<button class="btn" id="learn-new" type="button">Learn a new task</button></div></div>' +
+            '<form id="learn-form" hidden><label for="learn-goal">What should this task accomplish?</label>' +
+              '<input id="learn-goal" maxlength="300" placeholder="A one-line goal" required autocomplete="off">' +
+              '<p>Show Mira a few examples. A save or submit finishes each demonstration.</p>' +
+              '<button class="btn accent" type="submit">Start watching</button></form>' +
+            '<div id="learn-watch" hidden><p id="learn-count" role="status"></p><p>One example is enough to start. Two or three help me see what changes.</p>' +
+              '<div class="sess-acts"><button class="btn" id="learn-stop" type="button">Stop</button>' +
+              '<button class="btn" id="learn-resume" type="button" hidden>Resume watching</button>' +
+              '<button class="btn accent" id="learn-done" type="button" disabled>Done showing</button></div></div>' +
+            '<p id="learn-error" role="alert" hidden></p><button class="btn" id="learn-retry" type="button" hidden>Try again</button>' +
+            '<div class="sess-acts"><button class="btn" id="learn-cancel" type="button">Cancel</button></div>' +
+          '</div>' +
+          '<div class="rows" id="rows">' +
             '<div class="row"><span>Rules learned</span><b id="m-rl">\u2014</b></div>' +
             '<div class="row"><span>Rules confirmed</span><b id="m-rc">\u2014</b></div>' +
             '<div class="row"><span>Questions asked</span><b id="m-q">\u2014</b></div>' +
             '<div class="row"><span id="rp-t">Replays: off</span>' +
               '<button class="switch" id="b-replays" type="button" role="switch" aria-checked="false" aria-label="Replays"><i></i></button></div>' +
           '</div>' +
-          '<div class="acts"><button class="btn" id="b-voice" type="button">Talk</button>' +
+          '<div class="acts" id="session-acts"><button class="btn" id="b-voice" type="button">Talk</button>' +
             '<button class="btn accent" id="b-ask" type="button" hidden>Ask me now</button>' +
             '<button class="btn" id="b-debrief" type="button" hidden>Debrief me</button>' +
             '<button class="btn" id="b-teach" type="button" hidden>Teach ' + NOVICE + '</button>' +
@@ -555,6 +725,17 @@
     e.stopPropagation(); clearTimeout(T.open); F.open = false; render();
   });
   $("b-start").addEventListener("click", startSession);
+  $("b-learn").addEventListener("click", learnTask);
+  $("learn-retry").addEventListener("click", learnTask);
+  $("learn-form").addEventListener("submit", function (e) { e.preventDefault(); watchTask(); });
+  $("learn-stop").addEventListener("click", stopWatching);
+  $("learn-resume").addEventListener("click", resumeWatching);
+  $("learn-done").addEventListener("click", doneShowing);
+  $("learn-continue").addEventListener("click", continueWorkflow);
+  $("learn-new").addEventListener("click", function () { LEARN.stage = "goal"; renderLearning(); });
+  $("learn-cancel").addEventListener("click", function () {
+    LEARN = { stage: "idle", goal: "", demos: [], current: [], match: null, error: "" }; storeDel(LEARN_KEY); render();
+  });
   $("b-finish").addEventListener("click", finishPractice);
   $("b-end").addEventListener("click", askEndSession);
   $("b-end-yes").addEventListener("click", endSession);
@@ -625,7 +806,7 @@
     bv.textContent = V.conv ? "Stop talking" : (MODE === "tutor" ? "Talk to the tutor" : "Talk");
     // a question is waiting and nobody can hear it: make the way to hear it obvious
     bv.classList.toggle("accent", !V.conv && (F.asking || F.hand || MODE === "tutor"));
-    $("b-debrief").hidden = !(V.conv && MODE === "capture");
+    $("b-debrief").hidden = !(SID && MODE === "capture");
     $("b-teach").hidden = !(SID && MODE !== "tutor");
     $("b-finish").hidden = !(SID && MODE === "tutor");  // the trainee ends the practice
   }
@@ -639,7 +820,7 @@
     if (NUDGE.level === 1) W.classList.add("nudged");  // level 1: just the soft badge
     if (TEST.hint) W.classList.add("showhint");
     if (!TEST.motion) W.classList.add("still");
-    $("hc-t").textContent = MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + EXPERT;
+    $("hc-t").textContent = !SID ? "Tacet \u00b7 " + NAME : (MODE === "tutor" ? NAME + " tutor \u00b7 watching " + NOVICE : NAME + " \u00b7 learning from " + EXPERT);
     $("hc-s").textContent = meta.status;
     $("m-rl").textContent = M.rules_learned != null ? M.rules_learned : "\u2014";
     $("m-rc").textContent = M.rules_confirmed != null ? M.rules_confirmed : "\u2014";
@@ -932,11 +1113,12 @@
   function api(path, body) {
     return fetch(API + path, body === undefined ? {} : {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
-    }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    }).then(function (r) { return r.json().then(function (data) { if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Tacet could not complete that request."); return data; }); });
   }
 
   function ensureSession() {
     if (SID) return Promise.resolve(SID);
+    if (GENERIC_PAGE) { learnTask(); return Promise.reject(new Error("Show this task first.")); }
     return api("/api/sessions", { mode: "capture" }).then(function (snap) {
       pinSession(snap.id, snap.mode);  // remember it across navigation and reloads
       send({ type: "hello" });
@@ -989,13 +1171,18 @@
 
   function startDebrief() {
     if (!SID) return;
-    api("/api/sessions/" + SID + "/debrief", {}).then(function () { MODE = "debrief"; say("[[shadow:debrief]]"); render(); });
+    api("/api/sessions/" + SID + "/debrief", {}).then(function () {
+      MODE = "debrief"; render();
+      if (V.conv) say("[[shadow:debrief]]");
+      else api("/api/sessions/" + SID + "/utterance", { text: "[[shadow:debrief]]" });
+    }).catch(function (e) { toast([e.message]); });
   }
 
   function teachLena() {
     var from = SID;
     stopVoice();
-    api("/api/sessions", { mode: "tutor", trainee: NOVICE, from_session: from }).then(function (snap) {
+    api("/api/sessions", { mode: "tutor", pack: WORKFLOW ? WORKFLOW.id : "ap_invoices", trainee: NOVICE, from_session: from, simulate: SIMULATED }).then(function (snap) {
+      if (GENERIC_PAGE) { useSession(snap); return; }
       pinSession(snap.id, "tutor");  // remembered for the tab, so the reload lands in the tutor session
       setTimeout(function () { location.href = "/?shadow=" + snap.id; }, 200);  // inbox shows the new hire's cases
     }).catch(function () { toast(["Couldn\u2019t start tutoring \u2014 is a Work Map saved yet?"]); });
@@ -1102,6 +1289,11 @@
   }
 
   render();
+  wireObserver();
+  if (PINNED) api("/api/sessions/" + PINNED).then(function (snap) {
+    if (snap.ended) { unpinSession(); return; }
+    WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert; MODE = snap.mode; render();
+  }).catch(function () { unpinSession(); toast(["That session is no longer available. Continue its saved workflow or show a new task."]); });
   loadConfig();  // fetched once: resolves the notebook URL (console_url, else the API origin)
   connect();
 })();

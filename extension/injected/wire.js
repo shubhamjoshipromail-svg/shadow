@@ -1,7 +1,7 @@
 /* Tacet observer wiring (MAIN world) — runs after vendor/observe.js.
  *
  * observe.js emits page schema and safe field/action events. On pages without their own
- * companion these are forwarded into the companion's capture socket (see loader.js).
+ * companion these are handed to the companion's watch mode and pinned capture socket.
  * On a page that already loaded capture.js itself, observe.js is left unwired so the app's
  * own, richer observer is not duplicated.
  */
@@ -11,16 +11,7 @@
 
   if (window.__shadowHadCapture) return; // the page runs its own observer/companion
   if (!window.shadowObserve || typeof window.shadowObserve.on !== "function") return;
-  if (!window.__shadowBridge) return;
-
-  // observe.js emits its first "observe" before the global is assigned, so send the current
-  // snapshot once; later route changes and field changes arrive through on().
-  try {
-    var snap = window.shadowObserve.snapshot();
-    window.__shadowBridge.send({ type: "observe", url: snap.url, title: snap.title, fields: snap.fields });
-  } catch (e) { /* snapshot is best effort */ }
-
-  window.shadowObserve.on(function (evt) {
-    window.__shadowBridge.send(evt);
-  });
+  // The companion owns watch mode, session identity and privacy pauses. Never
+  // bypass it by forwarding unpinned events straight to the latest session.
+  if (typeof window.__shadowWireObserver === "function") window.__shadowWireObserver();
 })();

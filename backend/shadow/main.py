@@ -117,14 +117,19 @@ async def create_session(body: NewSession) -> dict[str, Any]:
     wm = None
     source: dict[str, Any] = {"kind": "seed"}
     if body.from_session and body.from_session in sessions:
+        if sessions[body.from_session].pack.id != pack.id:
+            raise HTTPException(400, "The source Work Map belongs to a different workflow.")
+        if sessions[body.from_session].simulated and not body.simulate:
+            raise HTTPException(409, "A practice Work Map cannot seed a live session. Keep this a practice run.")
         wm = sessions[body.from_session].wm.model_copy(deep=True)
         source = {"kind": "session", "session": body.from_session, "version": wm.version}
     elif body.mode != "capture" or not body.fresh:
         saved = store.latest_map_row(expert, pack.id)
-        if not saved and body.expert is None and body.mode == "tutor":
+        if not saved and body.expert is None and (body.mode == "tutor" or not body.fresh):
             saved = store.latest_map_any(pack.id)  # teach from whichever expert taught this workflow last
         if saved:
             wm = WorkMap(**saved["map"])
+            expert = wm.expert
             source = {"kind": "saved", "session": saved["session_id"], "version": saved["version"],
                       "saved_at": saved["created"]}
         elif not body.fresh:
@@ -437,7 +442,11 @@ async def onboard_task(body: OnboardBody) -> dict[str, Any]:
     if not body.demos:
         raise HTTPException(400, "Show at least one demonstration first.")
     demos = [onboard.Demo.from_events(d) for d in body.demos] if body.events else [onboard.as_demo(d) for d in body.demos]
-    task = await onboard.propose_task(body.goal, demos, task_id=body.pack_id, save=False)
+    if not body.goal.strip() or any(not d.fields or not d.action or not d.action.name for d in demos):
+        raise HTTPException(400, "Give a goal and finish each demonstration with a save or submit action.")
+    # Choosing a new task on the same page must not overwrite another workflow.
+    task_id = body.pack_id or "workflow_" + uuid.uuid4().hex[:10]
+    task = await onboard.propose_task(body.goal, demos, task_id=task_id, save=False)
     version = store.save_workflow(task.id, body.workspace, task.name, task.model_dump(mode="json"),
                                   wf.demos_signature(demos))  # durable: survives restarts and redeploys
     pack = GenericPack(task)
@@ -447,11 +456,13 @@ async def onboard_task(body: OnboardBody) -> dict[str, Any]:
     s = Session(sid, pack, mode="capture", expert=expert, store=store, lang=body.lang)
     s.workspace = body.workspace
     s.map_source = {"kind": "onboarded", "task": pack.id, "version": version}
+    s.load_policy()
     sessions[sid] = s
     latest.append(sid)
     store.create_session(sid, "capture", pack.id, expert, {"onboarded": True, "goal": body.goal,
                                                            "workspace": body.workspace, "workflow": pack.id,
                                                            "source": s.source, "simulated": False})
+    s._save_map()  # a revisit can continue even before the first post-onboarding save
     return {"task": task.model_dump(mode="json"), "pack_id": pack.id, "session": s.snapshot()}
 
 
@@ -459,7 +470,7 @@ def _known_workflows(workspace: str | None = None) -> list[dict[str, Any]]:
     builtin = get_pack(config.DEFAULT_PACK)
     out = [{"id": builtin.id, "name": builtin.name, "kind": "built-in", "version": 1,
             "signature": wf.pack_signature(builtin, config.ERP_URL + "/invoice/1")}]
-    out += [{"id": r["id"], "name": r["name"], "kind": "learned", "version": r["version"], "signature": r["signature"],
+    out += [{"id": r["id"], "name": r["name"], "goal": r.get("goal"), "kind": "learned", "version": r["version"], "signature": r["signature"],
              "workspace": r["workspace"]} for r in store.list_workflows(workspace)]
     return out
 
@@ -604,7 +615,7 @@ def _companion_view(m: dict[str, Any]) -> dict[str, Any]:
 
 # ---------------------------------------------------------------- websockets
 @app.websocket("/ws/capture")
-async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
+async def ws_capture(ws: WebSocket, session: str | None = None, follow_latest: bool = True) -> None:
     await ws.accept()
     s: Session | None = None
     push = None
@@ -612,6 +623,11 @@ async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
         while True:
             msg = json.loads(await ws.receive_text())
             sid = msg.pop("session", None) or session
+            if not sid and not follow_latest:
+                if s is not None and push is not None:
+                    s.listeners.discard(push)
+                s = push = None
+                continue
             # unpinned observers follow the latest session (e.g. capture -> tutor)
             if not sid and latest and (s is None or s.id != latest[-1]):
                 sid = latest[-1]
@@ -619,6 +635,8 @@ async def ws_capture(ws: WebSocket, session: str | None = None) -> None:
                 try:
                     nxt = _session(sid)
                 except HTTPException:
+                    if sid:
+                        await ws.send_text(json.dumps({"type": "session_missing", "session": sid}))
                     continue
                 if s is not None and push is not None:
                     s.listeners.discard(push)  # stop hearing the previous session

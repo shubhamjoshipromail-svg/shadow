@@ -28,6 +28,12 @@ def test_new_form_elsewhere_is_new_and_partial_overlap_asks():
     assert wf.match(partial, KNOWN)["verdict"] == "ask"
 
 
+def test_two_workflows_with_the_same_controls_need_the_human():
+    known = [{"id": "one", "name": "Route tickets", "signature": INVOICE},
+             {"id": "two", "name": "Audit tickets", "signature": INVOICE}]
+    assert wf.match(INVOICE, known)["verdict"] == "ask"
+
+
 def test_learned_workflow_survives_a_restart(tmp_path):
     store = Store(f"sqlite:///{tmp_path}/s.db")
     task = load_example("expense_approval").model_copy(update={"id": "expense_learned"})

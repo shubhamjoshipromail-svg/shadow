@@ -11,8 +11,8 @@
 
 import { NAME, ENABLED_KEY, SERVER_KEY, siteOf, patternOf, normalizeServer } from "./shared.js";
 
-/* Injected in order. loader.js must run before capture.js so it can bridge the companion's
- * socket; wire.js runs last so it can hand observe.js events to that bridge. */
+/* Injected in order. The companion owns watch mode and pins observer events to
+ * its session. wire.js only requests that connection; it never bypasses it. */
 const INJECT_FILES = [
   "injected/loader.js",
   "vendor/capture.js",
@@ -50,8 +50,7 @@ async function inject(tabId, serverUrl) {
     args: [serverUrl, "Mira"],  // the companion on the page is Mira; the product is Tacet
   });
 
-  // One file per call: the order is then guaranteed, so the companion's socket exists
-  // before wire.js forwards the observer's events into it.
+  // One file per call guarantees the companion is ready before observer wiring.
   for (const file of INJECT_FILES) {
     await chrome.scripting.executeScript({ target, world: "MAIN", files: [file] });
   }

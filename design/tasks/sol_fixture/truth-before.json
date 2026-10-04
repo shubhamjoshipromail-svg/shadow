@@ -1,0 +1,505 @@
+{
+  "sid": "4688e82a56",
+  "task": {
+    "id": "sol_service_desk",
+    "name": "Service desk routing",
+    "task": "sol_service_desk",
+    "goal": "Route each service ticket to the right team.",
+    "expert_name": "expert",
+    "namespace": "task",
+    "version": 1,
+    "reference_date": "2026-10-03",
+    "case_noun": "desk",
+    "process_doc": null,
+    "decision_fields": [
+      {
+        "name": "assigned_team",
+        "label": "Assigned team",
+        "options": [
+          "Engineering",
+          "Dispatch"
+        ],
+        "option_labels": {
+          "Engineering": "Engineering",
+          "Dispatch": "Dispatch"
+        }
+      }
+    ],
+    "actions": [
+      {
+        "name": "save_ticket",
+        "label": "Save routing",
+        "severity": 1
+      }
+    ],
+    "features": [
+      {
+        "name": "open_hours",
+        "label": "Hours open",
+        "type": "num",
+        "source": "Service desk routing · Hours open",
+        "unit": null,
+        "options": [],
+        "lo": 2,
+        "hi": 30,
+        "step": 1,
+        "scale": 1.4,
+        "threshold_capable": true,
+        "threshold_param": null,
+        "values": [
+          2,
+          30,
+          6
+        ],
+        "weights": [],
+        "required": false,
+        "note": "Observed in 3 demonstration value(s)."
+      },
+      {
+        "name": "service_level",
+        "label": "Service level",
+        "type": "cat",
+        "source": "Service desk routing · Service level",
+        "unit": null,
+        "options": [],
+        "lo": null,
+        "hi": null,
+        "step": null,
+        "scale": null,
+        "threshold_capable": false,
+        "threshold_param": null,
+        "values": [],
+        "weights": [],
+        "required": false,
+        "note": "Declared by the goal; not observed yet."
+      },
+      {
+        "name": "assigned_team",
+        "label": "Assigned team",
+        "type": "cat",
+        "source": "Service desk routing · Assigned team",
+        "unit": null,
+        "options": [
+          "Support",
+          "Engineering",
+          "Dispatch"
+        ],
+        "lo": null,
+        "hi": null,
+        "step": null,
+        "scale": null,
+        "threshold_capable": false,
+        "threshold_param": null,
+        "values": [
+          "Support",
+          "Engineering",
+          "Dispatch"
+        ],
+        "weights": [],
+        "required": false,
+        "note": "Observed in 3 demonstration value(s)."
+      }
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "order": 1,
+        "name": "Decide Assigned team",
+        "description": "",
+        "decision_field": "assigned_team",
+        "rule_ids": []
+      }
+    ],
+    "process_rules": [],
+    "process_guardrails": [],
+    "exploration_priors": [
+      [
+        "assigned_team"
+      ]
+    ],
+    "describe_fields": [
+      "open_hours",
+      "service_level",
+      "assigned_team"
+    ],
+    "describe_template": null,
+    "demo": {
+      "capture": [
+        {
+          "id": "sol_service_desk-demo-1",
+          "facts": {
+            "open_hours": 2,
+            "service_level": "Standard",
+            "assigned_team": "Support"
+          },
+          "booking": {
+            "assigned_team": "Engineering",
+            "note": ""
+          },
+          "status": "observed",
+          "_availability": {
+            "open_hours": "observed",
+            "service_level": "observed",
+            "assigned_team": "observed"
+          },
+          "_observations": [
+            {
+              "feature": "open_hours",
+              "keys": [
+                "open_hours",
+                "Hours open"
+              ],
+              "value": 2,
+              "availability": "observed"
+            },
+            {
+              "feature": "service_level",
+              "keys": [
+                "service_level",
+                "Service level"
+              ],
+              "value": "Standard",
+              "availability": "observed"
+            },
+            {
+              "feature": "assigned_team",
+              "keys": [
+                "assigned_team",
+                "Assigned team"
+              ],
+              "value": "Support",
+              "availability": "observed"
+            }
+          ],
+          "_unmapped": [],
+          "_conflicts": [],
+          "_demo": true,
+          "_action": "save_ticket",
+          "_source_url": "http://localhost:8011/tickets.html?case=T-1"
+        },
+        {
+          "id": "sol_service_desk-demo-2",
+          "facts": {
+            "open_hours": 30,
+            "service_level": "Premium",
+            "assigned_team": "Support"
+          },
+          "booking": {
+            "assigned_team": "Dispatch",
+            "note": ""
+          },
+          "status": "observed",
+          "_availability": {
+            "open_hours": "observed",
+            "service_level": "observed",
+            "assigned_team": "observed"
+          },
+          "_observations": [
+            {
+              "feature": "open_hours",
+              "keys": [
+                "open_hours",
+                "Hours open"
+              ],
+              "value": 30,
+              "availability": "observed"
+            },
+            {
+              "feature": "service_level",
+              "keys": [
+                "service_level",
+                "Service level"
+              ],
+              "value": "Premium",
+              "availability": "observed"
+            },
+            {
+              "feature": "assigned_team",
+              "keys": [
+                "assigned_team",
+                "Assigned team"
+              ],
+              "value": "Support",
+              "availability": "observed"
+            }
+          ],
+          "_unmapped": [],
+          "_conflicts": [],
+          "_demo": true,
+          "_action": "save_ticket",
+          "_source_url": "http://localhost:8011/tickets.html?case=T-2"
+        },
+        {
+          "id": "sol_service_desk-demo-3",
+          "facts": {
+            "open_hours": 6,
+            "service_level": "Standard",
+            "assigned_team": "Support"
+          },
+          "booking": {
+            "assigned_team": "Engineering",
+            "note": ""
+          },
+          "status": "observed",
+          "_availability": {
+            "open_hours": "observed",
+            "service_level": "observed",
+            "assigned_team": "observed"
+          },
+          "_observations": [
+            {
+              "feature": "open_hours",
+              "keys": [
+                "open_hours",
+                "Hours open"
+              ],
+              "value": 6,
+              "availability": "observed"
+            },
+            {
+              "feature": "service_level",
+              "keys": [
+                "service_level",
+                "Service level"
+              ],
+              "value": "Standard",
+              "availability": "observed"
+            },
+            {
+              "feature": "assigned_team",
+              "keys": [
+                "assigned_team",
+                "Assigned team"
+              ],
+              "value": "Support",
+              "availability": "observed"
+            }
+          ],
+          "_unmapped": [],
+          "_conflicts": [],
+          "_demo": true,
+          "_action": "save_ticket",
+          "_source_url": "http://localhost:8011/tickets.html?case=T-3"
+        }
+      ]
+    },
+    "demo_seed": 7
+  },
+  "metrics": {
+    "episodes": 0,
+    "decisions": 0,
+    "prospective_accuracy": null,
+    "gaps": 0,
+    "questions_live": 0,
+    "questions_debrief": 0,
+    "silent_decisions": 0,
+    "rules_learned": 0,
+    "rules_confirmed": 0
+  },
+  "episodes": [],
+  "match": {
+    "verdict": "same",
+    "best": {
+      "id": "sol_service_desk",
+      "name": "Service desk routing",
+      "score": 1
+    },
+    "candidates": [
+      {
+        "id": "sol_service_desk",
+        "name": "Service desk routing",
+        "score": 1
+      },
+      {
+        "id": "ap_invoices",
+        "name": "Accounts payable – supplier invoices",
+        "score": 0
+      }
+    ]
+  },
+  "health": {
+    "ok": true,
+    "llm": true,
+    "sessions": 1,
+    "spend": {
+      "calls": 0,
+      "usd": 0,
+      "by_model": {},
+      "benched": {},
+      "last_error": {}
+    }
+  },
+  "demos": [
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-1",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 2
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Engineering",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-1"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "url": "http://localhost:8011/tickets.html?case=T-1"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "url": "http://localhost:8011/tickets.html?case=T-1"
+      }
+    ],
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-2",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 30
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Premium"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Dispatch",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-2"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "url": "http://localhost:8011/tickets.html?case=T-2"
+      }
+    ],
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-3",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 6
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Engineering",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-3"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "url": "http://localhost:8011/tickets.html?case=T-3"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "url": "http://localhost:8011/tickets.html?case=T-3"
+      }
+    ]
+  ]
+}

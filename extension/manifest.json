@@ -4,6 +4,12 @@
   "version": "0.1.0",
   "description": "Mira watches the work you do on the sites you turn her on for, learns what she cannot yet explain, and asks one question at a pause.",
   "minimum_chrome_version": "116",
+  "icons": {
+    "16": "store/icon16.png",
+    "32": "store/icon32.png",
+    "48": "store/icon48.png",
+    "128": "store/icon128.png"
+  },
   "action": {
     "default_title": "Tacet",
     "default_popup": "popup/popup.html"
@@ -23,6 +29,7 @@
     "http://127.0.0.1/*"
   ],
   "optional_host_permissions": [
+    "http://*/*",
     "https://*/*"
   ]
 }

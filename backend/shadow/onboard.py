@@ -105,7 +105,9 @@ class Demo(BaseModel):
             e = _as_dict(raw)
             kind = e.get("type")
             if kind == "observe":
-                fields = [f for f in (e.get("fields") or [])]
+                # Keep the opening screen, not a later snapshot of the expert's answer.
+                if not fields:
+                    fields = [f for f in (e.get("fields") or [])]
                 url = e.get("url") or url
                 title = e.get("title") or title
             elif kind == "field_changed":
@@ -268,7 +270,7 @@ def _observed_records(demos: list[Demo]) -> "OrderedDict[str, dict[str, Any]]":
             for option in field.options:
                 if option is not None and str(option) not in rec["options"]:
                     rec["options"].append(str(option))
-            if field.value is not None and field.value_kind != "text" and field.value not in rec["values"]:
+            if field.value is not None and not field.redacted and field.value not in rec["values"]:
                 rec["values"].append(field.value)
         for change in demo.changes:
             key = _norm(change.get("field"))
@@ -356,7 +358,7 @@ def _decision_field_defs(demos: list[Demo], features: list[FeatureDef]) -> list[
     for key in chosen:
         feature = by_norm.get(key)
         values = [v for v in finals[key] if v not in (None, "")]
-        options = _unique_str(values) if values else []
+        options = _unique_str([*(feature.options if feature else []), *values])
         out.append(DecisionFieldDef(
             name=feature.name if feature else _identifier(key),
             label=(feature.label if feature else "") or key,
@@ -379,11 +381,8 @@ def _actions_from_demos(demos: list[Demo]) -> list[ActionDef]:
 
 
 def _infer_priors(decisions: list[DecisionFieldDef], features: list[FeatureDef]) -> list[list[str]]:
-    feature_names = {f.name for f in features}
-    priors = [[d.name] for d in decisions if d.name in feature_names]
-    if not priors:
-        priors = [[f.name] for f in features[:3]]
-    return priors
+    outputs = {d.name for d in decisions}
+    return [[f.name] for f in features if f.name not in outputs][:3]
 
 
 def _steps_for(decisions: list[DecisionFieldDef]) -> list[ProcessStepDef]:
@@ -536,6 +535,17 @@ _PAIR_NOTE = (
 ParseFn = Callable[..., Awaitable[Any]]
 
 
+class OnboardSketch(BaseModel):
+    """Small closed schema: provider grammars cannot handle the full open-dict proposal.
+
+    Observed controls already supply types, options and ranges. The model only
+    names the workflow and identifies decisions; it cannot invent a policy.
+    """
+    name: str
+    case_noun: str
+    decision_fields: list[str]
+
+
 async def propose_task(goal: str, demos: list[Any], *, parse_fn: ParseFn | None = None,
                        task_id: str | None = None, app: str | None = None, save: bool = False,
                        directory: str | Path | None = None) -> TaskDefinition:
@@ -550,6 +560,7 @@ async def propose_task(goal: str, demos: list[Any], *, parse_fn: ParseFn | None 
         if save:
             save_task_definition(task, directory=directory)
         return task
+    supplied_parser = parse_fn is not None
     parse_fn = parse_fn or llm.parse
     observations = [{"field": f.name, "label": f.label, "value": f.value}
                     for demo in demos for f in demo.fields if f.value is not None]
@@ -557,7 +568,17 @@ async def propose_task(goal: str, demos: list[Any], *, parse_fn: ParseFn | None 
     prompt += ("\n\n" + _PAIR_NOTE + "\n\nDemonstrations (the expert's own changes and final action):\n"
                + json.dumps([_demo_summary(d) for d in demos], indent=2, default=str))
     try:
-        proposal = await parse_fn(OnboardProposal, SYSTEM, prompt, tier="reason", max_tokens=4000)
+        if supplied_parser:
+            proposal = await parse_fn(OnboardProposal, SYSTEM, prompt, tier="reason", max_tokens=4000)
+        else:
+            sketch = await parse_fn(OnboardSketch, SYSTEM,
+                                   f"Goal: {goal}\nDemonstrations:\n"
+                                   + json.dumps([_demo_summary(d) for d in demos], default=str)
+                                   + "\nName the workflow and its case noun. decision_fields contains only the exact "
+                                   "observed control names the expert changed to make a decision; exclude input "
+                                   "facts. Do not rename controls or infer policies.", tier="fast", max_tokens=600)
+            proposal = {"name": sketch.name, "case_noun": sketch.case_noun,
+                        "decision_fields": [{"name": n} for n in sketch.decision_fields]}
         task = repair_proposal(_as_dict(proposal), goal, demos, task_id=task_id)
     except Exception:  # noqa: BLE001 - onboarding must work without a provider
         log.exception("onboard proposal failed; falling back to heuristics")

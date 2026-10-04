@@ -102,3 +102,6 @@ be RGBA with the two offset squares on transparency.
   companion. ✅
 - `manifest.json` icons check + report note. ✅
 - No commits made; no files outside ownership edited; port 8000 never used. ✅
+
+## Integration follow-up
+Codex reviewed the assets, corrected replay/vision/typed-answer and deletion wording in the draft listing/privacy policy, disclosed optional HTTP sites, and wired the four existing icon assets into the manifest after Sol finished. Remote voice bundling remains unresolved; this is not a store-ready submission claim.

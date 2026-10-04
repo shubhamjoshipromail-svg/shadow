@@ -54,10 +54,12 @@ def similarity(a: dict[str, Any], b: dict[str, Any]) -> float:
 
 def match(sig: dict[str, Any], known: list[dict[str, Any]]) -> dict[str, Any]:
     """known: [{id, name, signature}] → best match and a verdict: same / ask / new."""
-    scored = sorted(({"id": k["id"], "name": k.get("name", k["id"]), "score": similarity(sig, k["signature"])}
+    scored = sorted(({"id": k["id"], "name": k.get("name", k["id"]), "goal": k.get("goal"), "score": similarity(sig, k["signature"])}
                      for k in known if k.get("signature")), key=lambda c: -c["score"])
     best = scored[0] if scored else None
     verdict = "new" if best is None or best["score"] < ASK else ("same" if best["score"] >= SAME else "ask")
+    if len(scored) > 1 and scored[1]["score"] >= SAME and scored[0]["score"] - scored[1]["score"] < 0.1:
+        verdict = "ask"  # same controls can serve two jobs: identity needs the human
     return {"verdict": verdict, "best": best if verdict != "new" else None, "candidates": scored[:3]}
 
 

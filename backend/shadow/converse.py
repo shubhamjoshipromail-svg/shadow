@@ -155,7 +155,7 @@ async def _tutor_turn(session: Session, messages: list[dict[str, Any]], text: st
              for n in [*session.wm.rules, *session.wm.guardrails] if n.origin != "doc" and n.belief.status in TRUSTED]
     case = session.cases.get(session.current_case or "")
     system = (f"You are Mira, a patient tutor teaching {session.trainee or 'a new hire'} how {session.expert} "
-              f"processes invoices. Use Socratic questions first, then explain using {session.expert}'s own words "
+              f"performs {session.pack.name}. Use Socratic questions first, then explain using {session.expert}'s own words "
               "(quote them). Max two short sentences per turn. Never invent rules beyond these:\n"
               f"{json.dumps(rules, ensure_ascii=False)}\n"
               f"Current case: {session.pack.describe(case) if case else 'none open'}")

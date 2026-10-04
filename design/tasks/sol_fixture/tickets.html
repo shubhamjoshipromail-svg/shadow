@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service desk routing</title>
+<style>
+  body { margin:0; background:#f6f4ed; color:#283126; font:16px system-ui; }
+  main { max-width:650px; margin:70px auto; padding:32px; background:#fffefa; border:1px solid #deded2; border-radius:8px; }
+  small { color:#65705e; } h1 { font:32px Georgia; margin:12px 0 28px; }
+  label { display:block; margin:20px 0 6px; font-size:14px; }
+  input,select { box-sizing:border-box; width:100%; padding:10px; font:inherit; border:1px solid #cdd1c2; border-radius:4px; background:#fffefa; }
+  button,a { display:inline-block; margin:24px 12px 0 0; padding:10px 16px; font:inherit; color:inherit; }
+  button { background:#dbe5d0; border:1px solid #9bac8d; border-radius:4px; cursor:pointer; }
+  #result { min-height:24px; margin-top:20px; color:#65705e; }
+</style>
+<main>
+  <small>FIELD SERVICE · LOCAL TEST FIXTURE</small>
+  <h1>Route a service ticket</h1>
+  <p>Review the ticket, choose the team, and save the routing decision.</p>
+  <form id="ticket">
+    <label for="open_hours">Hours open</label><input id="open_hours" name="open_hours" type="number" readonly>
+    <label for="service_level">Service level</label><input id="service_level" name="service_level" readonly>
+    <label for="assigned_team">Assigned team</label>
+    <select id="assigned_team" name="assigned_team"><option>Support</option><option>Engineering</option><option>Dispatch</option></select>
+    <button id="save_ticket" type="submit">Save routing</button>
+    <a href="?case=T-2" id="next">Next ticket</a>
+  </form>
+  <p id="result" aria-live="polite"></p>
+</main>
+<script>
+  var fixtures = [{hours:2,level:'Standard'}, {hours:30,level:'Premium'}, {hours:6,level:'Standard'},
+    {hours:3,level:'Premium'}, {hours:4,level:'Premium'}, {hours:5,level:'Premium'}, {hours:1,level:'Standard'}];
+  var index = 0;
+  function show() {
+    var item = fixtures[index % fixtures.length];
+    document.getElementById('open_hours').value = item.hours;
+    document.getElementById('service_level').value = item.level;
+    document.getElementById('assigned_team').value = 'Support';
+    document.getElementById('result').textContent = 'Ticket T-' + (index + 1);
+    document.getElementById('next').href = '?case=T-' + (index + 2);
+  }
+  document.getElementById('ticket').addEventListener('submit', function(e) {
+    e.preventDefault(); document.getElementById('result').textContent = 'Routing saved for T-' + (index + 1);
+  });
+  document.getElementById('next').addEventListener('click', function(e) {
+    e.preventDefault(); index++; history.pushState({}, '', '?case=T-' + (index + 1)); show();
+  });
+  show();
+  // Optional ordinary-page visual harness; the fixture itself has no observer contract.
+  // Open ?companion=1 only when doing companion UI verification.
+  if (new URLSearchParams(location.search).has('companion')) {
+    window.SHADOW_API = 'http://localhost:8001';
+    var companion = document.createElement('script'); companion.src = 'http://localhost:8001/capture.js';
+    companion.onload = function () {
+      var observer = document.createElement('script'); observer.src = 'http://localhost:8001/observe.js';
+      document.head.appendChild(observer);
+    };
+    document.head.appendChild(companion);
+  }
+</script>
+</html>

@@ -1,0 +1,1275 @@
+{
+  "method": "DOM emulation + real API/LLM (browser CDP blocked)",
+  "sid": "bcf74e3f17",
+  "pack": "sol_service_loop_live",
+  "demos": [
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-1",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 2
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Engineering",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-1"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 2
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Engineering"
+          }
+        ],
+        "terminal": true,
+        "url": "http://localhost:8011/tickets.html?case=T-1"
+      }
+    ],
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-2",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 30
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Premium"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Dispatch",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-2"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 30
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Premium"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Dispatch"
+          }
+        ],
+        "terminal": true,
+        "url": "http://localhost:8011/tickets.html?case=T-2"
+      }
+    ],
+    [
+      {
+        "type": "observe",
+        "url": "http://localhost:8011/tickets.html?case=T-3",
+        "title": "Service desk routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 6
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Support"
+          }
+        ]
+      },
+      {
+        "type": "field_changed",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "before": "Support",
+        "after": "Engineering",
+        "kind": "select",
+        "value_kind": "cat",
+        "url": "http://localhost:8011/tickets.html?case=T-3"
+      },
+      {
+        "type": "action",
+        "name": "save_ticket",
+        "label": "Save routing",
+        "fields": [
+          {
+            "name": "open_hours",
+            "label": "Hours open",
+            "kind": "number",
+            "value_kind": "num",
+            "options": [],
+            "value": 6
+          },
+          {
+            "name": "service_level",
+            "label": "Service level",
+            "kind": "text",
+            "value_kind": "text",
+            "options": [],
+            "value": "Standard"
+          },
+          {
+            "name": "assigned_team",
+            "label": "Assigned team",
+            "kind": "select",
+            "value_kind": "cat",
+            "options": [
+              "Support",
+              "Engineering",
+              "Dispatch"
+            ],
+            "value": "Engineering"
+          }
+        ],
+        "terminal": true,
+        "url": "http://localhost:8011/tickets.html?case=T-3"
+      }
+    ]
+  ],
+  "before": "Support",
+  "choice": "Dispatch",
+  "asked": {
+    "id": "q1",
+    "type": "cue_probe",
+    "case_id": "page-36c1db0413c8",
+    "field": "assigned_team",
+    "text": "You set ticket page-36c1db0413c8's assigned team to dispatch instead of support. What made you do that?",
+    "evoi": 1,
+    "impact": 0.8,
+    "guardrail_gap": 0,
+    "cost": 0.3,
+    "value": 0.725,
+    "phase": "live",
+    "status": "asked",
+    "created_at": 1791085449.722951,
+    "asked_at": 1791085450.995465,
+    "gap_id": "ep1.assigned_team",
+    "expert_value": "Dispatch",
+    "predicted_value": "Support",
+    "hypotheses": [],
+    "probe_delta": null,
+    "target_node": null,
+    "screen_moment": {
+      "ts": 1.01,
+      "before": "Support",
+      "after": "Dispatch",
+      "frame_id": null
+    },
+    "reason": "open question asked right away; explanations still forming",
+    "has_probe": false
+  },
+  "answer": "Premium service tickets open fewer than 8 hours always go to Dispatch. Other Premium tickets go to Dispatch. Standard tickets go to Engineering.",
+  "rules": [
+    {
+      "id": "R1",
+      "step_id": "S1",
+      "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+      "when": "task.service_level == 'Premium' and task.open_hours < params.T_open_hours",
+      "origin": "expert",
+      "quote": {
+        "text": "Premium service tickets open fewer than 8 hours always go to Dispatch.",
+        "speaker": "Service expert",
+        "ts": 5.13,
+        "lang": "en",
+        "translation": null,
+        "audio_ref": null,
+        "inquiry_id": "q1"
+      },
+      "screen_moment": {
+        "ts": 1.01,
+        "frame_id": null,
+        "entity": "page-36c1db0413c8",
+        "field": "assigned_team",
+        "label": null,
+        "path": [
+          {
+            "kind": "field",
+            "name": "assigned_team",
+            "t": 1.01
+          }
+        ]
+      },
+      "belief": {
+        "status": "stated",
+        "p": 0.778
+      },
+      "evidence": [
+        {
+          "episode_id": "ep1",
+          "kind": "origin",
+          "agrees": true,
+          "note": null
+        }
+      ],
+      "kind": "rule",
+      "then": {
+        "assigned_team": "Dispatch"
+      },
+      "parent": null,
+      "priority": 0
+    },
+    {
+      "id": "R2",
+      "step_id": "S1",
+      "title": "Other Premium tickets go to Dispatch",
+      "when": "task.service_level == 'Premium'",
+      "origin": "expert",
+      "quote": {
+        "text": "Other Premium tickets go to Dispatch.",
+        "speaker": "Service expert",
+        "ts": 5.13,
+        "lang": "en",
+        "translation": null,
+        "audio_ref": null,
+        "inquiry_id": "q1"
+      },
+      "screen_moment": {
+        "ts": 1.01,
+        "frame_id": null,
+        "entity": "page-36c1db0413c8",
+        "field": "assigned_team",
+        "label": null,
+        "path": [
+          {
+            "kind": "field",
+            "name": "assigned_team",
+            "t": 1.01
+          }
+        ]
+      },
+      "belief": {
+        "status": "stated",
+        "p": 0.778
+      },
+      "evidence": [
+        {
+          "episode_id": "ep1",
+          "kind": "origin",
+          "agrees": true,
+          "note": null
+        }
+      ],
+      "kind": "rule",
+      "then": {
+        "assigned_team": "Dispatch"
+      },
+      "parent": null,
+      "priority": 0
+    },
+    {
+      "id": "R3",
+      "step_id": "S1",
+      "title": "Standard tickets go to Engineering",
+      "when": "task.service_level == 'Standard'",
+      "origin": "expert",
+      "quote": {
+        "text": "Standard tickets go to Engineering.",
+        "speaker": "Service expert",
+        "ts": 5.13,
+        "lang": "en",
+        "translation": null,
+        "audio_ref": null,
+        "inquiry_id": "q1"
+      },
+      "screen_moment": {
+        "ts": 1.01,
+        "frame_id": null,
+        "entity": "page-36c1db0413c8",
+        "field": "assigned_team",
+        "label": null,
+        "path": [
+          {
+            "kind": "field",
+            "name": "assigned_team",
+            "t": 1.01
+          }
+        ]
+      },
+      "belief": {
+        "status": "stated",
+        "p": 0.75
+      },
+      "evidence": [],
+      "kind": "rule",
+      "then": {
+        "assigned_team": "Engineering"
+      },
+      "parent": null,
+      "priority": 0
+    }
+  ],
+  "receipt": [
+    {
+      "id": "rc1",
+      "trigger": "answer",
+      "t": 2.54,
+      "session": "bcf74e3f17",
+      "provenance": {
+        "mode": "live",
+        "compiler": "gpt-4.1-mini",
+        "map_source": {
+          "kind": "onboarded",
+          "task": "sol_service_loop_live",
+          "version": 3
+        }
+      },
+      "status": "learned",
+      "independent": [],
+      "inquiry_id": "q1",
+      "case_id": "page-36c1db0413c8",
+      "probe_case_id": null,
+      "field": "assigned_team",
+      "question": {
+        "type": "cue_probe",
+        "text": "You set ticket page-36c1db0413c8's assigned team to dispatch instead of support. What made you do that?",
+        "probe_delta": null
+      },
+      "teaching": {
+        "transcript": "Premium service tickets open fewer than 8 hours always go to Dispatch. Other Premium tickets go to Dispatch. Standard tickets go to Engineering.",
+        "redactions": null,
+        "quote": "Premium service tickets open fewer than 8 hours always go to Dispatch. Other Premium tickets go to Dispatch. Standard tickets go to Engineering.",
+        "translation": null,
+        "strength": "always",
+        "threshold": {
+          "param": "T_open_hours",
+          "value": 8,
+          "quantity": "task.open_hours",
+          "kind": "days"
+        }
+      },
+      "expert_value": "Dispatch",
+      "before": {
+        "value": null,
+        "source": null,
+        "source_title": null,
+        "map_version": 0,
+        "committed": "Support"
+      },
+      "evaluation": false,
+      "after": {
+        "value": "Dispatch",
+        "source": "R1",
+        "source_title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+        "map_version": 1,
+        "explains_expert": true
+      },
+      "diff": {
+        "added": [
+          {
+            "id": "R1",
+            "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+            "when": "task.service_level == 'Premium' and task.open_hours < params.T_open_hours",
+            "status": "stated",
+            "p": 0.778,
+            "kind": "rule",
+            "then": {
+              "assigned_team": "Dispatch"
+            },
+            "params": {
+              "T_open_hours": 8.45
+            }
+          },
+          {
+            "id": "R2",
+            "title": "Other Premium tickets go to Dispatch",
+            "when": "task.service_level == 'Premium'",
+            "status": "stated",
+            "p": 0.778,
+            "kind": "rule",
+            "then": {
+              "assigned_team": "Dispatch"
+            }
+          },
+          {
+            "id": "R3",
+            "title": "Standard tickets go to Engineering",
+            "when": "task.service_level == 'Standard'",
+            "status": "stated",
+            "p": 0.75,
+            "kind": "rule",
+            "then": {
+              "assigned_team": "Engineering"
+            }
+          }
+        ],
+        "removed": [],
+        "changed": [],
+        "params": [
+          {
+            "param": "T_open_hours",
+            "before": null,
+            "after": 8.45,
+            "quantity_before": null,
+            "quantity_after": "task.open_hours"
+          }
+        ],
+        "version": {
+          "before": 0,
+          "after": 1
+        }
+      },
+      "retro": [],
+      "summary": {
+        "tests": 0,
+        "agree": 0,
+        "verdict": "untested"
+      }
+    }
+  ],
+  "later_prediction": {
+    "value": "Dispatch",
+    "source": "R1",
+    "p": 0.778
+  },
+  "followups": [
+    {
+      "id": "q2",
+      "type": "guardrail",
+      "case_id": "page-e6e64030156d",
+      "field": "action",
+      "text": "On a ticket like ticket page-e6e64030156d, is there anything you would never do without, or a moment where you'd stop and ask someone?",
+      "evoi": 0.45,
+      "impact": 1,
+      "guardrail_gap": 1,
+      "cost": 0.698,
+      "value": 0.626,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085455.170635,
+      "asked_at": 1791085455.191191,
+      "gap_id": null,
+      "expert_value": null,
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": null,
+      "target_node": null,
+      "screen_moment": {
+        "ts": 6.46
+      },
+      "reason": "no guardrail known for the posting step yet",
+      "has_probe": false
+    },
+    {
+      "id": "q4",
+      "type": "counterfactual",
+      "case_id": "page-36c1db0413c8",
+      "field": "assigned_team",
+      "text": "Imagine the same ticket, but Service level is Standard instead of Premium. Would you still use Dispatch?",
+      "evoi": 0.6,
+      "impact": 0.7,
+      "guardrail_gap": 0,
+      "cost": 0.623,
+      "value": 0.264,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085455.17937,
+      "asked_at": 1791085456.588392,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [
+        {
+          "id": "R1",
+          "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+          "p": 0.818
+        }
+      ],
+      "probe_delta": "Service level is Standard instead of Premium",
+      "target_node": "R1",
+      "screen_moment": null,
+      "reason": "coverage: does R1 extend to a case it doesn't cover?",
+      "has_probe": true
+    },
+    {
+      "id": "q5",
+      "type": "counterfactual",
+      "case_id": "sol_service_loop_live-demo-2",
+      "field": "assigned_team",
+      "text": "Imagine the same ticket, but Service level is Standard instead of Premium. Would you still use Dispatch?",
+      "evoi": 0.6,
+      "impact": 0.7,
+      "guardrail_gap": 0,
+      "cost": 0.615,
+      "value": 0.266,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085455.180618,
+      "asked_at": 1791085457.673936,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [
+        {
+          "id": "R2",
+          "title": "Other Premium tickets go to Dispatch",
+          "p": 0.818
+        }
+      ],
+      "probe_delta": "Service level is Standard instead of Premium",
+      "target_node": "R2",
+      "screen_moment": null,
+      "reason": "coverage: does R2 extend to a case it doesn't cover?",
+      "has_probe": true
+    },
+    {
+      "id": "q6",
+      "type": "counterfactual",
+      "case_id": "sol_service_loop_live-demo-1",
+      "field": "assigned_team",
+      "text": "Imagine the same ticket, but Service level is Premium instead of Standard. Would you still use Engineering?",
+      "evoi": 0.6,
+      "impact": 0.7,
+      "guardrail_gap": 0,
+      "cost": 0.606,
+      "value": 0.268,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085455.1824682,
+      "asked_at": 1791085458.8385909,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [
+        {
+          "id": "R3",
+          "title": "Standard tickets go to Engineering",
+          "p": 0.75
+        }
+      ],
+      "probe_delta": "Service level is Premium instead of Standard",
+      "target_node": "R3",
+      "screen_moment": null,
+      "reason": "coverage: does R3 extend to a case it doesn't cover?",
+      "has_probe": true
+    },
+    {
+      "id": "q3",
+      "type": "counterfactual",
+      "case_id": "page-36c1db0413c8",
+      "field": "assigned_team",
+      "text": "Imagine the same ticket, but Service level is Standard instead of Premium. Would you still use Engineering?",
+      "evoi": 0.5,
+      "impact": 0.8,
+      "guardrail_gap": 0,
+      "cost": 0.591,
+      "value": 0.252,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085455.1732469,
+      "asked_at": 1791085460.896817,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [
+        {
+          "id": "R3",
+          "title": "Standard tickets go to Engineering",
+          "p": 0.75
+        }
+      ],
+      "probe_delta": "Service level is Standard instead of Premium",
+      "target_node": "R3",
+      "screen_moment": null,
+      "reason": "verify R3 (stated) on an unseen case",
+      "has_probe": true
+    },
+    {
+      "id": "q7",
+      "type": "exam",
+      "case_id": "sol_service_loop_live-demo-1",
+      "field": "assigned_team",
+      "text": "Now let me test myself. Quick one: same kind of ticket, but Hours open is 16 instead of 2. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085462.041933,
+      "asked_at": 1791085462.0419462,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Hours open is 16 instead of 2",
+      "target_node": "R3",
+      "screen_moment": null,
+      "reason": "self-exam 1/5",
+      "exam_index": 0,
+      "has_probe": true
+    },
+    {
+      "id": "q8",
+      "type": "exam",
+      "case_id": "sol_service_loop_live-demo-2",
+      "field": "assigned_team",
+      "text": "Quick one: same kind of ticket, but Hours open is 15 instead of 30. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085463.472947,
+      "asked_at": 1791085463.472964,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Hours open is 15 instead of 30",
+      "target_node": "R2",
+      "screen_moment": null,
+      "reason": "self-exam 2/5",
+      "exam_index": 1,
+      "has_probe": true
+    },
+    {
+      "id": "q9",
+      "type": "exam",
+      "case_id": "sol_service_loop_live-demo-2",
+      "field": "assigned_team",
+      "text": "Quick one: same kind of ticket, but Hours open is 6 instead of 30. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085465.172199,
+      "asked_at": 1791085465.172213,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Hours open is 6 instead of 30",
+      "target_node": "R1",
+      "screen_moment": null,
+      "reason": "self-exam 3/5",
+      "exam_index": 2,
+      "has_probe": true
+    },
+    {
+      "id": "q10",
+      "type": "exam",
+      "case_id": null,
+      "field": "assigned_team",
+      "text": "Say you get Service desk routing gen-1001-0 — Hours open: 2, Service level: Standard, Assigned team: Support. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085466.556111,
+      "asked_at": 1791085466.5561159,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Service desk routing gen-1001-0 — Hours open: 2, Service level: Standard, Assigned team: Support",
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "self-exam 4/5",
+      "exam_index": 3,
+      "has_probe": true
+    },
+    {
+      "id": "q11",
+      "type": "exam",
+      "case_id": null,
+      "field": "assigned_team",
+      "text": "Say you get Service desk routing gen-1001-1 — Hours open: 6, Service level: Premium, Assigned team: Support. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085467.737344,
+      "asked_at": 1791085467.737349,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Service desk routing gen-1001-1 — Hours open: 6, Service level: Premium, Assigned team: Support",
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "self-exam 5/5",
+      "exam_index": 4,
+      "has_probe": true
+    },
+    {
+      "id": "q12",
+      "type": "exam",
+      "case_id": "sol_service_loop_live-demo-1",
+      "field": "assigned_team",
+      "text": "Now let me test myself. Quick one: same kind of ticket, but Hours open is 5 instead of 2. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085469.1130428,
+      "asked_at": 1791085469.113054,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Hours open is 5 instead of 2",
+      "target_node": "R3",
+      "screen_moment": null,
+      "reason": "self-exam 1/5",
+      "exam_index": 0,
+      "has_probe": true
+    },
+    {
+      "id": "q13",
+      "type": "exam",
+      "case_id": "sol_service_loop_live-demo-2",
+      "field": "assigned_team",
+      "text": "Quick one: same kind of ticket, but Hours open is 5 instead of 30. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085470.3694458,
+      "asked_at": 1791085470.369462,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Hours open is 5 instead of 30",
+      "target_node": "R2",
+      "screen_moment": null,
+      "reason": "self-exam 2/5",
+      "exam_index": 1,
+      "has_probe": true
+    },
+    {
+      "id": "q14",
+      "type": "exam",
+      "case_id": null,
+      "field": "assigned_team",
+      "text": "Say you get Service desk routing gen-1002-0 — Hours open: 6, Service level: Premium, Assigned team: Support. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085471.806209,
+      "asked_at": 1791085471.806218,
+      "gap_id": null,
+      "expert_value": "Dispatch",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Service desk routing gen-1002-0 — Hours open: 6, Service level: Premium, Assigned team: Support",
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "self-exam 3/5",
+      "exam_index": 2,
+      "has_probe": true
+    },
+    {
+      "id": "q15",
+      "type": "exam",
+      "case_id": null,
+      "field": "assigned_team",
+      "text": "Say you get Service desk routing gen-1002-1 — Hours open: 2, Service level: Standard, Assigned team: Engineering. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085473.201067,
+      "asked_at": 1791085473.201074,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Service desk routing gen-1002-1 — Hours open: 2, Service level: Standard, Assigned team: Engineering",
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "self-exam 4/5",
+      "exam_index": 3,
+      "has_probe": true
+    },
+    {
+      "id": "q16",
+      "type": "exam",
+      "case_id": null,
+      "field": "assigned_team",
+      "text": "Say you get Service desk routing gen-1002-2 — Hours open: 30, Service level: Standard, Assigned team: Dispatch. What would you do?",
+      "evoi": 0.3,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085474.466538,
+      "asked_at": 1791085474.4665442,
+      "gap_id": null,
+      "expert_value": "Engineering",
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": "Service desk routing gen-1002-2 — Hours open: 30, Service level: Standard, Assigned team: Dispatch",
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "self-exam 5/5",
+      "exam_index": 4,
+      "has_probe": true
+    },
+    {
+      "id": "q17",
+      "type": "teachback",
+      "case_id": null,
+      "field": null,
+      "text": "So, first I decide the assigned team based on the ticket type and open hours. For Premium service tickets open fewer than 8 hours, I assign them to Dispatch. For other Premium tickets, I also assign them to Dispatch. For Standard tickets, I assign them to Engineering. Additionally, Premium tickets with 15 open hours should be assigned to Dispatch. Is that how it works?",
+      "evoi": 0,
+      "impact": 1,
+      "guardrail_gap": 0,
+      "cost": 0,
+      "value": 0,
+      "phase": "debrief",
+      "status": "asked",
+      "created_at": 1791085476.767382,
+      "asked_at": 1791085476.767394,
+      "gap_id": null,
+      "expert_value": null,
+      "predicted_value": null,
+      "hypotheses": [],
+      "probe_delta": null,
+      "target_node": null,
+      "screen_moment": null,
+      "reason": "teach-back",
+      "has_probe": false
+    }
+  ],
+  "exports": {
+    "json": "{\"pack_id\":\"sol_service_loop_live\",\"task\":\"sol_service_loop_live\",\"expert\":\"Service expert\",\"version\":17,\"steps\":[{\"id\":\"S1\",\"order\":1,\"name\":\"Decide Assigned team\",\"description\":\"\",\"screen_moment\":{\"ts\":1.01,\"frame_id\":null,\"entity\":\"page-36c1db0413c8\",\"field\":\"assigned_team\",\"label\":null,\"path\":[{\"kind\":\"field\",\"name\":\"assigned_team\",\"t\":1.01}]},\"decision_field\":\"assigned_team\",\"rule_ids\":[\"R1\",\"R2\",\"R3\",\"R4\"],\"guardrail_ids\":[],\"discretion\":false,\"no_guardrail\":false}],\"rules\":[{\"id\":\"R1\",\"step_id\":\"S1\",\"title\":\"Premium service tickets open fewer than 8 hours always go to Dispatch\",\"when\":\"task.service_level == 'Premium' and task.open_hours < params.T_open_hours\",\"origin\":\"expert\",\"quote\":{\"text\":\"Premium service tickets open fewer than 8 hours always go to Dispatch.\",\"speaker\":\"Service expert\",\"ts\":5.13,\"lang\":\"en\",\"translation\":null,\"audio_ref\":null,\"inquiry_id\":\"q1\"},\"screen_moment\":{\"ts\":1.01,\"frame_id\":null,\"entity\":\"page-36c1db0413c8\",\"field\":\"assigned_team\",\"label\":null,\"path\":[{\"kind\":\"field\",\"name\":\"assigned_team\",\"t\":1.01}]},\"belief\":{\"status\":\"confirmed\",\"p\":0.905},\"evidence\":[{\"episode_id\":\"ep1\",\"kind\":\"origin\",\"agrees\":true,\"note\":null},{\"episode_id\":\"ep2\",\"kind\":\"live\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q9\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q11\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q13\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q14\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"teachback\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null}],\"kind\":\"rule\",\"then\":{\"assigned_team\":\"Dispatch\"},\"parent\":null,\"priority\":0,\"evidence_label\":\"stated; tested on 1 later decision (1 agree)\"},{\"id\":\"R2\",\"step_id\":\"S1\",\"title\":\"Other Premium tickets go to Dispatch\",\"when\":\"task.service_level == 'Premium'\",\"origin\":\"expert\",\"quote\":{\"text\":\"Other Premium tickets go to Dispatch.\",\"speaker\":\"Service expert\",\"ts\":5.13,\"lang\":\"en\",\"translation\":null,\"audio_ref\":null,\"inquiry_id\":\"q1\"},\"screen_moment\":{\"ts\":1.01,\"frame_id\":null,\"entity\":\"page-36c1db0413c8\",\"field\":\"assigned_team\",\"label\":null,\"path\":[{\"kind\":\"field\",\"name\":\"assigned_team\",\"t\":1.01}]},\"belief\":{\"status\":\"confirmed\",\"p\":0.867},\"evidence\":[{\"episode_id\":\"ep1\",\"kind\":\"origin\",\"agrees\":true,\"note\":null},{\"episode_id\":\"ep2\",\"kind\":\"live\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q6\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"teachback\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null}],\"kind\":\"rule\",\"then\":{\"assigned_team\":\"Dispatch\"},\"parent\":null,\"priority\":0,\"evidence_label\":\"stated; tested on 1 later decision (1 agree)\"},{\"id\":\"R3\",\"step_id\":\"S1\",\"title\":\"Standard tickets go to Engineering\",\"when\":\"task.service_level == 'Standard'\",\"origin\":\"expert\",\"quote\":{\"text\":\"Standard tickets go to Engineering.\",\"speaker\":\"Service expert\",\"ts\":5.13,\"lang\":\"en\",\"translation\":null,\"audio_ref\":null,\"inquiry_id\":\"q1\"},\"screen_moment\":{\"ts\":1.01,\"frame_id\":null,\"entity\":\"page-36c1db0413c8\",\"field\":\"assigned_team\",\"label\":null,\"path\":[{\"kind\":\"field\",\"name\":\"assigned_team\",\"t\":1.01}]},\"belief\":{\"status\":\"confirmed\",\"p\":0.93},\"evidence\":[{\"episode_id\":\"cf3\",\"kind\":\"counterfactual\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q4\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"cf4\",\"kind\":\"counterfactual\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q5\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q3\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q7\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q10\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q12\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q15\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"q16\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null},{\"episode_id\":\"teachback\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null}],\"kind\":\"rule\",\"then\":{\"assigned_team\":\"Engineering\"},\"parent\":null,\"priority\":0,\"evidence_label\":\"stated; 2/2 hypothetical answers agree\"},{\"id\":\"R4\",\"step_id\":\"S1\",\"title\":\"Premium tickets with 15 open hours should be assigned to Dispatch\",\"when\":\"task.service_level == 'Premium' and task.open_hours == 15\",\"origin\":\"expert\",\"quote\":{\"text\":\"Assign Dispatch.\",\"speaker\":\"Service expert\",\"ts\":16.46,\"lang\":\"en\",\"translation\":null,\"audio_ref\":null,\"inquiry_id\":\"q8\"},\"screen_moment\":{\"ts\":null,\"frame_id\":null,\"entity\":\"sol_service_loop_live-demo-2\",\"field\":\"assigned_team\",\"label\":null,\"path\":null},\"belief\":{\"status\":\"stated\",\"p\":0.8},\"evidence\":[{\"episode_id\":\"teachback\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null}],\"kind\":\"rule\",\"then\":{\"assigned_team\":\"Dispatch\"},\"parent\":null,\"priority\":0,\"evidence_label\":\"stated by the expert, not yet tested\"}],\"guardrails\":[{\"id\":\"G1\",\"step_id\":null,\"title\":\"No stop and ask guardrail for simple test task ticket page-e6e64030156d\",\"when\":\"task.id == 'page-e6e64030156d'\",\"origin\":\"expert\",\"quote\":{\"text\":\"Save routing. There are no additional stop conditions in this simple test task.\",\"speaker\":\"Service expert\",\"ts\":7.88,\"lang\":\"en\",\"translation\":null,\"audio_ref\":null,\"inquiry_id\":\"q2\"},\"screen_moment\":{\"ts\":6.46,\"frame_id\":null,\"entity\":\"page-e6e64030156d\",\"field\":\"action\",\"label\":null,\"path\":[{\"kind\":\"field\",\"name\":\"assigned_team\",\"t\":6.46}]},\"belief\":{\"status\":\"stated\",\"p\":0.818},\"evidence\":[{\"episode_id\":\"ep2\",\"kind\":\"origin\",\"agrees\":true,\"note\":null},{\"episode_id\":\"teachback\",\"kind\":\"teachback\",\"agrees\":true,\"note\":null}],\"type\":\"stop_and_ask\",\"action\":\"save_ticket\",\"ask\":\"none\",\"evidence_label\":\"stated by the expert, not yet tested\"}],\"params\":{\"T_open_hours\":8.45},\"paths\":[{\"field\":\"action\",\"value\":\"save_ticket\",\"kind\":\"field\",\"name\":\"assigned_team\",\"support\":2,\"title\":\"Before action = save_ticket, check assigned_team\"}]}",
+    "md": "# Work Map — sol service loop live\n\nCaptured from **Service expert** · map version 17\n\n## Step 1: Decide Assigned team · screen moment 00:01\n\n- **Judgment:** Premium service tickets open fewer than 8 hours always go to Dispatch — “Premium service tickets open fewer than 8 hours always go to Dispatch.” (Service expert at 00:05)  `[confirmed: stated; tested on 1 later decision (1 agree)]`\n- **Judgment:** Other Premium tickets go to Dispatch — “Other Premium tickets go to Dispatch.” (Service expert at 00:05)  `[confirmed: stated; tested on 1 later decision (1 agree)]`\n- **Judgment:** Standard tickets go to Engineering — “Standard tickets go to Engineering.” (Service expert at 00:05)  `[confirmed: stated; 2/2 hypothetical answers agree]`\n- **Judgment:** Premium tickets with 15 open hours should be assigned to Dispatch — “Assign Dispatch.” (Service expert at 00:16)  `[stated: stated by the expert, not yet tested]`\n",
+    "skill": "---\nname: sol_service_loop_live\ndescription: How Service expert performs 'sol service loop live', including unwritten judgment and the points where a human must decide. Captured and verified by Tacet.\n---\n\n# Sol Service Loop Live\n\n## Hard stops (never proceed past these; hand back to a human)\n- IF `task.id == 'page-e6e64030156d'` THEN **SAVE_TICKET**. Ask: none. Reason — “Save routing. There are no additional stop conditions in this simple test task.” (Service expert at 00:07) (evidence: stated by the expert, not yet tested)\n\n## Judgment rules (apply in this order of precedence)\n- IF `task.service_level == 'Premium' and task.open_hours < 8` THEN set {\"assigned_team\": \"Dispatch\"}. Reason — “Premium service tickets open fewer than 8 hours always go to Dispatch.” (Service expert at 00:05) (evidence: stated; tested on 1 later decision (1 agree))\n- IF `task.service_level == 'Premium'` THEN set {\"assigned_team\": \"Dispatch\"}. Reason — “Other Premium tickets go to Dispatch.” (Service expert at 00:05) (evidence: stated; tested on 1 later decision (1 agree))\n- IF `task.service_level == 'Standard'` THEN set {\"assigned_team\": \"Engineering\"}. Reason — “Standard tickets go to Engineering.” (Service expert at 00:05) (evidence: stated; 2/2 hypothetical answers agree)\n- IF `task.service_level == 'Premium' and task.open_hours == 15` THEN set {\"assigned_team\": \"Dispatch\"}. Reason — “Assign Dispatch.” (Service expert at 00:16) (evidence: stated by the expert, not yet tested)\n\n## Steps\n1. Decide Assigned team\n\nIf no rule above applies, follow the written work instruction. If a case looks unlike anything here, stop and ask a human — do not guess."
+  },
+  "tutor": "d1a87f0c9a",
+  "blocked": {
+    "allow": false,
+    "intervention": {
+      "id": "ca89415e",
+      "case_id": "page-4b294d125d3c",
+      "violation": {
+        "kind": "rule",
+        "node_id": "R1",
+        "field": "assigned_team",
+        "expected": "Dispatch",
+        "got": "Support",
+        "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+        "quote": {
+          "text": "Premium service tickets open fewer than 8 hours always go to Dispatch.",
+          "speaker": "Service expert",
+          "ts": 5.13,
+          "lang": "en",
+          "translation": null,
+          "audio_ref": null,
+          "inquiry_id": "q1"
+        },
+        "screen_moment": {
+          "ts": 1.01,
+          "frame_id": null,
+          "entity": "page-36c1db0413c8",
+          "field": "assigned_team",
+          "label": null,
+          "path": [
+            {
+              "kind": "field",
+              "name": "assigned_team",
+              "t": 1.01
+            }
+          ]
+        }
+      },
+      "field": "assigned_team",
+      "all": [
+        {
+          "kind": "rule",
+          "node_id": "R1",
+          "field": "assigned_team",
+          "expected": "Dispatch",
+          "got": "Support",
+          "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+          "quote": {
+            "text": "Premium service tickets open fewer than 8 hours always go to Dispatch.",
+            "speaker": "Service expert",
+            "ts": 5.13,
+            "lang": "en",
+            "translation": null,
+            "audio_ref": null,
+            "inquiry_id": "q1"
+          },
+          "screen_moment": {
+            "ts": 1.01,
+            "frame_id": null,
+            "entity": "page-36c1db0413c8",
+            "field": "assigned_team",
+            "label": null,
+            "path": [
+              {
+                "kind": "field",
+                "name": "assigned_team",
+                "t": 1.01
+              }
+            ]
+          }
+        }
+      ],
+      "say": "expert would stop here. Why do you think?",
+      "explain": "expert said: “Premium service tickets open fewer than 8 hours always go to Dispatch.” So: Premium service tickets open fewer than 8 hours always go to Dispatch.",
+      "hint": {
+        "level": 1,
+        "case_id": "page-4b294d125d3c",
+        "field": "assigned_team",
+        "label": "Assigned team",
+        "node_id": "R1",
+        "title": null,
+        "quote": null,
+        "answer": null,
+        "text": "Look at the Assigned team field. What do you think it should be, and why?",
+        "reveals": {
+          "field": true,
+          "rule": false,
+          "quote": false,
+          "answer": false
+        }
+      },
+      "attempt": 1,
+      "show_me": [
+        {
+          "kind": "field",
+          "name": "assigned_team",
+          "t": 1.01
+        }
+      ],
+      "look": [
+        "assigned_team"
+      ],
+      "screen_moment": {
+        "ts": 1.01,
+        "frame_id": null,
+        "entity": "page-36c1db0413c8",
+        "field": "assigned_team",
+        "label": null,
+        "path": [
+          {
+            "kind": "field",
+            "name": "assigned_team",
+            "t": 1.01
+          }
+        ]
+      },
+      "node": {
+        "id": "R1",
+        "step_id": "S1",
+        "title": "Premium service tickets open fewer than 8 hours always go to Dispatch",
+        "when": "task.service_level == 'Premium' and task.open_hours < params.T_open_hours",
+        "origin": "expert",
+        "quote": {
+          "text": "Premium service tickets open fewer than 8 hours always go to Dispatch.",
+          "speaker": "Service expert",
+          "ts": 5.13,
+          "lang": "en",
+          "translation": null,
+          "audio_ref": null,
+          "inquiry_id": "q1"
+        },
+        "screen_moment": {
+          "ts": 1.01,
+          "frame_id": null,
+          "entity": "page-36c1db0413c8",
+          "field": "assigned_team",
+          "label": null,
+          "path": [
+            {
+              "kind": "field",
+              "name": "assigned_team",
+              "t": 1.01
+            }
+          ]
+        },
+        "belief": {
+          "status": "confirmed",
+          "p": 0.905
+        },
+        "evidence": [
+          {
+            "episode_id": "ep1",
+            "kind": "origin",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "ep2",
+            "kind": "live",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "q9",
+            "kind": "teachback",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "q11",
+            "kind": "teachback",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "q13",
+            "kind": "teachback",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "q14",
+            "kind": "teachback",
+            "agrees": true,
+            "note": null
+          },
+          {
+            "episode_id": "teachback",
+            "kind": "teachback",
+            "agrees": true,
+            "note": null
+          }
+        ],
+        "kind": "rule",
+        "then": {
+          "assigned_team": "Dispatch"
+        },
+        "parent": null,
+        "priority": 0
+      }
+    }
+  },
+  "allowed": {
+    "allow": true
+  },
+  "match": {
+    "verdict": "same",
+    "best": {
+      "id": "sol_service_loop_live",
+      "name": "Service desk routing",
+      "goal": "Route each service ticket to the right team.",
+      "score": 1
+    },
+    "candidates": [
+      {
+        "id": "sol_service_loop_live",
+        "name": "Service desk routing",
+        "goal": "Route each service ticket to the right team.",
+        "score": 1
+      },
+      {
+        "id": "ap_invoices",
+        "name": "Accounts payable – supplier invoices",
+        "goal": null,
+        "score": 0
+      }
+    ]
+  },
+  "metrics": {
+    "episodes": 2,
+    "decisions": 4,
+    "prospective_accuracy": 0.75,
+    "gaps": 1,
+    "questions_live": 1,
+    "questions_debrief": 16,
+    "silent_decisions": 3,
+    "rules_learned": 5,
+    "rules_confirmed": 3
+  },
+  "understood": {
+    "exam": {
+      "passed": true,
+      "round": 3,
+      "score": "5/5",
+      "stale": false
+    },
+    "steps_covered": {
+      "passed": true,
+      "covered": 1,
+      "of": 1
+    },
+    "guardrails": {
+      "passed": true,
+      "count": 1
+    },
+    "agenda_exhausted": {
+      "passed": true,
+      "best_remaining_value": 0
+    },
+    "teachback_confirmed": {
+      "passed": true
+    },
+    "done": true
+  },
+  "spend": {
+    "calls": 22,
+    "usd": 0.0144,
+    "by_model": {
+      "gpt-4.1-mini": {
+        "calls": 22,
+        "in": 24660,
+        "out": 2861,
+        "cached": 0,
+        "usd": 0.01446
+      }
+    },
+    "benched": {},
+    "last_error": {}
+  }
+}

@@ -29,6 +29,7 @@ from shadow.bayes import ThresholdPosterior, bald_discrete, entropy, posterior_u
 from shadow.packs.base import Pack
 from shadow.planner import Inquiry, Planner, impact_on_pool, sample_pool
 from shadow.store import Store
+from shadow.taskdef import match_feature, observation_to_case
 from shadow.workmap import (TRUSTED, Evidence, Guardrail, MapPrediction, Quote, Rule, ScreenMoment, WorkMap,
                             check_proposal, run_map)
 
@@ -153,6 +154,11 @@ class Session:
         self.proof_round = 0
         self.workspace = "default"
         self.ended = False
+        self.page_fields: list[dict[str, Any]] = []
+        self.page_url: str | None = None
+        self.page_case: str | None = None
+        self.page_identity: tuple | None = None
+        self.page_decided = False
         for node in [*self.wm.rules, *self.wm.guardrails]:
             if node.origin != "doc":
                 node.refresh_belief()
@@ -237,6 +243,8 @@ class Session:
     # ------------------------------------------------------------ capture events
     async def on_event(self, evt: dict[str, Any]) -> dict[str, Any] | None:
         kind = evt.get("type")
+        if self.ended:
+            return None
         if self.mode == "tutor" and kind == "finish_practice":
             await self.emit("tutor_summary", self.tutor_summary())
             return None
@@ -276,6 +284,13 @@ class Session:
             return None
         if self.off_record and kind not in ("record",):
             return None
+        if getattr(self.pack, "task_def", None) and kind in ("observe", "action", "field_changed"):
+            if kind == "observe":
+                await self.observe_page(evt)
+                return None
+            if kind == "action":
+                return await self.page_action(evt)
+            await self.page_field_changed(evt)
         if kind == "case_opened":
             await self.open_case(evt["case_id"])
         elif kind == "field_changed":
@@ -300,6 +315,82 @@ class Session:
         elif kind == "vision":
             await self.emit("screen_event", {"event": evt})
         return None
+
+    async def observe_page(self, evt: dict[str, Any]) -> None:
+        """A generic opening snapshot becomes a real case and a committed prediction.
+
+        Facts stay separate from edited decision controls, so predictions cannot
+        read the expert's answer. Route/fact changes start another work item;
+        repeated snapshots of this item retain its frozen prediction.
+        """
+        task = self.pack.task_def
+        fields = evt.get("fields") or []
+        observations = [{"field": f.get("name"), "label": f.get("label"), "value": f.get("value")}
+                        for f in fields if not f.get("redacted")]
+        case = observation_to_case(task, observations)
+        decisions = {d.name for d in task.decision_fields}
+        identity = (evt.get("case_id"), evt.get("url"),
+                    tuple((k, repr(v)) for k, v in case["facts"].items() if k not in decisions))
+        if identity == self.page_identity and self.page_case:
+            return
+        self.page_fields = [dict(f) for f in fields]
+        self.page_url = evt.get("url")
+        self.page_identity = identity
+        self.page_decided = False
+        # A revisited item gets a fresh prospective prediction against today's map.
+        case["id"] = "page-" + uuid.uuid4().hex[:12]
+        case["_source_url"] = self.page_url
+        case["booking"] = self.pack.booking_from_decision(case, {k: v for k, v in case["facts"].items()
+                                                               if k in decisions})
+        self.page_case = case["id"]
+        self.cases[case["id"]] = case
+        self.case_order.append(case["id"])
+        self.activity.screen_changed()
+        await self.open_case(case["id"])
+
+    async def page_field_changed(self, evt: dict[str, Any]) -> None:
+        if not self.page_case or evt.get("redacted"):
+            return
+        feature = match_feature(self.pack.task_def, evt)
+        if not feature:
+            return
+        self.page_decided = False
+        case = self.cases[self.page_case]
+        if feature.name in {d.name for d in self.pack.decision_fields}:
+            case["booking"][feature.name] = evt.get("after")
+        else:
+            # New input facts must be seen before the next decision, even on a
+            # single-page form that reuses its controls for every case.
+            fields = [dict(f) for f in self.page_fields]
+            for f in fields:
+                if match_feature(self.pack.task_def, f) == feature:
+                    f["value"] = evt.get("after")
+            await self.observe_page({"url": self.page_url, "fields": fields})
+
+    async def page_action(self, evt: dict[str, Any]) -> dict[str, Any] | None:
+        if not self.page_case or self.page_decided:
+            return None
+        def token(v):
+            return re.sub(r"[^a-z0-9]+", "_", str(v or "").lower()).strip("_")
+        action = next((a for a in self.pack.actions if token(a) in
+                       {token(evt.get("name")), token(evt.get("label"))}), None)
+        if action is None:  # navigation and helper buttons are not decisions
+            return None
+        case = self.cases[self.page_case]
+        # The action snapshot includes decisions left unchanged by the expert.
+        for f in evt.get("fields") or []:
+            feature = match_feature(self.pack.task_def, f)
+            if feature and not f.get("redacted") and feature.name in {d.name for d in self.pack.decision_fields}:
+                case["booking"][feature.name] = f.get("value")
+        if self.mode == "tutor":
+            verdict = await self.tutor_decision(case["id"], case["booking"], action)
+            self.page_decided = bool(verdict.get("allow"))
+            return verdict
+        if self.mode != "capture":
+            return None
+        self.page_decided = True  # click + native submit must record only one decision
+        await self.on_decision(case["id"], case["booking"], action)
+        return {"allow": True}
 
     async def open_case(self, case_id: str) -> None:
         if case_id not in self.cases:

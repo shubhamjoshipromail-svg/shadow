@@ -50,7 +50,7 @@ class GenericPack:
         self.exploration_priors = [set(p) for p in task.exploration_priors]
         # Derived helper keys that move with every perturbation but carry no decision
         # meaning; the engine subtracts these before judging "novel facts".
-        self.derive_noise = {"id"} | {f"{f.name}_{part}" for f in task.features if f.type == "date"
+        self.derive_noise = {"id", *(d.name for d in task.decision_fields)} | {f"{f.name}_{part}" for f in task.features if f.type == "date"
                                       for part in ("month", "day")}
 
     # ------------------------------------------------------------- cases
@@ -169,6 +169,8 @@ class GenericPack:
             variants.append(v)
 
         for f in self.task_def.features:
+            if f.name in {d.name for d in self.task_def.decision_fields}:
+                continue  # edited outputs are not counterfactual input facts
             current = base["facts"].get(f.name)
             for value, delta in self._variants_for(f, current, rng):
                 if value == current:

@@ -22,3 +22,6 @@ Sol: review final report and immutable diff after it stops; verify backend tests
 
 ## Corrected draft claims
 Replay images are optional local capture of the user-selected surface, not structured-field-filtered pixels. Console vision transmits app-masked frames. Typed/spoken answers are a separate data path. Ending a session does not delete records; no self-service session-delete endpoint was found. Derived frames can in principle cross origins using a validated local messaging bridge; this is not implemented.
+
+## Sol final review completed
+Worker stopped; final report reviewed. Independently ran 268 passing backend tests with 2 xfailed/2 xpassed; source/vendor byte comparison and JS syntax checks passed. Final ordinary-browser check produced sol-final-watching, sol-final-three-demos and sol-final-live-session screenshots; three demos created a live learned workflow through the final companion. Four prepared icons now referenced by manifest and dimensions checked. Sol's evidence ends with 5/5 exam + confirmed teach-back, $0.0144 estimated for that isolated run. Original before/after traces remain preserved as explicitly synthetic scripted-expert evidence.

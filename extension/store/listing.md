@@ -13,7 +13,7 @@ Store assets (rendered by `extension/store/compose/render.mjs`) live next to thi
 | `screenshot-2-one-question.png` | Screenshot 2 · 1280×800 |
 | `screenshot-3-stopped.png` | Screenshot 3 · 1280×800 |
 | `promo-440x280.png` | Small promo tile · 440×280 |
-| `icon16.png` `icon32.png` `icon48.png` `icon128.png` | Manifest icons (16/32/48) + store icon (128). The manifest has **no `icons` entry** yet — see "Before you submit". |
+| `icon16.png` `icon32.png` `icon48.png` `icon128.png` | Manifest icons (16/32/48) + store icon (128). All four sizes are wired into extension/manifest.json. |
 
 ---
 
@@ -132,10 +132,8 @@ Allows the extension to work against a Tacet Core running on the user's own mach
 Requested at runtime, one site at a time, only when the user switches Mira on for that site (chrome.permissions.request in the popup). It is what lets the observer and companion run on that site. The permission is removed again when the user turns Mira off for the site. The same per-site request applies to the optional http://*/* permission for HTTP sites.
 ```
 
-**Note.** The manifest has no `icons` entry. All four sizes are ready at
-`extension/store/icon16.png`, `icon32.png`, `icon48.png`, `icon128.png`; adding the
-`"icons"` block to the manifest is a one-line change the user (or the agent who owns
-`extension/manifest.json`) must make — this pack deliberately does not edit it.
+**Integration note.** All four icon sizes are wired in extension/manifest.json at
+`store/icon16.png`, `store/icon32.png`, `store/icon48.png`, and `store/icon128.png`.
 
 ---
 

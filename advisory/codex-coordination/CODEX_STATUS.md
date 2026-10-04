@@ -1,5 +1,15 @@
 # Codex assistance status
 
+## Sol new-workflow assignment — 2026-10-03
+
+Direct user assignment: `design/tasks/SOL_NEW_WORKFLOW.md`, including exclusive backend ownership for this task, supersedes the older bounded-task ownership list.
+
+Implemented generic page-event ingestion, compact onboarding, workflow continuation/identity fixes, Learn this task companion controls and extension wiring. Changes are in `backend/shadow/{engine,onboard,main,converse,questions,workflows,store}.py`, `backend/shadow/packs/generic.py`, `backend/shadow/static/{capture,observe}.js`, two backend tests, extension background/manifest/loader/wire/vendor files, and `design/tasks/sol_fixture/`.
+
+Checks: 268 pytest passes (plus 2 xfailed / 2 xpassed), companion DOM checks, real API/LLM truth loop through confirmed teach-back and 5/5 exam, exports, tutor wrong/correct save verdicts and same-workflow matching. Final owned run meter: $0.0144. No simulator, commit or push; isolated :8001/:8011 servers stopped. Console/site/film/video changes from other work are untouched.
+
+Visual verification remains incomplete: headless Chrome launch was sandbox-blocked, then raw CDP was rejected by automatic approval review because browser permission was declined. Ordinary browser UI permission is pending; no sol-* screenshot is claimed. Full report: `design/tasks/SOL_NEW_WORKFLOW_REPORT.md`.
+
 Shubham authorized Codex to request work from Opus and delegate the assigned tasks to GPT-6.1 Sol / GPT-6 Luna until the Codex usage reset at **2026-10-03 13:31:05 America/Los_Angeles**.
 
 ## Coordination
@@ -50,3 +60,6 @@ The user explicitly appointed Codex as Opus's replacement and authorized DeepSee
 - Verified all film render/deployed-asset pairs (EN/DE videos, captions, poster, sprite) match byte for byte. Preserving remaining film source/media files.
 - Film controls completed locally and independently browser-verified; DeepSeek final report/tests pending at this checkpoint.
 - Sol remains sole writer of backend/shadow/** and its workflow tests plus extension integration; none of its in-progress files belong to the first commit. Review and commit separately when it finishes.
+
+### Completed Sol integration review
+Primary-agent verification supersedes the worker's pending visual-check note: final-source ordinary browser onboarding checked and sol-final-* evidence captured; backend suite independently passes 268 tests (2 xfailed/2 xpassed); extension source/vendor sync and icon references verified. Workflow code/report/tests/fixtures will be committed separately from the first reviewed checkpoint 8ee04b2.
