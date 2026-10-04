@@ -103,6 +103,15 @@ def test_run_map_and_tutor_check():
     assert check_proposal(wm, PACK, tutor_case, {"cost_center": "0400"}, "hold") == []
 
 
+def test_block_guardrail_lets_the_case_be_stopped():
+    """A compiled 'block' guardrail must not deadlock the tutor: 0400 + hold passes, 0400 + post is stopped."""
+    wm = _map_with_capex()
+    wm.guardrails[0].action = "block"
+    tutor_case = next(c for c in PACK.demo_cases()["tutor"] if c["id"] == "inv-5120")
+    assert [v.node_id for v in check_proposal(wm, PACK, tutor_case, {"cost_center": "0400"}, "post")] == ["G1"]
+    assert check_proposal(wm, PACK, tutor_case, {"cost_center": "0400"}, "hold") == []
+
+
 # ------------------------------------------------------------------ bayes
 def test_threshold_posterior_learns_basis_and_cutoff_with_bald():
     """Oracle uses net > 5000. Start ignorant about net vs gross; BALD probes should resolve both."""

@@ -357,6 +357,8 @@
         LEARN.demos.push(LEARN.current); LEARN.current = [];
       }
       keepLearning(); renderLearning();
+      // one example opens the Work Map; from then on she watches live, predicts and asks out loud, like on the ERP
+      if (LEARN.demos.length === 1 && !LEARN.current.length && evt.type === "action" && evt.terminal) doneShowing();
     } else if (SID && LEARN.stage === "idle" && !F.off) send(evt);
   }
   function wireObserver() {
@@ -386,8 +388,8 @@
     }).catch(function () { LEARN.error = "I couldn\u2019t check this page. Connect to Tacet, then try again."; renderLearning(); });
   }
   function watchTask() {
-    var goal = $("learn-goal").value.trim();
-    if (!goal) { $("learn-goal").focus(); return; }
+    // the goal is optional: the demonstrations carry the task, and Mira can ask about it out loud afterwards
+    var goal = $("learn-goal").value.trim() || "Do the task on this page (" + (document.title || location.pathname) + ") the way the expert does";
     LEARN.goal = goal; LEARN.stage = "watching"; LEARN.error = "";
     F.off = false; window.shadowObserve.refresh(); keepLearning(); render();
   }
@@ -403,6 +405,9 @@
     storeDel(LEARN_KEY); outbox = [];
     WORKFLOW = snap.pack; SIMULATED = !!snap.simulated; EXPERT = snap.expert;
     pinSession(snap.id, snap.mode); takeMetrics(snap.metrics); reconnect(); render();
+    // same as Start on the ERP: a session on any page comes with Mira's voice (Talk turns it off)
+    try { sessionStorage.setItem("shadow.voice", "on"); } catch (e) {}
+    startVoice();
   }
   function doneShowing() {
     if (!LEARN.demos.length || LEARN.stage === "creating") return;
@@ -674,11 +679,11 @@
               '<label id="learn-workflow-choice" hidden>Which workflow are you doing?<select id="learn-workflow"></select></label><div class="sess-acts">' +
               '<button class="btn accent" id="learn-continue" type="button">Continue this workflow</button>' +
               '<button class="btn" id="learn-new" type="button">Learn a new task</button></div></div>' +
-            '<form id="learn-form" hidden><label for="learn-goal">What should this task accomplish?</label>' +
-              '<input id="learn-goal" maxlength="300" placeholder="A one-line goal" required autocomplete="off">' +
-              '<p>Show Mira a few examples. A save or submit finishes each demonstration.</p>' +
+            '<form id="learn-form" hidden><label for="learn-goal">What should this task accomplish? (optional)</label>' +
+              '<input id="learn-goal" maxlength="300" placeholder="Skip it: Mira works it out from what you do" autocomplete="off">' +
+              '<p>Just do the task. A save or submit finishes each example; after the first one, Mira talks.</p>' +
               '<button class="btn accent" type="submit">Start watching</button></form>' +
-            '<div id="learn-watch" hidden><p id="learn-count" role="status"></p><p>One example is enough to start. Two or three help me see what changes.</p>' +
+            '<div id="learn-watch" hidden><p id="learn-count" role="status"></p><p>Do one example; I open the Work Map as soon as you save it.</p>' +
               '<div class="sess-acts"><button class="btn" id="learn-stop" type="button">Stop</button>' +
               '<button class="btn" id="learn-resume" type="button" hidden>Resume watching</button>' +
               '<button class="btn accent" id="learn-done" type="button" disabled>Done showing</button></div></div>' +

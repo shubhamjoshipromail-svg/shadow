@@ -75,21 +75,19 @@ try {
     await realClick(cdp, P, `document.getElementById("save")`);
   };
   const onItem = (n) => waitFor(() => evalIn(cdp, P, `location.search === "?i=${n}" && !!${CAP} && !!window.__shadowObserverConnected`), 120, 150);
-  const demos = ["Full refund", "Full refund", "Store credit"];
-  for (let n = 1; n <= 3; n++) {
+  // one demonstration opens the Work Map by itself; the companion then watches live
+  const demos = ["Full refund"];
+  for (let n = 1; n <= demos.length; n++) {
     await decide(demos[n - 1]);
     await onItem(n + 1); await delay(900);
     if (+process.env.STOPAFTER === n) throw new Error('stopped for debugging');
     console.log(`  demo ${n} -> ${await stage().catch(() => "(companion reloading)")}`);
   }
   await openPanel(); await delay(300);
-  const cnt = await stage();
-  check("3 demonstrations saved across page loads", /3 demonstrations/.test(cnt), cnt);
-  await shot(cdp, P, "ext-learn-3demos.png");
-  await click("learn-done");
+  await shot(cdp, P, "ext-learn-1demo.png");
   await waitFor(() => evalIn(cdp, P, `!!sessionStorage.getItem("shadow.session")`), 80, 250);
   const SID = await evalIn(cdp, P, `sessionStorage.getItem("shadow.session")`);
-  check("Done showing opened a live capture session", !!SID, String(SID));
+  check("the first demonstration opened a live capture session", !!SID, String(SID));
   await delay(1200);
   await shot(cdp, P, "ext-after-done.png");
   console.log("  panel:", (await evalIn(cdp, P, `${R}.getElementById("hc").innerText`)).replace(/\n/g, " / "));
