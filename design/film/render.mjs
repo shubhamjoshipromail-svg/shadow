@@ -5,6 +5,7 @@
  *   node design/film/render.mjs --stills 3,12.5,40   write PNG stills to out/stills/ (no video)
  *   node design/film/render.mjs --sheet              contact sheet every 3s -> out/contact.jpg
  *   node design/film/render.mjs --no-video           only vtt + audio (reuse out/silent.mp4)
+ *   node design/film/render.mjs --video-only         frames -> out/<comp>-silent.mp4 only (no audio mix, vtt untouched)
  * Flags: --fps 30  --size 1920x1080  --crf 24  --music path.mp3
  */
 import { spawn, spawnSync } from 'node:child_process'
@@ -85,7 +86,10 @@ const durations = vo.map((_, i) => probe(join(VO, String(i + 1).padStart(2, '0')
 durations.forEach((d, i) => { const next = LINES[i + 1] ?? DUR; if (LINES[i] + d > next + 0.001) console.warn(`overlap: line ${i + 1} ends ${LINES[i] + d} > next start ${next}`) })
 
 async function main() {
-  vtt()
+  // captions are timed from the voice files: never rewrite them from missing clips, nor for stills / sheet / silent renders
+  const haveVo = durations.every((d) => d > 0)
+  if (haveVo && !flag('stills') && !flag('sheet') && !flag('video-only') && !flag('keep-vtt')) vtt()
+  else if (!flag('stills') && !flag('sheet')) console.log(`vtt untouched (${haveVo ? 'asked' : 'voice clips missing in ' + VO})`)
   if (flag('stills')) {
     const b = await launch(); mkdirSync(join(OUT, 'stills'), { recursive: true })
     for (const t of String(flag('stills')).split(',')) writeFileSync(join(OUT, 'stills', `t${t}.png`), await b.shot(Number(t), 'png'))
@@ -106,7 +110,9 @@ async function main() {
     const N = Math.round(DUR * FPS)
     for (let f = 0; f < N; f++) { const buf = await b.shot(f / FPS); if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r)); if (f % 150 === 0) console.log(`frame ${f}/${N}`) }
     ff.stdin.end(); await new Promise((r) => ff.on('close', r)); b.close()
+    if (flag('video-only')) { console.log(`done: ${silent}`); return }
   }
+  if (!haveVo) { console.error(`no audio mix: voice clips missing in ${VO} (use --video-only, or --vo <dir>)`); process.exit(1) }
   // audio mix
   const inputs = ['-i', silent]; const filt = []; const labels = []
   vo.forEach((_, i) => { inputs.push('-i', join(VO, String(i + 1).padStart(2, '0') + '.mp3')); const ms = Math.round(LINES[i] * 1000); filt.push(`[${i + 1}:a]adelay=${ms}|${ms},volume=1.0[v${i}]`); labels.push(`[v${i}]`) })
